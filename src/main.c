@@ -15,91 +15,91 @@
 #include <cerver/utils/log.h>
 
 #include "handler.h"
-#include "things.h"
+#include "pocket.h"
 #include "version.h"
 
 #include "models/user.h"
 
-static Cerver *things_api = NULL;
+static Cerver *pocket_api = NULL;
 
 void end (int dummy) {
 	
-	if (things_api) {
-		cerver_stats_print (things_api, false, false);
+	if (pocket_api) {
+		cerver_stats_print (pocket_api, false, false);
 		printf ("\nHTTP Cerver stats:\n");
-		http_cerver_all_stats_print ((HttpCerver *) things_api->cerver_data);
+		http_cerver_all_stats_print ((HttpCerver *) pocket_api->cerver_data);
 		printf ("\n");
-		cerver_teardown (things_api);
+		cerver_teardown (pocket_api);
 	}
 
-	things_end ();
+	pocket_end ();
 
 	exit (0);
 
 }
 
-static void things_set_things_routes (HttpCerver *http_cerver) {
+static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 
 	/* register top level route */
-	// GET /api/things/
-	HttpRoute *things_route = http_route_create (REQUEST_METHOD_GET, "api/things", things_handler);
-	http_cerver_route_register (http_cerver, things_route);
+	// GET /api/pocket/
+	HttpRoute *pocket_route = http_route_create (REQUEST_METHOD_GET, "api/pocket", pocket_handler);
+	http_cerver_route_register (http_cerver, pocket_route);
 
-	/* register things children routes */
-	// GET api/things/version/
-	HttpRoute *things_version_route = http_route_create (REQUEST_METHOD_GET, "version", things_version_handler);
-	http_route_child_add (things_route, things_version_route);
+	/* register pocket children routes */
+	// GET api/pocket/version/
+	HttpRoute *pocket_version_route = http_route_create (REQUEST_METHOD_GET, "version", pocket_version_handler);
+	http_route_child_add (pocket_route, pocket_version_route);
 
-	// GET api/things/auth/
-	HttpRoute *things_auth_route = http_route_create (REQUEST_METHOD_GET, "auth", things_auth_handler);
-	http_route_set_auth (things_auth_route, HTTP_ROUTE_AUTH_TYPE_BEARER);
-	http_route_set_decode_data (things_auth_route, user_parse_from_json, user_delete);
-	http_route_child_add (things_route, things_auth_route);
+	// GET api/pocket/auth/
+	HttpRoute *pocket_auth_route = http_route_create (REQUEST_METHOD_GET, "auth", pocket_auth_handler);
+	http_route_set_auth (pocket_auth_route, HTTP_ROUTE_AUTH_TYPE_BEARER);
+	http_route_set_decode_data (pocket_auth_route, user_parse_from_json, user_delete);
+	http_route_child_add (pocket_route, pocket_auth_route);
 
 }
 
 static void start (void) {
 
-	things_api = cerver_create (CERVER_TYPE_WEB, "things-api", atoi (PORT->str), PROTOCOL_TCP, false, 10, 1000);
-	if (things_api) {
+	pocket_api = cerver_create (CERVER_TYPE_WEB, "pocket-api", atoi (PORT->str), PROTOCOL_TCP, false, 10, 1000);
+	if (pocket_api) {
 		/*** cerver configuration ***/
-		cerver_set_receive_buffer_size (things_api, 4096);
-		cerver_set_thpool_n_threads (things_api, 4);
-		cerver_set_handler_type (things_api, CERVER_HANDLER_TYPE_THREADS);
+		cerver_set_receive_buffer_size (pocket_api, 4096);
+		cerver_set_thpool_n_threads (pocket_api, 4);
+		cerver_set_handler_type (pocket_api, CERVER_HANDLER_TYPE_THREADS);
 
 		/*** web cerver configuration ***/
-		HttpCerver *http_cerver = (HttpCerver *) things_api->cerver_data;
+		HttpCerver *http_cerver = (HttpCerver *) pocket_api->cerver_data;
 
 		http_cerver_auth_set_jwt_algorithm (http_cerver, JWT_ALG_RS256);
 		http_cerver_auth_set_jwt_priv_key_filename (http_cerver, "keys/key.key");
 		http_cerver_auth_set_jwt_pub_key_filename (http_cerver, "keys/key.pub");
 
-		things_set_things_routes (http_cerver);
+		pocket_set_pocket_routes (http_cerver);
 
 		// add a catch all route
-		http_cerver_set_catch_all_route (http_cerver, things_catch_all_handler);
+		http_cerver_set_catch_all_route (http_cerver, pocket_catch_all_handler);
 
-		if (cerver_start (things_api)) {
+		if (cerver_start (pocket_api)) {
 			char *s = c_string_create ("Failed to start %s!",
-				things_api->info->name->str);
+				pocket_api->info->name->str);
 			if (s) {
 				cerver_log_error (s);
 				free (s);
 			}
 
-			cerver_delete (things_api);
+			cerver_delete (pocket_api);
 		}
 	}
 
 	else {
 		cerver_log_error ("Failed to create cerver!");
 
-		cerver_delete (things_api);
+		cerver_delete (pocket_api);
 	}
 
 }
 
-int main (int argc, char **argv) {
+int main (int argc, char const **argv) {
 
 	srand (time (NULL));
 
@@ -109,16 +109,16 @@ int main (int argc, char **argv) {
 
 	cerver_version_print_full ();
 
-	things_version_print_full ();
+	pocket_version_print_full ();
 
-	if (!things_init ()) {
+	if (!pocket_init ()) {
 		start ();
 	}
 
 	else {
-		cerver_log_error ("Failed to init things!");
+		cerver_log_error ("Failed to init pocket!");
 	}
 
-	return things_end ();
+	return pocket_end ();
 
 }
