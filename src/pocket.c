@@ -16,7 +16,7 @@
 #include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
 
-#include "things.h"
+#include "pocket.h"
 #include "mongo.h"
 #include "roles.h"
 #include "version.h"
@@ -33,7 +33,7 @@ static const String *MONGO_URI = NULL;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-static unsigned int things_env_get_port (void) {
+static unsigned int pocket_env_get_port (void) {
 	
 	unsigned int retval = 1;
 
@@ -52,7 +52,7 @@ static unsigned int things_env_get_port (void) {
 
 }
 
-static unsigned int things_env_get_mongo_uri (void) {
+static unsigned int pocket_env_get_mongo_uri (void) {
 
 	unsigned int retval = 1;
 
@@ -73,26 +73,26 @@ static unsigned int things_env_get_mongo_uri (void) {
 
 #pragma GCC diagnostic pop
 
-static unsigned int things_init_env (void) {
+static unsigned int pocket_init_env (void) {
 
 	unsigned int errors = 0;
 
-	errors |= things_env_get_port ();
+	errors |= pocket_env_get_port ();
 
-	errors |= things_env_get_mongo_uri ();
+	errors |= pocket_env_get_mongo_uri ();
 
 	return errors;
 
 }
 
-static unsigned int things_mongo_connect (void) {
+static unsigned int pocket_mongo_connect (void) {
 
 	unsigned int errors = 0;
 
 	bool connected_to_mongo = false;
 
 	mongo_set_uri (MONGO_URI->str);
-	mongo_set_app_name ("things");
+	mongo_set_app_name ("pocket");
 	mongo_set_db_name ("ermiry");
 
 	if (!mongo_connect ()) {
@@ -122,12 +122,12 @@ static unsigned int things_mongo_connect (void) {
 
 }
 
-static unsigned int things_mongo_init (void) {
+static unsigned int pocket_mongo_init (void) {
 
 	unsigned int retval = 1;
 
-	if (!things_mongo_connect ()) {
-		if (!things_roles_init ()) {
+	if (!pocket_mongo_connect ()) {
+		if (!pocket_roles_init ()) {
 			retval = 0;
 		}
 
@@ -140,20 +140,20 @@ static unsigned int things_mongo_init (void) {
 
 }
 
-// inits things main values
-unsigned int things_init (void) {
+// inits pocket main values
+unsigned int pocket_init (void) {
 
 	unsigned int errors = 0;
 
-	if (!things_init_env ()) {
-		errors |= things_mongo_init ();
+	if (!pocket_init_env ()) {
+		errors |= pocket_mongo_init ();
 	}
 
 	return errors;  
 
 }
 
-static unsigned int things_mongo_end (void) {
+static unsigned int pocket_mongo_end (void) {
 
 	if (mongo_get_status () == MONGO_STATUS_CONNECTED) {
 		actions_collection_close ();
@@ -169,14 +169,14 @@ static unsigned int things_mongo_end (void) {
 
 }
 
-// ends things main values
-unsigned int things_end (void) {
+// ends pocket main values
+unsigned int pocket_end (void) {
 
 	unsigned int errors = 0;
 
-	errors |= things_mongo_end ();
+	errors |= pocket_mongo_end ();
 
-	things_roles_end ();
+	pocket_roles_end ();
 
 	return errors;
 
@@ -186,17 +186,17 @@ unsigned int things_end (void) {
 
 #pragma region routes
 
-// GET api/things/
-void things_handler (CerverReceive *cr, HttpRequest *request) {
+// GET api/pocket/
+void pocket_handler (CerverReceive *cr, HttpRequest *request) {
 
-	http_response_json_msg_send (cr, 200, "Things works!");
+	http_response_json_msg_send (cr, 200, "Pocket works!");
 
 }
 
-// GET api/things/version
-void things_version_handler (CerverReceive *cr, HttpRequest *request) {
+// GET api/pocket/version
+void pocket_version_handler (CerverReceive *cr, HttpRequest *request) {
 
-	char *status = c_string_create ("%s - %s", THINGS_VERSION_NAME, THINGS_VERSION_DATE);
+	char *status = c_string_create ("%s - %s", POCKET_VERSION_NAME, POCKET_VERSION_DATE);
 	if (status) {
 		http_response_json_msg_send (cr, 200, status);
 		free (status);
@@ -204,10 +204,10 @@ void things_version_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 
-// GET api/things/auth
-void things_auth_handler (CerverReceive *cr, HttpRequest *request) {
+// GET api/pocket/auth
+void pocket_auth_handler (CerverReceive *cr, HttpRequest *request) {
 
-	http_response_json_msg_send (cr, 200, "Things auth!");
+	http_response_json_msg_send (cr, 200, "Pocket auth!");
 
 }
 
