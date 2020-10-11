@@ -14,7 +14,7 @@
 
 static DoubleList *roles = NULL;
 
-unsigned int magic_roles_init (void) {
+unsigned int things_roles_init (void) {
 
 	unsigned int retval = 1;
 
@@ -48,13 +48,13 @@ unsigned int magic_roles_init (void) {
 
 }
 
-void magic_roles_end (void) {
+void things_roles_end (void) {
 
 	dlist_delete (roles);
 
 }
 
-const String *magic_roles_get_by_oid (const bson_oid_t *role_oid) {
+const String *things_roles_get_by_oid (const bson_oid_t *role_oid) {
 
 	const String *retval = NULL;
 
