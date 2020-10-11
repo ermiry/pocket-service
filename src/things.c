@@ -2,15 +2,24 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "cerver/types/types.h"
-#include "cerver/types/string.h"
+#include <cerver/types/types.h>
+#include <cerver/types/string.h>
 
-#include "cerver/utils/utils.h"
-#include "cerver/utils/log.h"
+#include <cerver/handler.h>
+
+#include <cerver/http/http.h>
+#include <cerver/http/route.h>
+#include <cerver/http/request.h>
+#include <cerver/http/response.h>
+#include <cerver/http/json/json.h>
+
+#include <cerver/utils/utils.h>
+#include <cerver/utils/log.h>
 
 #include "things.h"
 #include "mongo.h"
 #include "roles.h"
+#include "version.h"
 
 #include "models/action.h"
 #include "models/role.h"
@@ -170,6 +179,35 @@ unsigned int things_end (void) {
 	things_roles_end ();
 
 	return errors;
+
+}
+
+#pragma endregion
+
+#pragma region routes
+
+// GET api/things/
+void things_handler (CerverReceive *cr, HttpRequest *request) {
+
+	http_response_json_msg_send (cr, 200, "Things works!");
+
+}
+
+// GET api/things/version
+void things_version_handler (CerverReceive *cr, HttpRequest *request) {
+
+	char *status = c_string_create ("%s - %s", THINGS_VERSION_NAME, THINGS_VERSION_DATE);
+	if (status) {
+		http_response_json_msg_send (cr, 200, status);
+		free (status);
+	}
+
+}
+
+// GET api/things/auth
+void things_auth_handler (CerverReceive *cr, HttpRequest *request) {
+
+	http_response_json_msg_send (cr, 200, "Things auth!");
 
 }
 
