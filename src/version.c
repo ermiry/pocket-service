@@ -2,25 +2,25 @@
 
 #include "version.h"
 
-// print full things version information
-void things_version_print_full (void) {
+// print full pocket version information
+void pocket_version_print_full (void) {
 
-	printf ("\n\nTiny Things Version: %s\n", THINGS_VERSION_NAME);
-	printf ("Release Date & time: %s - %s\n", THINGS_VERSION_DATE, THINGS_VERSION_TIME);
-	printf ("Author: %s\n\n", THINGS_VERSION_AUTHOR);
+	printf ("\n\nTiny Pocket Version: %s\n", POCKET_VERSION_NAME);
+	printf ("Release Date & time: %s - %s\n", POCKET_VERSION_DATE, POCKET_VERSION_TIME);
+	printf ("Author: %s\n\n", POCKET_VERSION_AUTHOR);
 
 }
 
 // print the version id
-void things_version_print_version_id (void) {
+void pocket_version_print_version_id (void) {
 
-	printf ("\n\nTiny Things Version ID: %s\n", THINGS_VERSION);
+	printf ("\n\nTiny Pocket Version ID: %s\n", POCKET_VERSION);
 
 }
 
 // print the version name
-void things_version_print_version_name (void) {
+void pocket_version_print_version_name (void) {
 
-	printf ("\n\nTiny Things Version: %s\n", THINGS_VERSION_NAME);
+	printf ("\n\nTiny Pocket Version: %s\n", POCKET_VERSION_NAME);
 
 }
