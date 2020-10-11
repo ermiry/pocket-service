@@ -7,6 +7,8 @@ OPENSSL		:= -l ssl -l crypto
 
 CMONGO 		:= `pkg-config --libs --cflags libmongoc-1.0`
 
+CERVER		:= -l cerver
+
 DEVELOPMENT	:= -g -D POCKET_DEBUG
 
 CC          := gcc
@@ -21,7 +23,7 @@ DEPEXT      := d
 OBJEXT      := o
 
 CFLAGS      := $(DEVELOPMENT) -Wall -Wno-unknown-pragmas
-LIB         := $(PTHREAD) $(MATH) $(OPENSSL) $(CMONGO)
+LIB         := $(PTHREAD) $(MATH) $(OPENSSL) $(CMONGO) $(CERVER)
 INC         := -I $(INCDIR) -I /usr/local/include
 INCDEP      := -I $(INCDIR)
 
