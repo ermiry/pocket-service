@@ -80,12 +80,10 @@ static void start (void) {
 		http_cerver_set_catch_all_route (http_cerver, pocket_catch_all_handler);
 
 		if (cerver_start (pocket_api)) {
-			char *s = c_string_create ("Failed to start %s!",
-				pocket_api->info->name->str);
-			if (s) {
-				cerver_log_error (s);
-				free (s);
-			}
+			cerver_log_error (
+				"Failed to start %s!",
+				pocket_api->info->name->str
+			);
 
 			cerver_delete (pocket_api);
 		}

@@ -18,15 +18,18 @@ static mongoc_collection_t *users_collection = NULL;
 // opens handle to user collection
 unsigned int users_collection_get (void) {
 
-	unsigned int errors = 0;
+	unsigned int retval = 1;
 
 	users_collection = mongo_collection_get (USERS_COLL_NAME);
-	if (!users_collection) {
-		cerver_log_msg (stderr, LOG_TYPE_ERROR, LOG_TYPE_NONE, "Failed to get handle to users collection!");
-		errors = 1;
+	if (users_collection) {
+		retval = 0;
 	}
 
-	return errors;
+	else {
+		cerver_log_error ("Failed to get handle to users collection!");
+	}
+
+	return retval;
 
 }
 
@@ -128,16 +131,6 @@ static User *user_doc_parse (const bson_t *user_doc) {
 					else if (!strcmp (key, "password") && value->value.v_utf8.str) {
 						user->password = str_new (value->value.v_utf8.str);
 					}
-
-					// else {
-					// 	#ifdef FOODIE_DEBUG
-					// 	char *status = c_string_create ("Got unknown key %s when parsing user doc.", key);
-					// 	if (status) {
-					// 		cerver_log_msg (stdout, LOG_WARNING, LOG_NO_TYPE, status);
-					// 		free (status);
-					// 	}
-					// 	#endif
-					// } 
 				}
 			}
 		}

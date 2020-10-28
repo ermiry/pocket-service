@@ -16,15 +16,18 @@ mongoc_collection_t *actions_collection = NULL;
 
 unsigned int actions_collection_get (void) {
 
-	unsigned int errors = 0;
+	unsigned int retval = 1;
 
 	actions_collection = mongo_collection_get (ACTIONS_COLL_NAME);
-	if (!actions_collection) {
-		cerver_log_msg (stderr, LOG_TYPE_ERROR, LOG_TYPE_NONE, "Failed to get handle to actions collection!");
-		errors = 1;
+	if (actions_collection) {
+		retval = 0;
 	}
 
-	return errors;
+	else {
+		cerver_log_error ("Failed to get handle to actions collection!");
+	}
+
+	return retval;
 
 }
 

@@ -19,15 +19,18 @@ mongoc_collection_t *roles_collection = NULL;
 
 unsigned int roles_collection_get (void) {
 
-	unsigned int errors = 0;
+	unsigned int retval = 1;
 
 	roles_collection = mongo_collection_get (ROLES_COLL_NAME);
-	if (!roles_collection) {
-		cerver_log_msg (stderr, LOG_TYPE_ERROR, LOG_TYPE_NONE, "Failed to get handle to roles collection!");
-		errors = 1;
+	if (roles_collection) {
+		retval = 0;
 	}
 
-	return errors;
+	else {
+		cerver_log_error ("Failed to get handle to roles collection!");
+	}
+
+	return retval;
 
 }
 
@@ -201,11 +204,6 @@ Role *role_doc_parse (const bson_t *role_doc) {
 				else if (!strcmp (key, "actions")) {
 					// role_doc_parse_actions (role, &iter);
 				}
-
-				// else {
-				// 	cerver_log_msg (stdout, LOG_WARNING, LOG_NO_TYPE, 
-				// 		c_string_create ("Got unknown key %s when parsing role doc.", key));
-				// } 
 			}
 		}
 	}
