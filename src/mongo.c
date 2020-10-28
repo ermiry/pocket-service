@@ -7,46 +7,41 @@
 #include <mongoc/mongoc.h>
 #include <bson/bson.h>
 
-#include "cerver/types/string.h"
+#include <cerver/types/string.h>
 
-#include "cerver/collections/dlist.h"
+#include <cerver/collections/dlist.h>
+
+#include <cerver/utils/utils.h>
+#include <cerver/utils/log.h>
 
 #include "mongo.h"
 
-// creates a new c string with the desired format, as in printf
-static char *mongo_c_string_create (const char *format, ...) {
+#pragma region types
 
-    char *fmt;
+bson_oid_t *bson_oid_new (void) {
 
-    if (format != NULL) fmt = strdup (format);
-    else fmt = strdup ("");
-
-    va_list argp;
-    va_start (argp, format);
-    char oneChar[1];
-    int len = vsnprintf (oneChar, 1, fmt, argp);
-    if (len < 1) return NULL;
-    va_end (argp);
-
-    char *str = (char *) calloc (len + 1, sizeof (char));
-    if (!str) return NULL;
-
-    va_start (argp, format);
-    vsnprintf (str, len + 1, fmt, argp);
-    va_end (argp);
-
-    free (fmt);
-
-    return str;
+	bson_oid_t *oid = (bson_oid_t *) malloc (sizeof (bson_oid_t));
+	if (oid) memset (oid, 0, sizeof (bson_oid_t));
+	return oid;
 
 }
 
-// prints a red error message to stderr
-static void mongo_log_error (const char *msg) {
+void bson_oid_delete (void *bson_oid_t_ptr) { if (bson_oid_t_ptr) free (bson_oid_t_ptr); }
 
-	if (msg) fprintf (stderr, "\x1b[31m" "[ERROR]: " "%s\n" "\x1b[0m", msg);
+bson_oid_t *bson_oid_create (const bson_oid_t *original_oid) {
+
+	bson_oid_t *oid = (bson_oid_t *) malloc (sizeof (bson_oid_t));
+	if (oid) {
+		bson_oid_copy (original_oid, oid);
+	}
+
+	return oid;
 
 }
+
+#pragma endregion
+
+#pragma region connection
 
 static MongoStatus status = MONGO_STATUS_DISCONNECTED;
 
@@ -105,16 +100,18 @@ char *mongo_uri_generate (void) {
 
 	if (host && port && db_name) {
 		if (username && password) {
-			retval = mongo_c_string_create ("mongodb://%s:%s@%s:%s/%s", 
+			retval = c_string_create ("mongodb://%s:%s@%s:%s/%s", 
 				username->str, password->str, 
 				host->str, port->str,
-				db_name->str);
+				db_name->str
+			);
 		}
 
 		else {
-			retval = mongo_c_string_create ("mongodb://%s:%s/%s", 
+			retval = c_string_create ("mongodb://%s:%s/%s", 
 				host->str, port->str,
-				db_name->str);
+				db_name->str
+			);
 		}
 	}
 
@@ -141,7 +138,8 @@ int mongo_ping_db (void) {
 				command, 
 				NULL, 
 				&reply, 
-				&error)) {
+				&error
+			)) {
 				// success
 				char *str = bson_as_json (&reply, NULL);
 				if (str) {
@@ -153,21 +151,17 @@ int mongo_ping_db (void) {
 			}
 
 			else {
-				char *status = mongo_c_string_create ("[MONGO] %s", error.message);
-				if (status) {
-					mongo_log_error (status);
-					free (status);
-				}
+				cerver_log_error ("[MONGO] %s", error.message);
 			}
 		}
 
 		else {
-			mongo_log_error ("DB name hasn't been set! Use mongo_set_db_name ()");
+			cerver_log_error ("DB name hasn't been set! Use mongo_set_db_name ()");
 		}
 	}
 
 	else {
-		mongo_log_error ("Not connected to mongo! Call mongo_connect () first");
+		cerver_log_error ("Not connected to mongo! Call mongo_connect () first");
 	}
 
 	return retval;
@@ -200,7 +194,7 @@ int mongo_connect (void) {
 		// create a new client instance
 		client = mongoc_client_new_from_uri (uri);
 		if (!client) {
-			mongo_log_error ("Failed to create a new client instance!\n");
+			cerver_log_error ("Failed to create a new client instance!\n");
 			return 1;
 		}
 
@@ -213,7 +207,7 @@ int mongo_connect (void) {
 	}
 
 	else {
-		mongo_log_error ("Not uri string! Call mongo_set_uri () before attemting a connection");
+		cerver_log_error ("Not uri string! Call mongo_set_uri () before attemting a connection");
 	}
 
 	return retval;
@@ -242,6 +236,10 @@ void mongo_disconnect (void) {
 
 }
 
+#pragma endregion
+
+#pragma region collections
+
 // opens handle to a mongo collection in the db
 mongoc_collection_t *mongo_collection_get (const char *coll_name) {
 
@@ -261,16 +259,14 @@ int mongo_collection_drop (mongoc_collection_t *collection) {
 	}
 
 	else {
-		char *status = mongo_c_string_create ("Failed to drop collection - %s", error.message);
-		if (status) {
-			mongo_log_error (status);
-			free (status);
-		}
+		cerver_log_error ("Failed to drop collection - %s", error.message);
 	}
 
 	return retval;
 
 }
+
+#pragma endregion
 
 #pragma region CRUD
 
@@ -283,11 +279,7 @@ int64_t mongo_count_docs (mongoc_collection_t *collection, bson_t *query) {
 		bson_error_t error;
 		retval = mongoc_collection_count_documents (collection, query, NULL, NULL, NULL, &error);
 		if (retval < 0) {
-			char *status = mongo_c_string_create ("%s", error.message);
-			if (status) {
-				mongo_log_error (status);
-				free (status);
-			}
+			cerver_log_error ("%s", error.message);
 
 			retval = 0;
 		}
@@ -444,18 +436,14 @@ int mongo_insert_one (mongoc_collection_t *collection, bson_t *doc) {
 	int retval = 1;
 
 	if (collection && doc) {
-		bson_error_t error;
+		bson_error_t error = { 0 };
 
 		if (mongoc_collection_insert_one (collection, doc, NULL, NULL, &error)) {
 			retval = 0;		// success
 		}
 
 		else {
-			char *status = mongo_c_string_create ("Insert failed: %s", error.message);
-			if (status) {
-				mongo_log_error (status);
-				free (status);
-			}
+			cerver_log_error ("Insert failed: %s", error.message);
 		}
 
 		bson_destroy (doc);
@@ -472,18 +460,14 @@ int mongo_insert_many (mongoc_collection_t *collection, const bson_t **docs, siz
 	int retval = 1;
 
 	if (collection && docs) {
-		bson_error_t error;
+		bson_error_t error = { 0 };
 
 		if (mongoc_collection_insert_many (collection, docs, n_docs, NULL, NULL, &error)) {
 			retval = 0;		// success
 		}
 
 		else {
-			char *status = mongo_c_string_create ("Insert failed: %s", error.message);
-			if (status) {
-				mongo_log_error (status);
-				free (status);
-			}
+			cerver_log_error ("Insert failed: %s", error.message);
 		}
 
 		// for (size_t i = 0; i < n_docs; i++) {
@@ -506,18 +490,14 @@ int mongo_update_one (mongoc_collection_t *collection, bson_t *query, bson_t *up
 	int retval = 1;
 
 	if (collection && query && update) {
-		bson_error_t error;
+		bson_error_t error = { 0 };
 
 		if (mongoc_collection_update_one (collection, query, update, NULL, NULL, &error)) {
 			retval = 0;		// success
 		}
 
 		else {
-			char *status = mongo_c_string_create ("Update failed: %s", error.message);
-			if (status) {
-				mongo_log_error (status);
-				free (status);
-			}
+			cerver_log_error ("Update failed: %s", error.message);
 		}
 
 		bson_destroy (query);
@@ -536,18 +516,14 @@ int mongo_update_many (mongoc_collection_t *collection, bson_t *query, bson_t *u
 	int retval = 0;
 
 	if (collection && query && update) {
-		bson_error_t error;
+		bson_error_t error = { 0 };
 
 		if (mongoc_collection_update_many (collection, query, update, NULL, NULL, &error)) {
 			retval = 0;		// success
 		}
 
 		else {
-			char *status = mongo_c_string_create ("Update failed: %s", error.message);
-			if (status) {
-				mongo_log_error (status);
-				free (status);
-			}
+			cerver_log_error ("Update failed: %s", error.message);
 		}
 
 		bson_destroy (query);
@@ -566,18 +542,14 @@ int mongo_delete_one (mongoc_collection_t *collection, bson_t *query) {
 	int retval = 0;
 
 	if (collection && query) {
-		bson_error_t error;
+		bson_error_t error = { 0 };
 
 		if (mongoc_collection_delete_one (collection, query, NULL, NULL, &error)) {
 			retval = 0;		// success
 		}
 
 		else {
-			char *status = mongo_c_string_create ("Delete failed: %s", error.message);
-			if (status) {
-				mongo_log_error (status);
-				free (status);
-			}
+			cerver_log_error ("Delete failed: %s", error.message);
 		}
 
 		bson_destroy (query);
@@ -595,18 +567,14 @@ int mongo_delete_many (mongoc_collection_t *collection, bson_t *query) {
 	int retval = 0;
 
 	if (collection && query) {
-		bson_error_t error;
+		bson_error_t error = { 0 };
 
 		if (mongoc_collection_delete_many (collection, query, NULL, NULL, &error)) {
 			retval = 0;		// success
 		}
 
 		else {
-			char *status = mongo_c_string_create ("Delete failed: %s", error.message);
-			if (status) {
-				mongo_log_error (status);
-				free (status);
-			}
+			cerver_log_error ("Delete failed: %s", error.message);
 		}
 
 		bson_destroy (query);

@@ -6,6 +6,18 @@
 
 #include <cerver/collections/dlist.h>
 
+#pragma region types
+
+extern bson_oid_t *bson_oid_new (void);
+
+extern void bson_oid_delete (void *bson_oid_t_ptr);
+
+extern bson_oid_t *bson_oid_create (const bson_oid_t *original_oid);
+
+#pragma endregion
+
+#pragma region connection
+
 typedef enum MongoStatus {
 
 	MONGO_STATUS_DISCONNECTED		= 0,
@@ -45,12 +57,18 @@ extern int mongo_connect (void);
 // disconnects from the db
 extern void mongo_disconnect (void);
 
+#pragma endregion
+
+#pragma region collections
+
 // opens handle to a mongo collection in the db
 extern mongoc_collection_t *mongo_collection_get (const char *coll_name);
 
 // drops a collection deleting all of its data
 // retuns 0 on success, 1 on error
 extern int mongo_collection_drop (mongoc_collection_t *collection);
+
+#pragma endregion
 
 #pragma region CRUD
 
