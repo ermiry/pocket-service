@@ -13,6 +13,7 @@
 #include "models/role.h"
 
 static DoubleList *roles = NULL;
+const Role *common_role = NULL;
 
 unsigned int pocket_roles_init (void) {
 
@@ -35,6 +36,10 @@ unsigned int pocket_roles_init (void) {
 			bson_destroy ((bson_t *) role_doc);
 		}
 
+		String *role_query = str_new ("common");
+		common_role = role_get_by_name (role_query, false);
+		str_delete (role_query);
+
 		mongoc_cursor_destroy (roles_cursor);
 
 		retval = 0;
@@ -49,6 +54,8 @@ unsigned int pocket_roles_init (void) {
 }
 
 void pocket_roles_end (void) {
+
+	role_delete ((Role *) common_role);
 
 	dlist_delete (roles);
 
