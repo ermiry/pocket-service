@@ -16,6 +16,7 @@
 
 #include "handler.h"
 #include "pocket.h"
+#include "users.h"
 #include "version.h"
 
 #include "models/user.h"
@@ -58,6 +59,20 @@ static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 
 }
 
+static void pocket_set_users_routes (HttpCerver *http_cerver) {
+
+	/* register top level route */
+	// GET /api/users/
+	HttpRoute *users_route = http_route_create (REQUEST_METHOD_GET, "api/users", users_handler);
+	http_cerver_route_register (http_cerver, users_route);
+
+	/* register users children routes */
+	// POST api/users/login
+	HttpRoute *users_login_route = http_route_create (REQUEST_METHOD_POST, "login", users_login_handler);
+	http_route_child_add (users_route, users_login_route);
+
+}
+
 static void start (void) {
 
 	pocket_api = cerver_create (CERVER_TYPE_WEB, "pocket-api", atoi (PORT->str), PROTOCOL_TCP, false, 10, 1000);
@@ -75,6 +90,7 @@ static void start (void) {
 		http_cerver_auth_set_jwt_pub_key_filename (http_cerver, "keys/key.pub");
 
 		pocket_set_pocket_routes (http_cerver);
+		pocket_set_users_routes (http_cerver);
 
 		// add a catch all route
 		http_cerver_set_catch_all_route (http_cerver, pocket_catch_all_handler);
