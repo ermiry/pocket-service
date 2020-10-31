@@ -38,10 +38,10 @@ extern int user_comparator (const void *a, const void *b);
 extern void user_print (User *user);
 
 // gets a user from the db by its email
-extern User *user_get_by_email (const String *email);
+extern User *user_get_by_email (const String *email, const DoubleList *select);
 
 // gets a user from the db by its username
-extern User *user_get_by_username (const String *username);
+extern User *user_get_by_username (const String *username, const DoubleList *select);
 
 extern void *user_parse_from_json (void *user_json_ptr);
 

@@ -3,6 +3,8 @@
 
 #include <cerver/types/string.h>
 
+#include <cerver/collections/dlist.h>
+
 #include <cerver/http/json/json.h>
 
 #include <cerver/utils/log.h>
@@ -92,6 +94,7 @@ void user_print (User *user) {
 		printf ("id: %s\n", user->id->str);
 		printf ("name: %s\n", user->name->str);
 		printf ("username: %s\n", user->username->str);
+		printf ("email: %s\n", user->email->str);
 		printf ("role: %s\n", user->role->str);
 	}
 
@@ -141,16 +144,14 @@ static User *user_doc_parse (const bson_t *user_doc) {
 }
 
 // get a user doc from the db by email
-static const bson_t *user_find_by_email (const String *email) {
+static const bson_t *user_find_by_email (const String *email, const DoubleList *select) {
 
 	const bson_t *retval = NULL;
 
-	if (email) {
-		bson_t *user_query = bson_new ();
-		if (user_query) {
-			bson_append_utf8 (user_query, "email", -1, email->str, email->len);
-			retval = mongo_find_one (users_collection, user_query, NULL);
-		}
+	bson_t *user_query = bson_new ();
+	if (user_query) {
+		bson_append_utf8 (user_query, "email", -1, email->str, email->len);
+		retval = mongo_find_one (users_collection, user_query, select);
 	}
 
 	return retval;    
@@ -158,12 +159,12 @@ static const bson_t *user_find_by_email (const String *email) {
 }
 
 // gets a user from the db by its email
-User *user_get_by_email (const String *email) {
+User *user_get_by_email (const String *email, const DoubleList *select) {
 
 	User *user = NULL;
 
 	if (email) {
-		const bson_t *user_doc = user_find_by_email (email);
+		const bson_t *user_doc = user_find_by_email (email, select);
 		if (user_doc) {
 			user = user_doc_parse (user_doc);
 			bson_destroy ((bson_t *) user_doc);
@@ -175,16 +176,14 @@ User *user_get_by_email (const String *email) {
 }
 
 // get a user doc from the db by username
-static const bson_t *user_find_by_username (const String *username) {
+static const bson_t *user_find_by_username (const String *username, const DoubleList *select) {
 
 	const bson_t *retval = NULL;
 
-	if (username) {
-		bson_t *user_query = bson_new ();
-		if (user_query) {
-			bson_append_utf8 (user_query, "username", -1, username->str, username->len);
-			retval = mongo_find_one (users_collection, user_query, NULL);
-		}
+	bson_t *user_query = bson_new ();
+	if (user_query) {
+		bson_append_utf8 (user_query, "username", -1, username->str, username->len);
+		retval = mongo_find_one (users_collection, user_query, select);
 	}
 
 	return retval;    
@@ -192,12 +191,12 @@ static const bson_t *user_find_by_username (const String *username) {
 }
 
 // gets a user from the db by its username
-User *user_get_by_username (const String *username) {
+User *user_get_by_username (const String *username, const DoubleList *select) {
 
 	User *user = NULL;
 
 	if (username) {
-		const bson_t *user_doc = user_find_by_username (username);
+		const bson_t *user_doc = user_find_by_username (username, select);
 		if (user_doc) {
 			user = user_doc_parse (user_doc);
 			bson_destroy ((bson_t *) user_doc);
@@ -221,6 +220,7 @@ void *user_parse_from_json (void *user_json_ptr) {
 
 	User *user = user_new ();
 	if (user) {
+		const char *email = NULL;
 		const char *id = NULL;
 		const char *name = NULL;
 		const char *username = NULL;
@@ -228,16 +228,18 @@ void *user_parse_from_json (void *user_json_ptr) {
 
 		if (!json_unpack (
 			user_json,
-			"{s:s, s:s, s:s, s:s, s:i}",
-			"id", &id,
-			"name", &name,
-			"username", &username,
-			"role", &role,
-			"iat", &user->iat
+			"{s:s, s:i, s:s, s:s, s:s, s:s}",
+			"email", email,
+			"iat", user->iat,
+			"id", id,
+			"name", name,
+			"role", role,
+			"username", username
 		)) {
 			user->id = str_new (id);
 			user->name = str_new (name);
 			user->username = str_new (username);
+			user->email = str_new (email);
 			user->role = str_new (role);
 
 			user_print (user);
