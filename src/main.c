@@ -35,6 +35,8 @@ void end (int dummy) {
 
 	pocket_end ();
 
+	cerver_end ();
+
 	exit (0);
 
 }
@@ -70,6 +72,10 @@ static void pocket_set_users_routes (HttpCerver *http_cerver) {
 	// POST api/users/login
 	HttpRoute *users_login_route = http_route_create (REQUEST_METHOD_POST, "login", users_login_handler);
 	http_route_child_add (users_route, users_login_route);
+
+	// POST api/users/register
+	HttpRoute *users_register_route = http_route_create (REQUEST_METHOD_POST, "register", users_register_handler);
+	http_route_child_add (users_route, users_register_route);
 
 }
 
@@ -121,6 +127,8 @@ int main (int argc, char const **argv) {
 	signal (SIGINT, end);
 	signal (SIGTERM, end);
 
+	cerver_init ();
+
 	cerver_version_print_full ();
 
 	pocket_version_print_full ();
@@ -133,6 +141,10 @@ int main (int argc, char const **argv) {
 		cerver_log_error ("Failed to init pocket!");
 	}
 
-	return pocket_end ();
+	pocket_end ();
+
+	cerver_end ();
+
+	return 0;
 
 }

@@ -54,11 +54,8 @@ void users_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 
-// users has correctly authenticated with his credentials, generate and send back token
-static void users_login_success (CerverReceive *cr, const User *user) {
-
-	// get the role name
-	const String *role_name = pocket_roles_get_by_oid (&user->role_oid);
+// generate and send back token
+static void users_generate_and_send_token (CerverReceive *cr, const User *user, const String *role_name) {
 
 	char buffer[32] = { 0 };
 	bson_oid_to_string (&user->oid, buffer);
@@ -111,7 +108,65 @@ static void users_login_success (CerverReceive *cr, const User *user) {
 
 }
 
-// POST api/users/common/login
+static u8 users_register_handler_save_user (CerverReceive *cr, User *user) {
+
+	u8 retval = 1;
+
+	if (!mongo_insert_one (
+		users_collection,
+		user_bson_create (user)
+	)) {
+		retval = 0;
+	}
+
+	else {
+		cerver_log_error ("Failed to save new user!");
+		http_response_json_error_send (cr, 500, "Internal error!");
+	}
+
+	return retval;
+
+}
+
+// POST api/users/register
+void users_register_handler (CerverReceive *cr, HttpRequest *request) {
+
+	// get the user values from the request
+	const String *name = http_request_body_get_value (request, "name");
+	const String *username = http_request_body_get_value (request, "username");
+	const String *email = http_request_body_get_value (request, "email");
+	const String *password = http_request_body_get_value (request, "password");
+	const String *confirm = http_request_body_get_value (request, "confirm");
+
+	if (name && username && email && password && confirm) {
+		User *user = user_create (
+			name->str,
+			username->str,
+			email->str,
+			password->str,
+			&common_role->oid
+		);
+		if (user) {
+			if (!users_register_handler_save_user (cr, user)) {
+				// return token upon success
+				users_generate_and_send_token (cr, user, common_role->name);
+			}
+
+			user_delete (user);
+		}
+
+		else {
+			http_response_json_error_send (cr, 500, "Internal error!");
+		}
+	}
+
+	else {
+		http_response_json_error_send (cr, 400, "Missing user values!");
+	}
+
+}
+
+// POST api/users/login
 void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 
 	// get the user values from the request
@@ -133,7 +188,7 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 				#endif
 
 				// generate and send token back to the user
-				users_login_success (cr, user);
+				users_generate_and_send_token (cr, user, pocket_roles_get_by_oid (&user->role_oid));
 			}
 
 			else {

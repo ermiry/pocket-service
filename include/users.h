@@ -23,6 +23,9 @@ extern void users_handler (CerverReceive *cr, HttpRequest *request);
 // POST api/users/login
 extern void users_login_handler (CerverReceive *cr, HttpRequest *request);
 
+// POST api/users/register
+extern void users_register_handler (CerverReceive *cr, HttpRequest *request);
+
 #pragma endregion
 
 #endif
