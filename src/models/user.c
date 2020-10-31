@@ -15,7 +15,7 @@
 
 #define USERS_COLL_NAME         				"users"
 
-static mongoc_collection_t *users_collection = NULL;
+mongoc_collection_t *users_collection = NULL;
 
 // opens handle to user collection
 unsigned int users_collection_get (void) {
@@ -79,6 +79,27 @@ void user_delete (void *user_ptr) {
 
 		free (user_ptr);
 	}
+
+}
+
+User *user_create (
+	const char *name,
+	const char *username,
+	const char *email,
+	const char *password,
+	const bson_oid_t *role_oid
+) {
+
+	User *user = user_new ();
+	if (user) {
+		user->name = str_new (name);
+		user->username = str_new (username);
+		user->email = str_new (email);
+		user->password = str_new (password);
+		bson_oid_copy (role_oid, &user->role_oid);
+	}
+
+	return user;
 
 }
 
@@ -254,5 +275,28 @@ void *user_parse_from_json (void *user_json_ptr) {
 	}
 
 	return user;
+
+}
+
+bson_t *user_bson_create (User *user) {
+
+	bson_t *doc = NULL;
+
+	if (user) {
+		doc = bson_new ();
+		if (doc) {
+			bson_oid_init (&user->oid, NULL);
+			bson_append_oid (doc, "_id", -1, &user->oid);
+
+			if (user->name) bson_append_utf8 (doc, "name", -1, user->name->str, user->name->len);
+			if (user->username) bson_append_utf8 (doc, "username", -1, user->username->str, user->username->len);
+			if (user->email) bson_append_utf8 (doc, "email", -1, user->email->str, user->email->len);
+			if (user->password) bson_append_utf8 (doc, "password", -1, user->password->str, user->password->len);
+
+			bson_append_oid (doc, "role", -1, &user->role_oid);
+		}
+	}
+
+	return doc;
 
 }
