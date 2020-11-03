@@ -29,3 +29,27 @@ sudo docker run \
   -e CERVER_RECEIVE_BUFFER_SIZE=4096 -e CERVER_TH_THREADS=4 \
   ermiry/tiny-pocket-api:development /bin/bash
 ```
+
+## Routes
+
+### Main
+
+#### GET /api/pocket
+Pocket top level route
+
+#### GET api/pocket/version
+Returns pocket-api service current version
+
+#### api/pocket/auth
+Used to test if jwt keys work correctly
+
+### Users
+
+#### GET /api/users
+Users top level route
+
+#### POST api/users/login
+Uses the user's supplied creedentials to perform a login and generate a jwt token
+
+#### POST api/users/register
+Used by users to create a new account
