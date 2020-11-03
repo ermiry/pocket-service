@@ -14,6 +14,9 @@
 
 extern const String *PORT;
 
+extern unsigned int CERVER_RECEIVE_BUFFER_SIZE;
+extern unsigned int CERVER_TH_THREADS;
+
 // inits pocket main values
 extern unsigned int pocket_init (void);
 

@@ -84,8 +84,8 @@ static void start (void) {
 	pocket_api = cerver_create (CERVER_TYPE_WEB, "pocket-api", atoi (PORT->str), PROTOCOL_TCP, false, 10, 1000);
 	if (pocket_api) {
 		/*** cerver configuration ***/
-		cerver_set_receive_buffer_size (pocket_api, 4096);
-		cerver_set_thpool_n_threads (pocket_api, 4);
+		cerver_set_receive_buffer_size (pocket_api, CERVER_RECEIVE_BUFFER_SIZE);
+		cerver_set_thpool_n_threads (pocket_api, CERVER_TH_THREADS);
 		cerver_set_handler_type (pocket_api, CERVER_HANDLER_TYPE_THREADS);
 
 		/*** web cerver configuration ***/

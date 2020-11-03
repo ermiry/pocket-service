@@ -30,6 +30,9 @@
 const String *PORT = NULL;
 static const String *MONGO_URI = NULL;
 
+unsigned int CERVER_RECEIVE_BUFFER_SIZE = 4096;
+unsigned int CERVER_TH_THREADS = 4;
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
@@ -71,6 +74,41 @@ static unsigned int pocket_env_get_mongo_uri (void) {
 
 }
 
+static void gepp_env_get_cerver_receive_buffer_size (void) {
+
+	char *buffer_size = getenv ("CERVER_RECEIVE_BUFFER_SIZE");
+	if (buffer_size) {
+		CERVER_RECEIVE_BUFFER_SIZE = (unsigned int) atoi (buffer_size);
+		cerver_log_success (
+			"CERVER_RECEIVE_BUFFER_SIZE -> %d\n", CERVER_RECEIVE_BUFFER_SIZE
+		);
+	}
+
+	else {
+		cerver_log_warning (
+			"Failed to get CERVER_RECEIVE_BUFFER_SIZE from env - using default %d!",
+			CERVER_RECEIVE_BUFFER_SIZE
+		);
+	}
+}
+
+static void gepp_env_get_cerver_th_threads (void) {
+
+	char *th_threads = getenv ("CERVER_TH_THREADS");
+	if (th_threads) {
+		CERVER_TH_THREADS = (unsigned int) atoi (th_threads);
+		cerver_log_success ("CERVER_TH_THREADS -> %d\n", CERVER_TH_THREADS);
+	}
+
+	else {
+		cerver_log_warning (
+			"Failed to get CERVER_TH_THREADS from env - using default %d!",
+			CERVER_TH_THREADS
+		);
+	}
+
+}
+
 #pragma GCC diagnostic pop
 
 static unsigned int pocket_init_env (void) {
@@ -92,8 +130,8 @@ static unsigned int pocket_mongo_connect (void) {
 	bool connected_to_mongo = false;
 
 	mongo_set_uri (MONGO_URI->str);
-	mongo_set_app_name ("pocket");
-	mongo_set_db_name ("ermiry");
+	mongo_set_app_name ("api");
+	mongo_set_db_name ("pocket");
 
 	if (!mongo_connect ()) {
 		// test mongo connection
