@@ -7,6 +7,7 @@
 #include <cerver/collections/dlist.h>
 
 #include <cerver/handler.h>
+#include <cerver/version.h>
 
 #include <cerver/http/http.h>
 #include <cerver/http/request.h>
@@ -148,6 +149,8 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 		);
 		if (user) {
 			if (!users_register_handler_save_user (cr, user)) {
+				cerver_log_success ("User %s has created an account!", email->str);
+
 				// return token upon success
 				users_generate_and_send_token (cr, user, common_role->name);
 			}
@@ -156,11 +159,17 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 		}
 
 		else {
+			#ifdef POCKET_DEBUG
+			cerver_log_error ("Failed to create user!");
+			#endif
 			http_response_json_error_send (cr, 500, "Internal error!");
 		}
 	}
 
 	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_warning ("Missing user values!");
+		#endif
 		http_response_json_error_send (cr, 400, "Missing user values!");
 	}
 
@@ -203,11 +212,17 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 		}
 
 		else {
+			#ifdef POCKET_DEBUG
+			cerver_log_warning ("User not found!");
+			#endif
 			http_response_json_error_send (cr, 404, "User not found!");
 		}
 	}
 
 	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_warning ("Missing user values!");
+		#endif
 		http_response_json_error_send (cr, 400, "Missing user values!");
 	}
 
