@@ -19,8 +19,6 @@
 #include "users.h"
 #include "version.h"
 
-#include "models/user.h"
-
 static Cerver *pocket_api = NULL;
 
 void end (int dummy) {
@@ -56,7 +54,7 @@ static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 	// GET api/pocket/auth/
 	HttpRoute *pocket_auth_route = http_route_create (REQUEST_METHOD_GET, "auth", pocket_auth_handler);
 	http_route_set_auth (pocket_auth_route, HTTP_ROUTE_AUTH_TYPE_BEARER);
-	http_route_set_decode_data (pocket_auth_route, user_parse_from_json, user_delete);
+	http_route_set_decode_data (pocket_auth_route, pocket_user_parse_from_json, pocket_user_delete);
 	http_route_child_add (pocket_route, pocket_auth_route);
 
 }
@@ -127,6 +125,9 @@ int main (int argc, char const **argv) {
 	signal (SIGINT, end);
 	signal (SIGTERM, end);
 
+	// to prevent SIGPIPE when writting to socket
+	signal (SIGPIPE, SIG_IGN);
+
 	cerver_init ();
 
 	cerver_version_print_full ();
@@ -141,7 +142,7 @@ int main (int argc, char const **argv) {
 		cerver_log_error ("Failed to init pocket!");
 	}
 
-	pocket_end ();
+	(void) pocket_end ();
 
 	cerver_end ();
 
