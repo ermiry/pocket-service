@@ -40,7 +40,7 @@ Pocket top level route
 #### GET api/pocket/version
 Returns pocket-api service current version
 
-#### api/pocket/auth
+#### GET api/pocket/auth
 Used to test if jwt keys work correctly
 
 ### Users
