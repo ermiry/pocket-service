@@ -96,6 +96,30 @@ void pocket_users_end (void) {
 
 }
 
+static User *pocket_user_create (
+	const char *name,
+	const char *username,
+	const char *email,
+	const char *password,
+	const bson_oid_t *role_oid
+) {
+
+	User *user = (User *) pool_pop (users_pool);
+	if (user) {
+		bson_oid_init (&user->oid, NULL);
+
+		strncpy (user->name, name, USER_NAME_LEN);
+		strncpy (user->username, username, USER_USERNAME_LEN);
+		strncpy (user->email, email, USER_EMAIL_LEN);
+		strncpy (user->password, password, USER_PASSWORD_LEN);
+
+		bson_oid_copy (role_oid, &user->role_oid);
+	}
+
+	return user;
+
+}
+
 static User *pocket_user_get_by_email (const String *email) {
 
 	User *user = NULL;
@@ -185,16 +209,14 @@ void users_handler (CerverReceive *cr, HttpRequest *request) {
 // generate and send back token
 static void users_generate_and_send_token (CerverReceive *cr, const User *user, const String *role_name) {
 
-	char buffer[32] = { 0 };
-	bson_oid_to_string (&user->oid, buffer);
-	String *id = str_new (buffer);
+	bson_oid_to_string (&user->oid, (char *) user->id);
 
 	DoubleList *payload = dlist_init (key_value_pair_delete, NULL);
-	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("email", user->email->str));
-	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("id", id->str));
-	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("name", user->name->str));
+	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("email", user->email));
+	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("id", user->id));
+	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("name", user->name));
 	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("role", role_name->str));
-	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("username", user->username->str));
+	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("username", user->username));
 
 	// generate & send back auth token
 	char *token = http_cerver_auth_generate_jwt ((HttpCerver *) cr->cerver->cerver_data, payload);
@@ -267,7 +289,7 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 	const String *confirm = http_request_body_get_value (request, "confirm");
 
 	if (name && username && email && password && confirm) {
-		User *user = user_create (
+		User *user = pocket_user_create (
 			name->str,
 			username->str,
 			email->str,
@@ -282,7 +304,7 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 				users_generate_and_send_token (cr, user, common_role->name);
 			}
 
-			user_delete (user);
+			pocket_user_delete (user);
 		}
 
 		else {
@@ -311,7 +333,7 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 	const String *password = http_request_body_get_value (request, "password");
 
 	if (email && password) {
-		User *user = user_get_by_email (email, user_login_select);
+		User *user = pocket_user_get_by_email (email);
 		if (user) {
 			#ifdef POCKET_DEBUG
 			char oid_buffer[32] = { 0 };
@@ -335,7 +357,7 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 				http_response_json_error_send (cr, 400, "Password is incorrect!");
 			}
 
-			user_delete (user);
+			pocket_user_delete (user);
 		}
 
 		else {
