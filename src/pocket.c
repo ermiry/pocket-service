@@ -19,6 +19,7 @@
 #include "pocket.h"
 #include "mongo.h"
 #include "roles.h"
+#include "users.h"
 #include "version.h"
 
 #include "models/action.h"
@@ -185,6 +186,8 @@ unsigned int pocket_init (void) {
 
 	if (!pocket_init_env ()) {
 		errors |= pocket_mongo_init ();
+
+		errors |= pocket_users_init ();
 	}
 
 	return errors;  
@@ -215,6 +218,8 @@ unsigned int pocket_end (void) {
 	errors |= pocket_mongo_end ();
 
 	pocket_roles_end ();
+
+	pocket_users_end ();
 
 	return errors;
 
