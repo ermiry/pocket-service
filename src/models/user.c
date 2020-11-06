@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <cerver/types/types.h>
 #include <cerver/types/string.h>
 
 #include <cerver/collections/dlist.h>
@@ -41,22 +42,11 @@ void users_collection_close (void) {
 
 }
 
-User *user_new (void) {
+void *user_new (void) {
 
 	User *user = (User *) malloc (sizeof (User));
 	if (user) {
-		user->id = NULL;
-		memset (&user->oid, 0, sizeof (bson_oid_t));
-
-		user->name = NULL;
-		user->username = NULL;
-		user->email = NULL;
-		user->password = NULL;
-
-		user->role = NULL;
-		memset (&user->role_oid, 0, sizeof (bson_oid_t));
-		
-		user->iat = 0;
+		memset (user, 0, sizeof (User));
 	}
 
 	return user;
@@ -65,114 +55,69 @@ User *user_new (void) {
 
 void user_delete (void *user_ptr) {
 
-	if (user_ptr) {
-		User *user = (User *) user_ptr;
-
-		str_delete (user->id);
-
-		str_delete (user->name);
-		str_delete (user->username);
-		str_delete (user->email);
-		str_delete (user->password);
-
-		str_delete (user->role);
-
-		free (user_ptr);
-	}
-
-}
-
-User *user_create (
-	const char *name,
-	const char *username,
-	const char *email,
-	const char *password,
-	const bson_oid_t *role_oid
-) {
-
-	User *user = user_new ();
-	if (user) {
-		user->name = str_new (name);
-		user->username = str_new (username);
-		user->email = str_new (email);
-		user->password = str_new (password);
-		bson_oid_copy (role_oid, &user->role_oid);
-	}
-
-	return user;
-
-}
-
-int user_comparator (const void *a, const void *b) {
-
-	return strcmp (((User *) a)->username->str, ((User *) b)->username->str);
+	if (user_ptr) free (user_ptr);
 
 }
 
 void user_print (User *user) {
 
 	if (user) {
-		printf ("id: %s\n", user->id->str);
-		printf ("name: %s\n", user->name->str);
-		printf ("username: %s\n", user->username->str);
-		printf ("email: %s\n", user->email->str);
-		printf ("role: %s\n", user->role->str);
+		printf ("email: %s\n", user->email);
+		printf ("iat: %ld\n", user->iat);
+		printf ("id: %s\n", user->id);
+		printf ("name: %s\n", user->name);
+		printf ("role: %s\n", user->role);
+		printf ("username: %s\n", user->username);
 	}
 
 }
 
 // parses a bson doc into a user model
-static User *user_doc_parse (const bson_t *user_doc) {
+static void user_doc_parse (User *user, const bson_t *user_doc) {
 
-	User *user = NULL;
+	bson_iter_t iter = { 0 };
+	if (bson_iter_init (&iter, user_doc)) {
+		char *key = NULL;
+		bson_value_t *value = NULL;
+		while (bson_iter_next (&iter)) {
+			key = (char *) bson_iter_key (&iter);
+			value = (bson_value_t *) bson_iter_value (&iter);
 
-	if (user_doc) {
-		user = user_new ();
-		if (user) {
-			bson_iter_t iter = { 0 };
-			if (bson_iter_init (&iter, user_doc)) {
-				while (bson_iter_next (&iter)) {
-					const char *key = bson_iter_key (&iter);
-					const bson_value_t *value = bson_iter_value (&iter);
-
-					if (!strcmp (key, "_id")) {
-						bson_oid_copy (&value->value.v_oid, &user->oid);
-					}
-
-					else if (!strcmp (key, "role")) {
-						bson_oid_copy (&value->value.v_oid, &user->role_oid);
-					}
-
-					else if (!strcmp (key, "name") && value->value.v_utf8.str) 
-						user->name = str_new (value->value.v_utf8.str);
-
-					else if (!strcmp (key, "email") && value->value.v_utf8.str) 
-						user->email = str_new (value->value.v_utf8.str);
-
-					else if (!strcmp (key, "username") && value->value.v_utf8.str) 
-						user->username = str_new (value->value.v_utf8.str);
-
-					else if (!strcmp (key, "password") && value->value.v_utf8.str) {
-						user->password = str_new (value->value.v_utf8.str);
-					}
-				}
+			if (!strcmp (key, "_id")) {
+				bson_oid_copy (&value->value.v_oid, &user->oid);
 			}
+
+			else if (!strcmp (key, "role")) {
+				bson_oid_copy (&value->value.v_oid, &user->role_oid);
+			}
+
+			else if (!strcmp (key, "name") && value->value.v_utf8.str) 
+				strncpy (user->name, value->value.v_utf8.str, USER_NAME_LEN);
+
+			else if (!strcmp (key, "email") && value->value.v_utf8.str) 
+				strncpy (user->email, value->value.v_utf8.str, USER_EMAIL_LEN);
+
+			else if (!strcmp (key, "username") && value->value.v_utf8.str) 
+				strncpy (user->username, value->value.v_utf8.str, USER_USERNAME_LEN);
+
+			else if (!strcmp (key, "password") && value->value.v_utf8.str)
+				strncpy (user->password, value->value.v_utf8.str, USER_PASSWORD_LEN);
 		}
 	}
-
-	return user;
 
 }
 
 // get a user doc from the db by email
-static const bson_t *user_find_by_email (const String *email, const DoubleList *select) {
+static const bson_t *user_find_by_email (
+	const String *email, const bson_t *query_opts
+) {
 
 	const bson_t *retval = NULL;
 
 	bson_t *user_query = bson_new ();
 	if (user_query) {
 		bson_append_utf8 (user_query, "email", -1, email->str, email->len);
-		retval = mongo_find_one (users_collection, user_query, select);
+		retval = mongo_find_one_with_opts (users_collection, user_query, query_opts);
 	}
 
 	return retval;    
@@ -180,31 +125,35 @@ static const bson_t *user_find_by_email (const String *email, const DoubleList *
 }
 
 // gets a user from the db by its email
-User *user_get_by_email (const String *email, const DoubleList *select) {
+u8 user_get_by_email (
+	User *user, const String *email, const bson_t *query_opts
+) {
 
-	User *user = NULL;
+	u8 retval = 1;
 
 	if (email) {
-		const bson_t *user_doc = user_find_by_email (email, select);
+		const bson_t *user_doc = user_find_by_email (email, query_opts);
 		if (user_doc) {
-			user = user_doc_parse (user_doc);
+			user_doc_parse (user, user_doc);
 			bson_destroy ((bson_t *) user_doc);
 		}
 	}
 
-	return user;
+	return retval;
 
 }
 
 // get a user doc from the db by username
-static const bson_t *user_find_by_username (const String *username, const DoubleList *select) {
+static const bson_t *user_find_by_username (
+	const String *username, const bson_t *query_opts
+) {
 
 	const bson_t *retval = NULL;
 
 	bson_t *user_query = bson_new ();
 	if (user_query) {
 		bson_append_utf8 (user_query, "username", -1, username->str, username->len);
-		retval = mongo_find_one (users_collection, user_query, select);
+		retval = mongo_find_one_with_opts (users_collection, user_query, query_opts);
 	}
 
 	return retval;    
@@ -212,19 +161,21 @@ static const bson_t *user_find_by_username (const String *username, const Double
 }
 
 // gets a user from the db by its username
-User *user_get_by_username (const String *username, const DoubleList *select) {
+u8 user_get_by_username (
+	User *user, const String *username, const bson_t *query_opts
+) {
 
-	User *user = NULL;
+	u8 retval = 1;
 
 	if (username) {
-		const bson_t *user_doc = user_find_by_username (username, select);
+		const bson_t *user_doc = user_find_by_username (username, query_opts);
 		if (user_doc) {
-			user = user_doc_parse (user_doc);
+			user_doc_parse (user, user_doc);
 			bson_destroy ((bson_t *) user_doc);
 		}
 	}
 
-	return user;
+	return retval;
 
 }
 
@@ -238,10 +189,10 @@ bson_t *user_bson_create (User *user) {
 			bson_oid_init (&user->oid, NULL);
 			bson_append_oid (doc, "_id", -1, &user->oid);
 
-			if (user->name) bson_append_utf8 (doc, "name", -1, user->name->str, user->name->len);
-			if (user->username) bson_append_utf8 (doc, "username", -1, user->username->str, user->username->len);
-			if (user->email) bson_append_utf8 (doc, "email", -1, user->email->str, user->email->len);
-			if (user->password) bson_append_utf8 (doc, "password", -1, user->password->str, user->password->len);
+			if (user->name) bson_append_utf8 (doc, "name", -1, user->name, -1);
+			if (user->username) bson_append_utf8 (doc, "username", -1, user->username, -1);
+			if (user->email) bson_append_utf8 (doc, "email", -1, user->email, -1);
+			if (user->password) bson_append_utf8 (doc, "password", -1, user->password, -1);
 
 			bson_append_oid (doc, "role", -1, &user->role_oid);
 		}

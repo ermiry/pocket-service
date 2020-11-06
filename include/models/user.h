@@ -6,7 +6,15 @@
 #include <mongoc/mongoc.h>
 #include <bson/bson.h>
 
+#include <cerver/types/types.h>
 #include <cerver/types/string.h>
+
+#define USER_ID_LEN				32
+#define USER_EMAIL_LEN			128
+#define USER_NAME_LEN			128
+#define USER_USERNAME_LEN		128
+#define USER_PASSWORD_LEN		128
+#define USER_ROLE_LEN			64
 
 extern mongoc_collection_t *users_collection;
 
@@ -17,44 +25,36 @@ extern void users_collection_close (void);
 
 typedef struct User {
 
-	String *id;
+	char id[USER_ID_LEN];
 	bson_oid_t oid;
 
-	String *name;
-	String *username;
-	String *email;
-	String *password;
+	char email[USER_EMAIL_LEN];
+	char name[USER_NAME_LEN];
+	char username[USER_USERNAME_LEN];
+	char password[USER_PASSWORD_LEN];
 
-	String *role;
+	char role[USER_ROLE_LEN];
 	bson_oid_t role_oid;
 
 	time_t iat;
 
 } User;
 
-extern User *user_new (void);
+extern void *user_new (void);
 
 extern void user_delete (void *user_ptr);
-
-extern User *user_create (
-	const char *name,
-	const char *username,
-	const char *email,
-	const char *password,
-	const bson_oid_t *role_oid
-);
-
-extern int user_comparator (const void *a, const void *b);
 
 extern void user_print (User *user);
 
 // gets a user from the db by its email
-extern User *user_get_by_email (const String *email, const DoubleList *select);
+extern u8 user_get_by_email (
+	User *user, const String *email, const bson_t *query_opts
+);
 
 // gets a user from the db by its username
-extern User *user_get_by_username (const String *username, const DoubleList *select);
-
-extern void *user_parse_from_json (void *user_json_ptr);
+extern u8 user_get_by_username (
+	User *user, const String *username, const bson_t *query_opts
+);
 
 extern bson_t *user_bson_create (User *user);
 
