@@ -228,56 +228,6 @@ User *user_get_by_username (const String *username, const DoubleList *select) {
 
 }
 
-// {
-//   "id": "5eb2b13f0051f70011e9d3af",
-//   "name": "Erick Salas",
-//   "username": "erick",
-//   "role": "god",
-//   "iat": 1596532954
-// }
-void *user_parse_from_json (void *user_json_ptr) {
-
-	json_t *user_json = (json_t *) user_json_ptr;
-
-	User *user = user_new ();
-	if (user) {
-		const char *email = NULL;
-		const char *id = NULL;
-		const char *name = NULL;
-		const char *username = NULL;
-		const char *role = NULL;
-
-		if (!json_unpack (
-			user_json,
-			"{s:s, s:i, s:s, s:s, s:s, s:s}",
-			"email", email,
-			"iat", user->iat,
-			"id", id,
-			"name", name,
-			"role", role,
-			"username", username
-		)) {
-			user->id = str_new (id);
-			user->name = str_new (name);
-			user->username = str_new (username);
-			user->email = str_new (email);
-			user->role = str_new (role);
-
-			user_print (user);
-		}
-
-		else {
-			cerver_log_error ("user_parse_from_json () - json_unpack () has failed!");
-
-			user_delete (user);
-			user = NULL;
-		}
-	}
-
-	return user;
-
-}
-
 bson_t *user_bson_create (User *user) {
 
 	bson_t *doc = NULL;
