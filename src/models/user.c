@@ -186,7 +186,6 @@ bson_t *user_bson_create (User *user) {
 	if (user) {
 		doc = bson_new ();
 		if (doc) {
-			bson_oid_init (&user->oid, NULL);
 			bson_append_oid (doc, "_id", -1, &user->oid);
 
 			if (user->name) bson_append_utf8 (doc, "name", -1, user->name, -1);
