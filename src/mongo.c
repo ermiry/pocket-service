@@ -100,7 +100,8 @@ char *mongo_uri_generate (void) {
 
 	if (host && port && db_name) {
 		if (username && password) {
-			retval = c_string_create ("mongodb://%s:%s@%s:%s/%s", 
+			retval = c_string_create (
+				"mongodb://%s:%s@%s:%s/%s", 
 				username->str, password->str, 
 				host->str, port->str,
 				db_name->str
@@ -108,7 +109,8 @@ char *mongo_uri_generate (void) {
 		}
 
 		else {
-			retval = c_string_create ("mongodb://%s:%s/%s", 
+			retval = c_string_create (
+				"mongodb://%s:%s/%s", 
 				host->str, port->str,
 				db_name->str
 			);
@@ -181,7 +183,8 @@ int mongo_connect (void) {
 		// safely create mongo uri object
 		uri = mongoc_uri_new_with_error (uri_string->str, &error);
 		if (!uri) {
-			fprintf (stderr,
+			fprintf (
+				stderr,
 				"failed to parse URI: %s\n"
 				"error message:       %s\n",
 				uri_string->str,
@@ -193,17 +196,18 @@ int mongo_connect (void) {
 
 		// create a new client instance
 		client = mongoc_client_new_from_uri (uri);
-		if (!client) {
-			cerver_log_error ("Failed to create a new client instance!\n");
-			return 1;
+		if (client) {
+			// register the app name -> for logging info
+			mongoc_client_set_appname (client, app_name->str);
+
+			status = MONGO_STATUS_CONNECTED;
+
+			retval = 0;
 		}
 
-		// register the app name -> for logging info
-		mongoc_client_set_appname (client, app_name->str);
-
-		status = MONGO_STATUS_CONNECTED;
-
-		retval = 0;
+		else {
+			cerver_log_error ("Failed to create a new client instance!\n");
+		}
 	}
 
 	else {
@@ -276,7 +280,7 @@ int64_t mongo_count_docs (mongoc_collection_t *collection, bson_t *query) {
 	int64_t retval = 0;
 
 	if (collection && query) {
-		bson_error_t error;
+		bson_error_t error = { 0 };
 		retval = mongoc_collection_count_documents (collection, query, NULL, NULL, NULL, &error);
 		if (retval < 0) {
 			cerver_log_error ("%s", error.message);
@@ -291,7 +295,31 @@ int64_t mongo_count_docs (mongoc_collection_t *collection, bson_t *query) {
 
 }
 
-static bson_t *mongo_find_generate_opts (const DoubleList *select) {
+// returns true if 1 or more documents matches the query, false if no matches
+bool mongo_check (mongoc_collection_t *collection, bson_t *query) {
+
+	bool retval = false;
+
+	if (collection && query) {
+		bson_error_t error = { 0 };
+		if (mongoc_collection_count_documents (collection, query, NULL, NULL, NULL, &error) >= 0) {
+			retval = true;
+		}
+
+		else {
+			cerver_log_error ("%s", error.message);
+		}
+
+		bson_destroy (query);
+	}
+
+	return retval;
+
+}
+
+// generates an opts doc that can be used to better work with find methods
+// primarily used to query with projection (select) options
+bson_t *mongo_find_generate_opts (const DoubleList *select) {
 
 	bson_t *opts = bson_new ();
 
@@ -402,22 +430,50 @@ void mongo_find_all_destroy_docs (bson_t **docs, uint64_t count) {
 
 }
 
-// use a query to find one doc
+static void mongo_find_one_internal (
+	mongoc_collection_t *collection, bson_t *query, const bson_t *opts, const bson_t **doc
+) {
+
+	mongoc_cursor_t *cursor = mongoc_collection_find_with_opts (collection, query, opts, NULL);
+	mongoc_cursor_set_limit (cursor, 1);
+
+	mongoc_cursor_next (cursor, doc);
+
+	mongoc_cursor_destroy (cursor);
+
+}
+
+// uses a query to find one doc with the specified options
+// query gets destroyed, opts are kept the same
+const bson_t *mongo_find_one_with_opts (
+	mongoc_collection_t *collection, bson_t *query, const bson_t *opts
+) {
+
+	const bson_t *doc = NULL;
+
+	if (collection && query) {
+		mongo_find_one_internal (collection, query, opts, &doc);
+
+		bson_destroy (query);
+	}
+
+	return doc;
+
+}
+
+// uses a query to find one doc
 // select is a dlist of strings used for document projection, _id is true by default and should not be incldued
 // query gets destroyed, select list remains the same
-const bson_t *mongo_find_one (mongoc_collection_t *collection, bson_t *query, const DoubleList *select) {
+const bson_t *mongo_find_one (
+	mongoc_collection_t *collection, bson_t *query, const DoubleList *select
+) {
 
 	const bson_t *doc = NULL;
 
 	if (collection && query) {
 		bson_t *opts = mongo_find_generate_opts (select);
 
-		mongoc_cursor_t *cursor = mongoc_collection_find_with_opts (collection, query, opts, NULL);
-		mongoc_cursor_set_limit (cursor, 1);
-
-		mongoc_cursor_next (cursor, &doc);
-
-		mongoc_cursor_destroy (cursor);
+		mongo_find_one_internal (collection, query, opts, &doc);
 
 		if (opts) bson_destroy (opts);
 

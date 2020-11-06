@@ -75,6 +75,13 @@ extern int mongo_collection_drop (mongoc_collection_t *collection);
 // counts the docs in a collection by a matching query
 extern int64_t mongo_count_docs (mongoc_collection_t *collection, bson_t *query);
 
+// returns true if 1 or more documents matches the query, false if no matches
+extern bool mongo_check (mongoc_collection_t *collection, bson_t *query);
+
+// generates an opts doc that can be used to better work with find methods
+// primarily used to query with projection (select) options
+extern bson_t *mongo_find_generate_opts (const DoubleList *select);
+
 // use a query to find all matching documents
 // select is a dlist of strings used for document projection, _id is true by default and should not be incldued
 // returns a cursor (should be destroyed) that can be used to traverse the matching documents
@@ -96,10 +103,18 @@ extern const bson_t **mongo_find_all (
 // correctly destroys an array of docs got from mongo_find_all ()
 extern void mongo_find_all_destroy_docs (bson_t **docs, uint64_t count);
 
-// use a query to find one doc
+// uses a query to find one doc with the specified options
+// query gets destroyed, opts are kept the same
+extern const bson_t *mongo_find_one_with_opts (
+	mongoc_collection_t *collection, bson_t *query, const bson_t *opts
+);
+
+// uses a query to find one doc
 // select is a dlist of strings used for document projection, _id is true by default and should not be incldued
 // query gets destroyed, select list remains the same
-const bson_t *mongo_find_one (mongoc_collection_t *collection, bson_t *query, const DoubleList *select);
+extern const bson_t *mongo_find_one (
+	mongoc_collection_t *collection, bson_t *query, const DoubleList *select
+);
 
 // inserts a document into a collection
 // destroys document
