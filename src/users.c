@@ -340,7 +340,7 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 			bson_oid_to_string (&user->oid, oid_buffer);
 			#endif
 
-			if (!strcmp (user->password->str, password->str)) {
+			if (!strcmp (user->password, password->str)) {
 				#ifdef POCKET_DEBUG
 				cerver_log_success ("User %s login -> success", oid_buffer);
 				#endif
