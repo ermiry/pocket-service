@@ -309,8 +309,6 @@ void pocket_auth_handler (CerverReceive *cr, HttpRequest *request) {
 	}
 
 	else {
-		http_request_multi_part_discard_files (request);
-		cerver_log_warning ("Bad user!");
 		http_response_json_error_send (cr, 400, "Bad user!");
 	}
 
@@ -319,6 +317,60 @@ void pocket_auth_handler (CerverReceive *cr, HttpRequest *request) {
 // GET api/pocket/transactions
 // get all the authenticated user's transactions
 void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		// TODO:
+	}
+
+	else {
+		http_response_json_error_send (cr, 400, "Bad user!");
+	}
+
+}
+
+// POST api/pocket/transactions
+// a user has requested to create a new transaction
+void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		// TODO:
+	}
+
+	else {
+		http_response_json_error_send (cr, 400, "Bad user!");
+	}
+
+}
+
+// GET api/pocket/transactions/:id
+// returns information about an existing transaction that belongs to a user
+void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		// TODO:
+	}
+
+	else {
+		http_response_json_error_send (cr, 400, "Bad user!");
+	}
+
+}
+
+// DELETE api/pocket/transactions/:id
+// deletes an existing user's transaction
+void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		// TODO:
+	}
+
+	else {
+		http_response_json_error_send (cr, 400, "Bad user!");
+	}
 
 }
 
