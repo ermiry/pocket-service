@@ -299,7 +299,26 @@ void pocket_version_handler (CerverReceive *cr, HttpRequest *request) {
 // GET api/pocket/auth
 void pocket_auth_handler (CerverReceive *cr, HttpRequest *request) {
 
-	http_response_json_msg_send (cr, 200, "Pocket auth!");
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		#ifdef POCKET_DEBUG
+		user_print (user);
+		#endif
+
+		http_response_json_msg_send (cr, 200, "Pocket auth!");
+	}
+
+	else {
+		http_request_multi_part_discard_files (request);
+		cerver_log_warning ("Bad user!");
+		http_response_json_error_send (cr, 400, "Bad user!");
+	}
+
+}
+
+// GET api/pocket/transactions
+// get all the authenticated user's transactions
+void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 

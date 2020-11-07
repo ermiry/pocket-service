@@ -36,6 +36,22 @@ extern void pocket_version_handler (CerverReceive *cr, HttpRequest *request);
 // GET api/pocket/auth
 extern void pocket_auth_handler (CerverReceive *cr, HttpRequest *request);
 
+// GET api/pocket/transactions
+// get all the authenticated user's transactions
+extern void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request);
+
+// POST api/pocket/transactions
+// a user has requested to create a new transaction
+extern void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request);
+
+// GET api/pocket/transactions/:id
+// returns information about an existing transaction that belongs to a user
+extern void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request);
+
+// DELETE api/pocket/transactions/:id
+// deletes an existing user's transaction
+extern void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request);
+
 #pragma endregion
 
 #endif
