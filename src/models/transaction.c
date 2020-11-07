@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <time.h>
+
 #include <cerver/types/types.h>
 
 #include <cerver/utils/log.h>
@@ -57,15 +59,14 @@ void transaction_delete (void *transaction_ptr) {
 void transaction_print (Transaction *transaction) {
 
 	if (transaction) {
-		char buffer[32] = { 0 };
+		char buffer[128] = { 0 };
 		bson_oid_to_string (&transaction->oid, buffer);
 		printf ("id: %s\n", buffer);
 
 		printf ("title: %s\n", transaction->title);
 		printf ("amount: %.4f\n", transaction->amount);
 
-		char buffer[128] = { 0 };
-		strftime (buffer, 128, "%d/%m/%y - %T", gmtime (transaction->date));
+		strftime (buffer, 128, "%d/%m/%y - %T", gmtime (&transaction->date));
 		printf ("date: %s GMT\n", buffer);
 	}
 
