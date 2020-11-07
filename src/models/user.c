@@ -6,8 +6,6 @@
 
 #include <cerver/collections/dlist.h>
 
-#include <cerver/http/json/json.h>
-
 #include <cerver/utils/log.h>
 
 #include "mongo.h"
