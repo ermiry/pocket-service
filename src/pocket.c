@@ -29,7 +29,10 @@
 #pragma region main
 
 const String *PORT = NULL;
+
 static const String *MONGO_URI = NULL;
+static const String *MONGO_APP_NAME = NULL;
+static const String *MONGO_DB = NULL;
 
 unsigned int CERVER_RECEIVE_BUFFER_SIZE = 4096;
 unsigned int CERVER_TH_THREADS = 4;
@@ -50,6 +53,44 @@ static unsigned int pocket_env_get_port (void) {
 
 	else {
 		cerver_log_error ("Failed to get PORT from env!");
+	}
+
+	return retval;
+
+}
+
+static unsigned int pocket_env_get_mongo_app_name (void) {
+
+	unsigned int retval = 1;
+
+	char *mongo_app_name_env = getenv ("MONGO_APP_NAME");
+	if (mongo_app_name_env) {
+		MONGO_APP_NAME = str_new (mongo_app_name_env);
+
+		retval = 0;
+	}
+
+	else {
+		cerver_log_error ("Failed to get MONGO_APP_NAME from env!");
+	}
+
+	return retval;
+
+}
+
+static unsigned int pocket_env_get_mongo_db (void) {
+
+	unsigned int retval = 1;
+
+	char *mongo_db_env = getenv ("MONGO_DB");
+	if (mongo_db_env) {
+		MONGO_DB = str_new (mongo_db_env);
+
+		retval = 0;
+	}
+
+	else {
+		cerver_log_error ("Failed to get MONGO_DB from env!");
 	}
 
 	return retval;
@@ -120,6 +161,10 @@ static unsigned int pocket_init_env (void) {
 
 	errors |= pocket_env_get_mongo_uri ();
 
+	errors |= pocket_env_get_mongo_app_name ();
+
+	errors |= pocket_env_get_mongo_db ();
+
 	return errors;
 
 }
@@ -131,8 +176,8 @@ static unsigned int pocket_mongo_connect (void) {
 	bool connected_to_mongo = false;
 
 	mongo_set_uri (MONGO_URI->str);
-	mongo_set_app_name ("api");
-	mongo_set_db_name ("pocket");
+	mongo_set_app_name (MONGO_APP_NAME->str);
+	mongo_set_db_name (MONGO_DB->str);
 
 	if (!mongo_connect ()) {
 		// test mongo connection
@@ -220,6 +265,10 @@ unsigned int pocket_end (void) {
 	pocket_roles_end ();
 
 	pocket_users_end ();
+
+	str_delete ((String *) MONGO_URI);
+	str_delete ((String *) MONGO_APP_NAME);
+	str_delete ((String *) MONGO_DB);
 
 	return errors;
 
