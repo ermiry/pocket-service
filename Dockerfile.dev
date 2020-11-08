@@ -23,7 +23,7 @@ ARG RUNTIME_DEPS='libssl-dev'
 RUN apt-get update && apt-get install -y ${BUILD_DEPS} ${RUNTIME_DEPS} && apt-get clean
 
 # cerver
-ARG CERVER_VERSION=2.0b-10
+ARG CERVER_VERSION=2.0b-11
 
 RUN mkdir /opt/cerver && cd /opt/cerver \
     && wget -q https://github.com/ermiry/cerver/archive/${CERVER_VERSION}.zip \
