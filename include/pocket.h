@@ -42,15 +42,15 @@ extern void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request
 
 // POST api/pocket/transactions
 // a user has requested to create a new transaction
-extern void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request);
+extern void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request);
 
 // GET api/pocket/transactions/:id
 // returns information about an existing transaction that belongs to a user
-extern void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request);
+extern void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request);
 
 // DELETE api/pocket/transactions/:id
 // deletes an existing user's transaction
-extern void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request);
+extern void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request);
 
 #pragma endregion
 
