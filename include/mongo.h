@@ -92,6 +92,13 @@ extern mongoc_cursor_t *mongo_find_all_cursor (
 	uint64_t *n_docs
 );
 
+// uses a query to find all matching docs with the specified options
+// query gets destroyed, options remain the same
+extern mongoc_cursor_t *mongo_find_all_cursor_with_opts (
+	mongoc_collection_t *collection, 
+	bson_t *query, const bson_t *opts
+);
+
 // use a query to find all matching documents
 // an empty query will return all the docs in a collection
 extern const bson_t **mongo_find_all (

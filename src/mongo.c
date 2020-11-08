@@ -376,6 +376,25 @@ mongoc_cursor_t *mongo_find_all_cursor (
 
 }
 
+// uses a query to find all matching docs with the specified options
+// query gets destroyed, options remain the same
+mongoc_cursor_t *mongo_find_all_cursor_with_opts (
+	mongoc_collection_t *collection, 
+	bson_t *query, const bson_t *opts
+) {
+
+	mongoc_cursor_t *cursor = NULL;
+	
+	if (collection && query) {
+		cursor = mongoc_collection_find_with_opts (collection, query, opts, NULL);
+
+		bson_destroy (query);
+	}
+
+	return cursor;
+
+}
+
 // use a query to find all matching documents
 // an empty query will return all the docs in a collection
 const bson_t **mongo_find_all (
