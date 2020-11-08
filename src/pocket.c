@@ -38,7 +38,10 @@ static const String *MONGO_DB = NULL;
 unsigned int CERVER_RECEIVE_BUFFER_SIZE = 4096;
 unsigned int CERVER_TH_THREADS = 4;
 
+static HttpResponse *bad_user = NULL;
+
 static HttpResponse *trans_created_success = NULL;
+static HttpResponse *trans_created_bad = NULL;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -234,11 +237,22 @@ static unsigned int pocket_init_responses (void) {
 
 	unsigned int retval = 1;
 
+	bad_user = http_response_json_key_value (
+		(http_status) 400, "error", "Bad user!"
+	);
+
 	trans_created_success = http_response_json_key_value (
 		(http_status) 200, "oki", "doki"
 	);
 
-	if (trans_created_success) retval = 0;
+	trans_created_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to create transaction!"
+	);
+
+	if (
+		bad_user &&
+		trans_created_success && trans_created_bad
+	) retval = 0;
 
 	return retval;
 
@@ -294,7 +308,10 @@ unsigned int pocket_end (void) {
 
 	pocket_trans_end ();
 
+	http_respponse_delete (bad_user);
+
 	http_respponse_delete (trans_created_success);
+	http_respponse_delete (trans_created_bad);
 
 	str_delete ((String *) MONGO_URI);
 	str_delete ((String *) MONGO_APP_NAME);
@@ -355,7 +372,7 @@ void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 	}
 
 	else {
-		http_response_json_error_send (cr, 400, "Bad user!");
+		http_response_send (bad_user, cr->cerver, cr->connection);
 	}
 
 }
@@ -424,6 +441,13 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 				transactions_collection,
 				transaction_to_bson (trans)
 			)) {
+				// update users values
+				(void) mongo_update_one (
+					users_collection,
+					user_query_id (user->id),
+					user_create_update_pocket_transactions (&trans->oid)
+				);
+
 				// return success to user
 				http_response_send (
 					trans_created_success,
@@ -432,19 +456,25 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 			}
 
 			else {
-				// TODO:
+				http_response_send (
+					trans_created_bad,
+					cr->cerver, cr->connection
+				);
 			}
 			
 			pocket_trans_delete (trans);
 		}
 
 		else {
-			http_response_json_error_send (cr, 400, "Failed to create transaction!");
+			http_response_send (
+				trans_created_bad,
+				cr->cerver, cr->connection
+			);
 		}
 	}
 
 	else {
-		http_response_json_error_send (cr, 400, "Bad user!");
+		http_response_send (bad_user, cr->cerver, cr->connection);
 	}
 
 }
@@ -460,7 +490,7 @@ void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
 	}
 
 	else {
-		http_response_json_error_send (cr, 400, "Bad user!");
+		http_response_send (bad_user, cr->cerver, cr->connection);
 	}
 
 }
@@ -476,7 +506,7 @@ void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request)
 	}
 
 	else {
-		http_response_json_error_send (cr, 400, "Bad user!");
+		http_response_send (bad_user, cr->cerver, cr->connection);
 	}
 
 }
