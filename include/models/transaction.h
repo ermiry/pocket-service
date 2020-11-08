@@ -31,4 +31,6 @@ extern void transaction_delete (void *transaction_ptr);
 
 extern void transaction_print (Transaction *transaction);
 
+extern bson_t *transaction_to_bson (Transaction *trans);
+
 #endif

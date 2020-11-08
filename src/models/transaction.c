@@ -71,3 +71,22 @@ void transaction_print (Transaction *transaction) {
 	}
 
 }
+
+bson_t *transaction_to_bson (Transaction *trans) {
+
+    bson_t *doc = NULL;
+
+    if (trans) {
+        doc = bson_new ();
+        if (doc) {
+            bson_append_oid (doc, "_id", -1, &trans->oid);
+
+			bson_append_utf8 (doc, "title", -1, trans->title, -1);
+			bson_append_double (doc, "amount", -1, trans->amount);
+			bson_append_date_time (doc, "date", -1, trans->date * 1000);
+        }
+    }
+
+    return doc;
+
+}
