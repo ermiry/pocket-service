@@ -134,6 +134,8 @@ u8 user_get_by_email (
 		if (user_doc) {
 			user_doc_parse (user, user_doc);
 			bson_destroy ((bson_t *) user_doc);
+
+			retval = 0;
 		}
 	}
 
@@ -170,6 +172,8 @@ u8 user_get_by_username (
 		if (user_doc) {
 			user_doc_parse (user, user_doc);
 			bson_destroy ((bson_t *) user_doc);
+
+			retval = 0;
 		}
 	}
 
