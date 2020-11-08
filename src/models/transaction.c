@@ -72,6 +72,69 @@ void transaction_print (Transaction *transaction) {
 
 }
 
+static void trans_doc_parse (Transaction *trans, const bson_t *trans_doc) {
+
+	bson_iter_t iter = { 0 };
+	if (bson_iter_init (&iter, trans_doc)) {
+		char *key = NULL;
+		bson_value_t *value = NULL;
+		while (bson_iter_next (&iter)) {
+			key = (char *) bson_iter_key (&iter);
+			value = (bson_value_t *) bson_iter_value (&iter);
+
+			if (!strcmp (key, "_id")) {
+				bson_oid_copy (&value->value.v_oid, &trans->oid);
+			}
+
+			else if (!strcmp (key, "title") && value->value.v_utf8.str) 
+				strncpy (trans->title, value->value.v_utf8.str, TRANSACTION_TITLE_LEN);
+
+			else if (!strcmp (key, "amount")) 
+				trans->amount = value->value.v_double;
+
+			else if (!strcmp (key, "date")) 
+				trans->date = (time_t) bson_iter_date_time (&iter) / 1000;
+		}
+	}
+
+}
+
+const bson_t *transaction_find_by_oid (
+	const bson_oid_t *oid, const bson_t *query_opts
+) {
+
+	const bson_t *retval = NULL;
+
+	bson_t *trans_query = bson_new ();
+	if (trans_query) {
+		bson_append_oid (trans_query, "_id", -1, oid);
+		retval = mongo_find_one_with_opts (transactions_collection, trans_query, query_opts);
+	}
+
+	return retval;
+
+}
+
+u8 transaction_get_by_oid (
+	Transaction *trans, const bson_oid_t *oid, const bson_t *query_opts
+) {
+
+	u8 retval = 1;
+
+	if (trans) {
+		const bson_t *trans_doc = transaction_find_by_oid (oid, query_opts);
+		if (trans_doc) {
+			trans_doc_parse (trans, trans_doc);
+			bson_destroy ((bson_t *) trans_doc);
+
+			retval = 0;
+		}
+	}
+
+	return retval;
+
+}
+
 bson_t *transaction_to_bson (Transaction *trans) {
 
     bson_t *doc = NULL;

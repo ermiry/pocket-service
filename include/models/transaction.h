@@ -6,6 +6,8 @@
 #include <mongoc/mongoc.h>
 #include <bson/bson.h>
 
+#include <cerver/types/types.h>
+
 #define TRANSACTION_TITLE_LEN			1024
 
 extern mongoc_collection_t *transactions_collection;
@@ -30,6 +32,14 @@ extern void *transaction_new (void);
 extern void transaction_delete (void *transaction_ptr);
 
 extern void transaction_print (Transaction *transaction);
+
+extern const bson_t *transaction_find_by_oid (
+	const bson_oid_t *oid, const bson_t *query_opts
+);
+
+extern u8 transaction_get_by_oid (
+	Transaction *trans, const bson_oid_t *oid, const bson_t *query_opts
+);
 
 extern bson_t *transaction_to_bson (Transaction *trans);
 
