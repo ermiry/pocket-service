@@ -19,6 +19,7 @@
 #include "pocket.h"
 #include "mongo.h"
 #include "roles.h"
+#include "transactions.h"
 #include "users.h"
 #include "version.h"
 
@@ -36,6 +37,8 @@ static const String *MONGO_DB = NULL;
 
 unsigned int CERVER_RECEIVE_BUFFER_SIZE = 4096;
 unsigned int CERVER_TH_THREADS = 4;
+
+static HttpResponse *trans_created_success = NULL;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -187,8 +190,11 @@ static unsigned int pocket_mongo_connect (void) {
 			// open handle to actions collection
 			errors |= actions_collection_get ();
 
-			// open handle to role collection
+			// open handle to roles collection
 			errors |= roles_collection_get ();
+
+			// open handle to transactions collection
+			errors |= transactions_collection_get ();
 
 			// open handle to user collection
 			errors |= users_collection_get ();
@@ -224,6 +230,20 @@ static unsigned int pocket_mongo_init (void) {
 
 }
 
+static unsigned int pocket_init_responses (void) {
+
+	unsigned int retval = 1;
+
+	trans_created_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	if (trans_created_success) retval = 0;
+
+	return retval;
+
+}
+
 // inits pocket main values
 unsigned int pocket_init (void) {
 
@@ -233,6 +253,10 @@ unsigned int pocket_init (void) {
 		errors |= pocket_mongo_init ();
 
 		errors |= pocket_users_init ();
+
+		errors |= pocket_trans_init ();
+
+		errors |= pocket_init_responses ();
 	}
 
 	return errors;  
@@ -245,6 +269,8 @@ static unsigned int pocket_mongo_end (void) {
 		actions_collection_close ();
 
 		roles_collection_close ();
+
+		transactions_collection_close ();
 
 		users_collection_close ();
 
@@ -265,6 +291,10 @@ unsigned int pocket_end (void) {
 	pocket_roles_end ();
 
 	pocket_users_end ();
+
+	pocket_trans_end ();
+
+	http_respponse_delete (trans_created_success);
 
 	str_delete ((String *) MONGO_URI);
 	str_delete ((String *) MONGO_APP_NAME);
@@ -321,6 +351,7 @@ void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 	User *user = (User *) request->decoded_data;
 	if (user) {
 		// TODO:
+		http_response_json_msg_send (cr, 200, "GET api/pocket/transactions");
 	}
 
 	else {
@@ -329,13 +360,87 @@ void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 
+static Transaction *pocket_transaction_create_handler_internal (
+	const String *request_body
+) {
+
+	Transaction *trans = NULL;
+
+	if (request_body) {
+		// get values from request's json body
+		json_error_t error =  { 0 };
+		json_t *json_body = json_loads (request_body->str, 0, &error);
+		if (json_body) {
+			const char *title = NULL;
+			double amount = 0;
+
+			// get values from json to create a new transaction
+			const char *key = NULL;
+			json_t *value = NULL;
+			if (json_typeof (json_body) == JSON_OBJECT) {
+				json_object_foreach (json_body, key, value) {
+					if (!strcmp (key, "title")) {
+						title = json_string_value (value);
+						printf ("title: \"%s\"\n", title);
+					}
+
+					else if (!strcmp (key, "amount")) {
+						amount = json_real_value (value);
+						printf ("amount: %f\n", amount);
+					}
+				}
+			}
+
+			trans = pocket_trans_create (title, amount);
+
+			json_decref (json_body);
+		}
+
+		else {
+			cerver_log_error (
+				"json_loads () - json error on line %d: %s\n", 
+				error.line, error.text
+			);
+		}
+	}
+
+	return trans;
+
+}
+
 // POST api/pocket/transactions
 // a user has requested to create a new transaction
-void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// TODO:
+		Transaction *trans = pocket_transaction_create_handler_internal (request->body);
+		if (trans) {
+			#ifdef POCKET_DEBUG
+			transaction_print (trans);
+			#endif
+
+			if (!mongo_insert_one (
+				transactions_collection,
+				transaction_to_bson (trans)
+			)) {
+				// return success to user
+				http_response_send (
+					trans_created_success,
+					cr->cerver, cr->connection
+				);
+			}
+
+			else {
+				// TODO:
+			}
+			
+			pocket_trans_delete (trans);
+		}
+
+		else {
+			http_response_json_error_send (cr, 400, "Failed to create transaction!");
+		}
 	}
 
 	else {
@@ -346,11 +451,12 @@ void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 
 // GET api/pocket/transactions/:id
 // returns information about an existing transaction that belongs to a user
-void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
 		// TODO:
+		http_response_json_msg_send (cr, 200, "GET api/pocket/transactions/:id");
 	}
 
 	else {
@@ -361,11 +467,12 @@ void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 
 // DELETE api/pocket/transactions/:id
 // deletes an existing user's transaction
-void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
 		// TODO:
+		http_response_json_msg_send (cr, 200, "DELETE api/pocket/transactions/:id");
 	}
 
 	else {
