@@ -1,5 +1,7 @@
 #include <stdlib.h>
 
+#include <time.h>
+
 #include <cerver/collections/pool.h>
 
 #include <cerver/http/json/json.h>
@@ -41,6 +43,24 @@ void pocket_trans_end (void) {
 
 	pool_delete (trans_pool);
 	trans_pool = NULL;
+
+}
+
+Transaction *pocket_trans_create (
+	const char *title,
+	const double amount
+) {
+
+	Transaction *trans = (Transaction *) pool_pop (trans_pool);
+	if (trans) {
+		bson_oid_init (&trans->oid, NULL);
+
+		strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
+		trans->amount = amount;
+		trans->date = time (NULL);
+	}
+
+	return trans;
 
 }
 
