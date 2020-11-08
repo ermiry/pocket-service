@@ -45,6 +45,8 @@ void *user_new (void) {
 	User *user = (User *) malloc (sizeof (User));
 	if (user) {
 		memset (user, 0, sizeof (User));
+
+		user->transactions = dlist_init (NULL, NULL);
 	}
 
 	return user;
@@ -100,6 +102,14 @@ static void user_doc_parse (User *user, const bson_t *user_doc) {
 
 			else if (!strcmp (key, "password") && value->value.v_utf8.str)
 				strncpy (user->password, value->value.v_utf8.str, USER_PASSWORD_LEN);
+
+			else if (!strcmp (key, "transCount")) {
+				user->trans_count = value->value.v_int32;
+			}
+
+			else if (!strcmp (key, "transactions")) {
+
+			}
 		}
 	}
 

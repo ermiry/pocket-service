@@ -9,6 +9,8 @@
 #include <cerver/types/types.h>
 #include <cerver/types/string.h>
 
+#include <cerver/collections/dlist.h>
+
 #define USER_ID_LEN				32
 #define USER_EMAIL_LEN			128
 #define USER_NAME_LEN			128
@@ -37,6 +39,10 @@ typedef struct User {
 	bson_oid_t role_oid;
 
 	time_t iat;
+
+	int trans_count;
+	DoubleList *trans_docs;
+	DoubleList *transactions;
 
 } User;
 
