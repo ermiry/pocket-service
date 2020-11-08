@@ -31,6 +31,9 @@ static Pool *users_pool = NULL;
 static const bson_t *user_login_query_opts = NULL;
 static DoubleList *user_login_select = NULL;
 
+const bson_t *user_transactions_query_opts = NULL;
+DoubleList *user_transactions_select = NULL;
+
 static unsigned int pocket_users_init_pool (void) {
 
 	unsigned int retval = 1;
@@ -68,7 +71,14 @@ static unsigned int pocket_users_init_login_select (void) {
 	dlist_insert_after (user_login_select, dlist_end (user_login_select), str_new ("role"));
 
 	user_login_query_opts = mongo_find_generate_opts (user_login_select);
-	if (user_login_query_opts) retval = 0;
+
+	user_transactions_select = dlist_init (str_delete, str_comparator);
+	dlist_insert_after (user_transactions_select, dlist_end (user_login_select), str_new ("transCount"));
+	dlist_insert_after (user_transactions_select, dlist_end (user_login_select), str_new ("transactions"));
+
+	user_transactions_query_opts = mongo_find_generate_opts (user_transactions_select);
+
+	if (user_login_query_opts && user_transactions_query_opts) retval = 0;
 
 	return retval;
 
@@ -90,6 +100,9 @@ void pocket_users_end (void) {
 
 	dlist_delete (user_login_select);
 	bson_destroy ((bson_t *) user_login_query_opts);
+
+	dlist_delete (user_transactions_select);
+	bson_destroy ((bson_t *) user_transactions_query_opts);
 
 	pool_delete (users_pool);
 	users_pool = NULL;

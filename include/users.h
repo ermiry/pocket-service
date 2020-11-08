@@ -1,6 +1,10 @@
 #ifndef _POCKET_USERS_H_
 #define _POCKET_USERS_H_
 
+#include <bson/bson.h>
+
+#include <cerver/collections/dlist.h>
+
 #include <cerver/handler.h>
 
 #include <cerver/http/request.h>
@@ -8,6 +12,9 @@
 #define DEFAULT_USERS_POOL_INIT			16
 
 #pragma region main
+
+extern const bson_t *user_transactions_query_opts;
+extern DoubleList *user_transactions_select;
 
 extern unsigned int pocket_users_init (void);
 
