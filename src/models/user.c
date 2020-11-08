@@ -105,6 +105,23 @@ static void user_doc_parse (User *user, const bson_t *user_doc) {
 
 }
 
+bson_t *user_query_id (const char *id) {
+
+	bson_t *query = NULL;
+
+	if (id) {
+		query = bson_new ();
+		if (query) {
+			bson_oid_t oid = { 0 };
+			bson_oid_init_from_string (&oid, id);
+			bson_append_oid (query, "_id", -1, &oid);
+		}
+	}
+
+	return query;
+
+}
+
 // get a user doc from the db by email
 static const bson_t *user_find_by_email (
 	const String *email, const bson_t *query_opts
@@ -196,6 +213,30 @@ bson_t *user_bson_create (User *user) {
 			if (user->password) bson_append_utf8 (doc, "password", -1, user->password, -1);
 
 			bson_append_oid (doc, "role", -1, &user->role_oid);
+		}
+	}
+
+	return doc;
+
+}
+
+// pushes a new trans oid to user's transactions array
+// and adds one to user's transactions count
+bson_t *user_create_update_pocket_transactions (const bson_oid_t *trans_oid) {
+
+	bson_t *doc = NULL;
+	if (trans_oid) {
+		doc = bson_new ();
+		if (doc) {
+			bson_t inc_doc = { 0 };
+			bson_append_document_begin (doc, "$inc", -1, &inc_doc);
+			bson_append_int32 (&inc_doc, "transCount", -1, 1);
+			bson_append_document_end (doc, &inc_doc);
+
+			bson_t push_doc = { 0 };
+			bson_append_document_begin (doc, "$push", -1, &push_doc);
+			bson_append_oid (&push_doc, "transactions", -1, trans_oid);
+			bson_append_document_end (doc, &push_doc);
 		}
 	}
 

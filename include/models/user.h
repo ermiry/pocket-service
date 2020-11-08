@@ -46,6 +46,8 @@ extern void user_delete (void *user_ptr);
 
 extern void user_print (User *user);
 
+extern bson_t *user_query_id (const char *id);
+
 // gets a user from the db by its email
 extern u8 user_get_by_email (
 	User *user, const String *email, const bson_t *query_opts
@@ -57,5 +59,9 @@ extern u8 user_get_by_username (
 );
 
 extern bson_t *user_bson_create (User *user);
+
+// pushes a new trans oid to user's transactions array
+// and adds one to user's transactions count
+extern bson_t *user_create_update_pocket_transactions (const bson_oid_t *trans_oid);
 
 #endif
