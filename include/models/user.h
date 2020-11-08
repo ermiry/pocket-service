@@ -41,8 +41,6 @@ typedef struct User {
 	time_t iat;
 
 	int trans_count;
-	DoubleList *trans_docs;
-	DoubleList *transactions;
 
 } User;
 
