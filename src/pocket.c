@@ -249,7 +249,7 @@ static unsigned int pocket_init_responses (void) {
 	);
 
 	no_user_trans = http_response_json_key_value (
-		(http_status) 404, "msg", "Failed to get user's transactions"
+		(http_status) 404, "msg", "Failed to get user's transaction(s)"
 	);
 
 	trans_created_success = http_response_json_key_value (
@@ -570,10 +570,40 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 // returns information about an existing transaction that belongs to a user
 void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
 
+	String *trans_id = request->params[0];
+
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// TODO:
-		http_response_json_msg_send (cr, 200, "GET api/pocket/transactions/:id");
+		Transaction *trans = (Transaction *) pool_pop (trans_pool);
+		if (trans) {
+			bson_oid_init_from_string (&trans->oid, trans_id->str);
+			bson_oid_init_from_string (&trans->user_oid, user->id);
+
+			const bson_t *trans_bson = transaction_find_by_oid_and_user (
+				&trans->oid, &trans->user_oid,
+				trans_no_user_query_opts
+			);
+
+			if (trans_bson) {
+				size_t json_len = 0;
+				char *json = bson_as_relaxed_extended_json (trans_bson, &json_len);
+				if (json) {
+					(void) http_response_json_custom_reference_send (
+						cr, 200, json, json_len
+					);
+
+					free (json);
+				}
+
+				bson_destroy ((bson_t *) trans_bson);
+			}
+
+			else {
+				http_response_send (no_user_trans, cr->cerver, cr->connection);
+			}
+
+			pocket_trans_delete (trans);
+		}
 	}
 
 	else {
