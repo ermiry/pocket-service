@@ -45,6 +45,8 @@ static HttpResponse *no_user_trans = NULL;
 
 static HttpResponse *trans_created_success = NULL;
 static HttpResponse *trans_created_bad = NULL;
+static HttpResponse *trans_deleted_success = NULL;
+static HttpResponse *trans_deleted_bad = NULL;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -260,9 +262,18 @@ static unsigned int pocket_init_responses (void) {
 		(http_status) 400, "error", "Failed to create transaction!"
 	);
 
+	trans_deleted_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	trans_deleted_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to delete transaction!"
+	);
+
 	if (
 		server_error && bad_user && no_user_trans &&
-		trans_created_success && trans_created_bad
+		trans_created_success && trans_created_bad &&
+		trans_deleted_success && trans_deleted_bad
 	) retval = 0;
 
 	return retval;
@@ -616,10 +627,36 @@ void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
 // deletes an existing user's transaction
 void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request) {
 
+	String *trans_id = request->params[0];
+
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// TODO:
-		http_response_json_msg_send (cr, 200, "DELETE api/pocket/transactions/:id");
+		bson_t *trans_query = bson_new ();
+		if (trans_query) {
+			bson_oid_t oid = { 0 };
+
+			bson_oid_init_from_string (&oid, trans_id->str);
+			bson_append_oid (trans_query, "_id", -1, &oid);
+
+			bson_oid_init_from_string (&oid, user->id);
+			bson_append_oid (trans_query, "user", -1, &oid);
+
+			if (!mongo_delete_one (transactions_collection, trans_query)) {
+				#ifdef POCKET_DEBUG
+				cerver_log_debug ("Deleted transaction %s", trans_id->str);
+				#endif
+
+				http_response_send (trans_deleted_success, cr->cerver, cr->connection);
+			}
+
+			else {
+				http_response_send (trans_deleted_bad, cr->cerver, cr->connection);
+			}
+		}
+
+		else {
+			http_response_send (server_error, cr->cerver, cr->connection);
+		}
 	}
 
 	else {

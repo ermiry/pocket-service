@@ -68,6 +68,15 @@ static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 	// POST api/pocket/transactions
 	http_route_set_handler (transactions_route, REQUEST_METHOD_POST, pocket_transaction_create_handler);
 
+	// GET api/pocket/transactions/:id
+	HttpRoute *single_trans_route = http_route_create (REQUEST_METHOD_GET, "transactions/:id", pocket_transaction_get_handler);
+	http_route_set_auth (single_trans_route, HTTP_ROUTE_AUTH_TYPE_BEARER);
+	http_route_set_decode_data (single_trans_route, pocket_user_parse_from_json, pocket_user_delete);
+	http_route_child_add (pocket_route, single_trans_route);
+
+	// DELETE api/pocket/transactions/:id
+	http_route_set_handler (single_trans_route, REQUEST_METHOD_DELETE, pocket_transaction_delete_handler);
+
 }
 
 static void pocket_set_users_routes (HttpCerver *http_cerver) {
