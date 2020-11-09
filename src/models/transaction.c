@@ -137,6 +137,47 @@ u8 transaction_get_by_oid (
 
 }
 
+const bson_t *transaction_find_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts
+) {
+
+	const bson_t *retval = NULL;
+
+	bson_t *trans_query = bson_new ();
+	if (trans_query) {
+		bson_append_oid (trans_query, "_id", -1, oid);
+		bson_append_oid (trans_query, "user", -1, user_oid);
+
+		retval = mongo_find_one_with_opts (transactions_collection, trans_query, query_opts);
+	}
+
+	return retval;
+
+}
+
+u8 transaction_get_by_oid_and_user (
+	Transaction *trans,
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts
+) {
+
+	u8 retval = 1;
+
+	if (trans) {
+		const bson_t *trans_doc = transaction_find_by_oid_and_user (oid, user_oid, query_opts);
+		if (trans_doc) {
+			trans_doc_parse (trans, trans_doc);
+			bson_destroy ((bson_t *) trans_doc);
+
+			retval = 0;
+		}
+	}
+
+	return retval;
+
+}
+
 bson_t *transaction_to_bson (Transaction *trans) {
 
     bson_t *doc = NULL;

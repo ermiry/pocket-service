@@ -43,6 +43,17 @@ extern u8 transaction_get_by_oid (
 	Transaction *trans, const bson_oid_t *oid, const bson_t *query_opts
 );
 
+extern const bson_t *transaction_find_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts
+);
+
+extern u8 transaction_get_by_oid_and_user (
+	Transaction *trans,
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts
+);
+
 extern bson_t *transaction_to_bson (Transaction *trans);
 
 // get all the transactions that are related to a user
