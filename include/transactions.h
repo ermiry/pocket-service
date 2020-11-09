@@ -1,6 +1,9 @@
 #ifndef _POCKET_TRANSACTIONS_H_
 #define _POCKET_TRANSACTIONS_H_
 
+#include <bson/bson.h>
+
+#include <cerver/collections/dlist.h>
 #include <cerver/collections/pool.h>
 
 #include "models/transaction.h"
@@ -9,11 +12,15 @@
 
 extern Pool *trans_pool;
 
+extern const bson_t *trans_no_user_query_opts;
+extern DoubleList *trans_no_user_select;
+
 extern unsigned int pocket_trans_init (void);
 
 extern void pocket_trans_end (void);
 
 extern Transaction *pocket_trans_create (
+	const char *user_id,
 	const char *title,
 	const double amount
 );

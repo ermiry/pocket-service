@@ -2,19 +2,25 @@
 
 #include <time.h>
 
+#include <cerver/types/string.h>
+
 #include <cerver/collections/pool.h>
 
 #include <cerver/http/json/json.h>
 
 #include <cerver/utils/log.h>
 
+#include "mongo.h"
 #include "transactions.h"
 
 #include "models/transaction.h"
 
 Pool *trans_pool = NULL;
 
-unsigned int pocket_trans_init (void) {
+const bson_t *trans_no_user_query_opts = NULL;
+DoubleList *trans_no_user_select = NULL;
+
+static unsigned int pocket_trans_init_pool (void) {
 
 	unsigned int retval = 1;
 
@@ -39,7 +45,38 @@ unsigned int pocket_trans_init (void) {
 
 }
 
+static unsigned int pocket_trans_init_query_opts (void) {
+
+	unsigned int retval = 1;
+
+	trans_no_user_select = dlist_init (str_delete, str_comparator);
+	dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("title"));
+	dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("amount"));
+	dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("date"));
+
+	trans_no_user_query_opts = mongo_find_generate_opts (trans_no_user_select);
+
+	if (trans_no_user_query_opts) retval = 0;
+
+	return retval;
+
+}
+
+unsigned int pocket_trans_init (void) {
+
+	unsigned int errors = 0;
+
+	errors |= pocket_trans_init_pool ();
+
+	errors |= pocket_trans_init_query_opts ();
+
+	return errors;
+
+}
+
 void pocket_trans_end (void) {
+
+	bson_destroy ((bson_t *) trans_no_user_query_opts);
 
 	pool_delete (trans_pool);
 	trans_pool = NULL;
@@ -47,6 +84,7 @@ void pocket_trans_end (void) {
 }
 
 Transaction *pocket_trans_create (
+	const char *user_id,
 	const char *title,
 	const double amount
 ) {
@@ -55,7 +93,9 @@ Transaction *pocket_trans_create (
 	if (trans) {
 		bson_oid_init (&trans->oid, NULL);
 
-		strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
+		bson_oid_init_from_string (&trans->user_oid, user_id);
+
+		if (title) strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
 		trans->amount = amount;
 		trans->date = time (NULL);
 	}
