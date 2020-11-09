@@ -82,9 +82,11 @@ static void trans_doc_parse (Transaction *trans, const bson_t *trans_doc) {
 			key = (char *) bson_iter_key (&iter);
 			value = (bson_value_t *) bson_iter_value (&iter);
 
-			if (!strcmp (key, "_id")) {
+			if (!strcmp (key, "_id"))
 				bson_oid_copy (&value->value.v_oid, &trans->oid);
-			}
+
+			else if (!strcmp (key, "user"))
+				bson_oid_copy (&value->value.v_oid, &trans->user_oid);
 
 			else if (!strcmp (key, "title") && value->value.v_utf8.str) 
 				strncpy (trans->title, value->value.v_utf8.str, TRANSACTION_TITLE_LEN);
@@ -144,6 +146,8 @@ bson_t *transaction_to_bson (Transaction *trans) {
         if (doc) {
             bson_append_oid (doc, "_id", -1, &trans->oid);
 
+			bson_append_oid (doc, "user", -1, &trans->user_oid);
+
 			bson_append_utf8 (doc, "title", -1, trans->title, -1);
 			bson_append_double (doc, "amount", -1, trans->amount);
 			bson_append_date_time (doc, "date", -1, trans->date * 1000);
@@ -151,5 +155,28 @@ bson_t *transaction_to_bson (Transaction *trans) {
     }
 
     return doc;
+
+}
+
+// get all the transactions that are related to a user
+mongoc_cursor_t *transactions_get_all_by_user (
+	const bson_oid_t *user_oid, const bson_t *opts
+) {
+
+	mongoc_cursor_t *retval = NULL;
+
+	if (user_oid && opts) {
+		bson_t *query = bson_new ();
+		if (query) {
+			bson_append_oid (query, "user", -1, user_oid);
+
+			retval = mongo_find_all_cursor_with_opts (
+				transactions_collection,
+				query, opts
+			);
+		}
+	}
+
+	return retval;
 
 }

@@ -21,6 +21,8 @@ typedef struct Transaction {
 
 	bson_oid_t oid;
 
+	bson_oid_t user_oid;
+
 	char title[TRANSACTION_TITLE_LEN];
 	double amount;
 	time_t date;
@@ -42,5 +44,10 @@ extern u8 transaction_get_by_oid (
 );
 
 extern bson_t *transaction_to_bson (Transaction *trans);
+
+// get all the transactions that are related to a user
+extern mongoc_cursor_t *transactions_get_all_by_user (
+	const bson_oid_t *user_oid, const bson_t *opts
+);
 
 #endif
