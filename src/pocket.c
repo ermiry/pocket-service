@@ -38,7 +38,10 @@ static const String *MONGO_DB = NULL;
 unsigned int CERVER_RECEIVE_BUFFER_SIZE = 4096;
 unsigned int CERVER_TH_THREADS = 4;
 
+static HttpResponse *server_error = NULL;
 static HttpResponse *bad_user = NULL;
+
+static HttpResponse *no_user_trans = NULL;
 
 static HttpResponse *trans_created_success = NULL;
 static HttpResponse *trans_created_bad = NULL;
@@ -237,8 +240,16 @@ static unsigned int pocket_init_responses (void) {
 
 	unsigned int retval = 1;
 
+	server_error = http_response_json_key_value (
+		(http_status) 500, "error", "Internal server error!"
+	);
+
 	bad_user = http_response_json_key_value (
 		(http_status) 400, "error", "Bad user!"
+	);
+
+	no_user_trans = http_response_json_key_value (
+		(http_status) 404, "msg", "Failed to get user's transactions"
 	);
 
 	trans_created_success = http_response_json_key_value (
@@ -250,7 +261,7 @@ static unsigned int pocket_init_responses (void) {
 	);
 
 	if (
-		bad_user &&
+		server_error && bad_user && no_user_trans &&
 		trans_created_success && trans_created_bad
 	) retval = 0;
 
@@ -308,7 +319,10 @@ unsigned int pocket_end (void) {
 
 	pocket_trans_end ();
 
+	http_respponse_delete (server_error);
 	http_respponse_delete (bad_user);
+
+	http_respponse_delete (no_user_trans);
 
 	http_respponse_delete (trans_created_success);
 	http_respponse_delete (trans_created_bad);
@@ -361,14 +375,87 @@ void pocket_auth_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 
+static char *pocket_transactions_handler_generate_json (
+	User *user,
+	mongoc_cursor_t *trans_cursor,
+	size_t *json_len
+) {
+
+	char *retval = NULL;
+
+	bson_t *doc = bson_new ();
+	if (doc) {
+		bson_append_int32 (doc, "count", -1, user->trans_count);
+
+		bson_t trans_array = { 0 };
+		bson_append_array_begin (doc, "transactions", -1, &trans_array);
+		char buf[16] = { 0 };
+		const char *key = NULL;
+		size_t keylen = 0;
+
+		int i = 0;
+		const bson_t *trans_doc = NULL;
+		while (mongoc_cursor_next (trans_cursor, &trans_doc)) {
+			keylen = bson_uint32_to_string (i, &key, buf, sizeof (buf));
+			bson_append_document (&trans_array, key, (int) keylen, trans_doc);
+
+			bson_destroy ((bson_t *) trans_doc);
+
+			i++;
+		}
+		bson_append_array_end (doc, &trans_array);
+
+		retval = bson_as_relaxed_extended_json (doc, json_len);
+	}
+
+	return retval;
+
+}
+
 // GET api/pocket/transactions
 // get all the authenticated user's transactions
 void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// TODO:
-		http_response_json_msg_send (cr, 200, "GET api/pocket/transactions");
+		// get user's transactions from the db
+		if (!user_get_by_id (user, user->id, user_transactions_query_opts)) {
+			mongoc_cursor_t *trans_cursor = transactions_get_all_by_user (
+				&user->oid, trans_no_user_query_opts
+			);
+
+			if (trans_cursor) {
+				// convert them to json and send them back
+				size_t json_len = 0;
+				char *json = pocket_transactions_handler_generate_json (
+					user, trans_cursor, &json_len
+				);
+
+				if (json) {
+					(void) http_response_json_custom_reference_send (
+						cr,
+						200,
+						json, json_len
+					);
+
+					free (json);
+				}
+
+				else {
+					http_response_send (server_error, cr->cerver, cr->connection);
+				}
+
+				mongoc_cursor_destroy (trans_cursor);
+			}
+
+			else {
+				http_response_send (no_user_trans, cr->cerver, cr->connection);
+			}
+		}
+
+		else {
+			http_response_send (bad_user, cr->cerver, cr->connection);
+		}
 	}
 
 	else {
@@ -378,7 +465,7 @@ void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 }
 
 static Transaction *pocket_transaction_create_handler_internal (
-	const String *request_body
+	const char *user_id, const String *request_body
 ) {
 
 	Transaction *trans = NULL;
@@ -408,7 +495,7 @@ static Transaction *pocket_transaction_create_handler_internal (
 				}
 			}
 
-			trans = pocket_trans_create (title, amount);
+			trans = pocket_trans_create (user_id, title, amount);
 
 			json_decref (json_body);
 		}
@@ -431,7 +518,7 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		Transaction *trans = pocket_transaction_create_handler_internal (request->body);
+		Transaction *trans = pocket_transaction_create_handler_internal (user->id, request->body);
 		if (trans) {
 			#ifdef POCKET_DEBUG
 			transaction_print (trans);
@@ -445,7 +532,7 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 				(void) mongo_update_one (
 					users_collection,
 					user_query_id (user->id),
-					user_create_update_pocket_transactions (&trans->oid)
+					user_create_update_pocket_transactions ()
 				);
 
 				// return success to user
