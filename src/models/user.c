@@ -263,24 +263,15 @@ bson_t *user_bson_create (User *user) {
 
 }
 
-// pushes a new trans oid to user's transactions array
-// and adds one to user's transactions count
-bson_t *user_create_update_pocket_transactions (const bson_oid_t *trans_oid) {
+// adds one to user's transactions count
+bson_t *user_create_update_pocket_transactions (void) {
 
-	bson_t *doc = NULL;
-	if (trans_oid) {
-		doc = bson_new ();
-		if (doc) {
-			bson_t inc_doc = { 0 };
-			bson_append_document_begin (doc, "$inc", -1, &inc_doc);
-			bson_append_int32 (&inc_doc, "transCount", -1, 1);
-			bson_append_document_end (doc, &inc_doc);
-
-			bson_t push_doc = { 0 };
-			bson_append_document_begin (doc, "$push", -1, &push_doc);
-			bson_append_oid (&push_doc, "transactions", -1, trans_oid);
-			bson_append_document_end (doc, &push_doc);
-		}
+	bson_t *doc = bson_new ();
+	if (doc) {
+		bson_t inc_doc = { 0 };
+		bson_append_document_begin (doc, "$inc", -1, &inc_doc);
+		bson_append_int32 (&inc_doc, "transCount", -1, 1);
+		bson_append_document_end (doc, &inc_doc);
 	}
 
 	return doc;

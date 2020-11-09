@@ -68,8 +68,7 @@ extern u8 user_get_by_username (
 
 extern bson_t *user_bson_create (User *user);
 
-// pushes a new trans oid to user's transactions array
-// and adds one to user's transactions count
-extern bson_t *user_create_update_pocket_transactions (const bson_oid_t *trans_oid);
+// adds one to user's transactions count
+extern bson_t *user_create_update_pocket_transactions (void);
 
 #endif
