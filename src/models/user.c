@@ -126,6 +126,45 @@ bson_t *user_query_id (const char *id) {
 
 }
 
+static const bson_t *user_find_by_oid (
+	const bson_oid_t *oid, const bson_t *query_opts
+) {
+
+	const bson_t *retval = NULL;
+
+	bson_t *user_query = bson_new ();
+	if (user_query) {
+		bson_append_oid (user_query, "_id", -1, oid);
+		retval = mongo_find_one_with_opts (users_collection, user_query, query_opts);
+	}
+
+	return retval;    
+
+}
+
+u8 user_get_by_id (
+	User *user, const char *id, const bson_t *query_opts
+) {
+
+	u8 retval = 1;
+
+	if (id) {
+		bson_oid_t oid = { 0 };
+		bson_oid_init_from_string (&oid, id);
+
+		const bson_t *user_doc = user_find_by_oid (&oid, query_opts);
+		if (user_doc) {
+			user_doc_parse (user, user_doc);
+			bson_destroy ((bson_t *) user_doc);
+
+			retval = 0;
+		}
+	}
+
+	return retval;
+
+}
+
 // get a user doc from the db by email
 static const bson_t *user_find_by_email (
 	const String *email, const bson_t *query_opts

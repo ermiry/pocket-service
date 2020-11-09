@@ -52,6 +52,10 @@ extern void user_print (User *user);
 
 extern bson_t *user_query_id (const char *id);
 
+extern u8 user_get_by_id (
+	User *user, const char *id, const bson_t *query_opts
+);
+
 // gets a user from the db by its email
 extern u8 user_get_by_email (
 	User *user, const String *email, const bson_t *query_opts
