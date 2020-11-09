@@ -59,7 +59,7 @@ static unsigned int pocket_users_init_pool (void) {
 
 }
 
-static unsigned int pocket_users_init_login_select (void) {
+static unsigned int pocket_users_init_query_opts (void) {
 
 	unsigned int retval = 1;
 
@@ -73,8 +73,7 @@ static unsigned int pocket_users_init_login_select (void) {
 	user_login_query_opts = mongo_find_generate_opts (user_login_select);
 
 	user_transactions_select = dlist_init (str_delete, str_comparator);
-	dlist_insert_after (user_transactions_select, dlist_end (user_login_select), str_new ("transCount"));
-	dlist_insert_after (user_transactions_select, dlist_end (user_login_select), str_new ("transactions"));
+	dlist_insert_after (user_transactions_select, dlist_end (user_transactions_select), str_new ("transCount"));
 
 	user_transactions_query_opts = mongo_find_generate_opts (user_transactions_select);
 
@@ -90,7 +89,7 @@ unsigned int pocket_users_init (void) {
 
 	errors |= pocket_users_init_pool ();
 
-	errors |= pocket_users_init_login_select ();
+	errors |= pocket_users_init_query_opts ();
 
 	return errors;
 
