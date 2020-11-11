@@ -19,6 +19,7 @@
 #include <cerver/utils/log.h>
 
 #include "mongo.h"
+#include "pocket.h"
 #include "roles.h"
 #include "users.h"
 
@@ -33,6 +34,11 @@ static DoubleList *user_login_select = NULL;
 
 const bson_t *user_transactions_query_opts = NULL;
 DoubleList *user_transactions_select = NULL;
+
+static HttpResponse *users_works = NULL;
+static HttpResponse *missing_user_values = NULL;
+static HttpResponse *wrong_password = NULL;
+static HttpResponse *user_not_found = NULL;
 
 static unsigned int pocket_users_init_pool (void) {
 
@@ -83,6 +89,35 @@ static unsigned int pocket_users_init_query_opts (void) {
 
 }
 
+static unsigned int pocket_users_init_responses (void) {
+
+	unsigned int retval = 1;
+
+	users_works = http_response_json_key_value (
+		(http_status) 200, "msg", "Users works!"
+	);
+
+	missing_user_values = http_response_json_key_value (
+		(http_status) 400, "error", "Missing user values!"
+	);
+
+	wrong_password = http_response_json_key_value (
+		(http_status) 400, "error", "Password is incorrect!"
+	);
+
+	user_not_found = http_response_json_key_value (
+		(http_status) 404, "error", "User not found!"
+	);
+
+	if (
+		users_works
+		&& missing_user_values && wrong_password && user_not_found
+	) retval = 0;
+
+	return retval;
+
+}
+
 unsigned int pocket_users_init (void) {
 
 	unsigned int errors = 0;
@@ -90,6 +125,8 @@ unsigned int pocket_users_init (void) {
 	errors |= pocket_users_init_pool ();
 
 	errors |= pocket_users_init_query_opts ();
+
+	errors |= pocket_users_init_responses ();
 
 	return errors;
 
@@ -102,6 +139,11 @@ void pocket_users_end (void) {
 
 	dlist_delete (user_transactions_select);
 	bson_destroy ((bson_t *) user_transactions_query_opts);
+
+	http_respponse_delete (users_works);
+	http_respponse_delete (missing_user_values);
+	http_respponse_delete (wrong_password);
+	http_respponse_delete (user_not_found);
 
 	pool_delete (users_pool);
 	users_pool = NULL;
@@ -211,10 +253,10 @@ void pocket_user_delete (void *user_ptr) {
 
 #pragma region routes
 
-// GET api/users/
+// GET api/users
 void users_handler (CerverReceive *cr, HttpRequest *request) {
 
-	http_response_json_msg_send (cr, 200, "Users works!");
+	http_response_send (users_works, cr->cerver, cr->connection);
 
 }
 
@@ -249,21 +291,21 @@ static void users_generate_and_send_token (CerverReceive *cr, const User *user, 
 			}
 
 			else {
-				http_response_json_error_send (cr, 500, "Internal error!");
+				http_response_send (server_error, cr->cerver, cr->connection);
 			}
 
 			free (bearer);
 		}
 
 		else {
-			http_response_json_error_send (cr, 500, "Internal error!");
+			http_response_send (server_error, cr->cerver, cr->connection);
 		}
 
 		free (token);
 	}
 
 	else {
-		http_response_json_error_send (cr, 500, "Internal error!");
+		http_response_send (server_error, cr->cerver, cr->connection);
 	}
 
 	dlist_delete (payload);
@@ -283,7 +325,7 @@ static u8 users_register_handler_save_user (CerverReceive *cr, User *user) {
 
 	else {
 		cerver_log_error ("Failed to save new user!");
-		http_response_json_error_send (cr, 500, "Internal error!");
+		http_response_send (server_error, cr->cerver, cr->connection);
 	}
 
 	return retval;
@@ -323,7 +365,7 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 			#ifdef POCKET_DEBUG
 			cerver_log_error ("Failed to create user!");
 			#endif
-			http_response_json_error_send (cr, 500, "Internal error!");
+			http_response_send (server_error, cr->cerver, cr->connection);
 		}
 	}
 
@@ -331,7 +373,7 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 		#ifdef POCKET_DEBUG
 		cerver_log_warning ("Missing user values!");
 		#endif
-		http_response_json_error_send (cr, 400, "Missing user values!");
+		http_response_send (missing_user_values, cr->cerver, cr->connection);
 	}
 
 }
@@ -366,7 +408,7 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 				cerver_log_error ("User %s login -> wrong password", oid_buffer);
 				#endif
 
-				http_response_json_error_send (cr, 400, "Password is incorrect!");
+				http_response_send (wrong_password, cr->cerver, cr->connection);
 			}
 
 			pocket_user_delete (user);
@@ -376,7 +418,7 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 			#ifdef POCKET_DEBUG
 			cerver_log_warning ("User not found!");
 			#endif
-			http_response_json_error_send (cr, 404, "User not found!");
+			http_response_send (user_not_found, cr->cerver, cr->connection);
 		}
 	}
 
@@ -384,7 +426,7 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 		#ifdef POCKET_DEBUG
 		cerver_log_warning ("Missing user values!");
 		#endif
-		http_response_json_error_send (cr, 400, "Missing user values!");
+		http_response_send (missing_user_values, cr->cerver, cr->connection);
 	}
 
 }
