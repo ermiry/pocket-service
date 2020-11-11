@@ -57,6 +57,7 @@ static HttpResponse *trans_deleted_success = NULL;
 static HttpResponse *trans_deleted_bad = NULL;
 
 static HttpResponse *no_user_categories = NULL;
+static HttpResponse *no_user_category = NULL;
 
 static HttpResponse *category_created_success = NULL;
 static HttpResponse *category_created_bad = NULL;
@@ -320,6 +321,10 @@ static unsigned int pocket_init_responses (void) {
 		(http_status) 404, "msg", "Failed to get user's categories"
 	);
 
+	no_user_category = http_response_json_key_value (
+		(http_status) 404, "msg", "User's category was not found"
+	);
+
 	category_created_success = http_response_json_key_value (
 		(http_status) 200, "oki", "doki"
 	);
@@ -342,7 +347,7 @@ static unsigned int pocket_init_responses (void) {
 		&& no_user_trans
 		&& trans_created_success && trans_created_bad
 		&& trans_deleted_success && trans_deleted_bad
-		&& no_user_categories
+		&& no_user_categories && no_user_category
 		&& category_created_success && category_created_bad
 		&& category_deleted_success && category_deleted_bad
 	) retval = 0;
@@ -424,6 +429,7 @@ unsigned int pocket_end (void) {
 	http_respponse_delete (trans_deleted_bad);
 
 	http_respponse_delete (no_user_categories);
+	http_respponse_delete (no_user_category);
 
 	http_respponse_delete (category_created_success);
 	http_respponse_delete (category_created_bad);
@@ -971,7 +977,36 @@ void pocket_category_get_handler (CerverReceive *cr, HttpRequest *request) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// TODO:
+		Category *category = (Category *) pool_pop (categories_pool);
+		if (category) {
+			bson_oid_init_from_string (&category->oid, category_id->str);
+			bson_oid_init_from_string (&category->user_oid, user->id);
+
+			const bson_t *category_bson = category_find_by_oid_and_user (
+				&category->oid, &category->user_oid,
+				category_no_user_query_opts
+			);
+
+			if (category_bson) {
+				size_t json_len = 0;
+				char *json = bson_as_relaxed_extended_json (category_bson, &json_len);
+				if (json) {
+					(void) http_response_json_custom_reference_send (
+						cr, 200, json, json_len
+					);
+
+					free (json);
+				}
+
+				bson_destroy ((bson_t *) category_bson);
+			}
+
+			else {
+				http_response_send (no_user_category, cr->cerver, cr->connection);
+			}
+
+			pocket_category_delete (category);
+		}
 	}
 
 	else {
