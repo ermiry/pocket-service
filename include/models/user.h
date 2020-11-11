@@ -41,6 +41,7 @@ typedef struct User {
 	time_t iat;
 
 	int trans_count;
+	int categories_count;
 
 } User;
 
@@ -70,5 +71,8 @@ extern bson_t *user_bson_create (User *user);
 
 // adds one to user's transactions count
 extern bson_t *user_create_update_pocket_transactions (void);
+
+// adds one to user's categories count
+extern bson_t *user_create_update_pocket_categories (void);
 
 #endif
