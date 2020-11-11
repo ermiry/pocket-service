@@ -56,6 +56,13 @@ static HttpResponse *trans_created_bad = NULL;
 static HttpResponse *trans_deleted_success = NULL;
 static HttpResponse *trans_deleted_bad = NULL;
 
+static HttpResponse *no_user_categories = NULL;
+
+static HttpResponse *category_created_success = NULL;
+static HttpResponse *category_created_bad = NULL;
+static HttpResponse *category_deleted_success = NULL;
+static HttpResponse *category_deleted_bad = NULL;
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
@@ -286,6 +293,7 @@ static unsigned int pocket_init_responses (void) {
 		free (status);
 	}
 
+	/*** transactions ***/
 	no_user_trans = http_response_json_key_value (
 		(http_status) 404, "msg", "Failed to get user's transaction(s)"
 	);
@@ -306,12 +314,37 @@ static unsigned int pocket_init_responses (void) {
 		(http_status) 400, "error", "Failed to delete transaction!"
 	);
 
+	/*** categories ****/
+
+	no_user_categories = http_response_json_key_value (
+		(http_status) 404, "msg", "Failed to get user's categories"
+	);
+
+	category_created_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	category_created_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to create category!"
+	);
+
+	category_deleted_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	category_deleted_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to delete category!"
+	);
+
 	if (
 		oki_doki && bad_request && server_error && bad_user && missing_values
 		&& pocket_works && current_version
 		&& no_user_trans
 		&& trans_created_success && trans_created_bad
 		&& trans_deleted_success && trans_deleted_bad
+		&& no_user_categories
+		&& category_created_success && category_created_bad
+		&& category_deleted_success && category_deleted_bad
 	) retval = 0;
 
 	return retval;
@@ -387,6 +420,15 @@ unsigned int pocket_end (void) {
 
 	http_respponse_delete (trans_created_success);
 	http_respponse_delete (trans_created_bad);
+	http_respponse_delete (trans_deleted_success);
+	http_respponse_delete (trans_deleted_bad);
+
+	http_respponse_delete (no_user_categories);
+
+	http_respponse_delete (category_created_success);
+	http_respponse_delete (category_created_bad);
+	http_respponse_delete (category_deleted_success);
+	http_respponse_delete (category_deleted_bad);
 
 	str_delete ((String *) MONGO_URI);
 	str_delete ((String *) MONGO_APP_NAME);
