@@ -38,4 +38,11 @@ extern void category_delete (void *category_ptr);
 
 extern void category_print (Category *category);
 
+extern bson_t *category_to_bson (Category *category);
+
+// get all the categories that are related to a user
+extern mongoc_cursor_t *categories_get_all_by_user (
+	const bson_oid_t *user_oid, const bson_t *opts
+);
+
 #endif

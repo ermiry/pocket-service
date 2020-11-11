@@ -72,3 +72,50 @@ void category_print (Category *category) {
 	}
 
 }
+
+bson_t *category_to_bson (Category *category) {
+
+    bson_t *doc = NULL;
+
+    if (category) {
+        doc = bson_new ();
+        if (doc) {
+            bson_append_oid (doc, "_id", -1, &category->oid);
+
+			bson_append_oid (doc, "user", -1, &category->user_oid);
+
+			bson_append_utf8 (doc, "title", -1, category->title, -1);
+			bson_append_utf8 (doc, "description", -1, category->description, -1);
+			bson_append_utf8 (doc, "color", -1, category->color, -1);
+
+			bson_append_date_time (doc, "date", -1, category->date * 1000);
+        }
+    }
+
+    return doc;
+
+}
+
+
+// get all the categories that are related to a user
+mongoc_cursor_t *categories_get_all_by_user (
+	const bson_oid_t *user_oid, const bson_t *opts
+) {
+
+	mongoc_cursor_t *retval = NULL;
+
+	if (user_oid && opts) {
+		bson_t *query = bson_new ();
+		if (query) {
+			bson_append_oid (query, "user", -1, user_oid);
+
+			retval = mongo_find_all_cursor_with_opts (
+				categories_collection,
+				query, opts
+			);
+		}
+	}
+
+	return retval;
+
+}
