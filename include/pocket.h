@@ -7,6 +7,7 @@
 #include <cerver/handler.h>
 
 #include <cerver/http/request.h>
+#include <cerver/http/response.h>
 
 #define DEFAULT_PORT					"5001"
 
@@ -16,6 +17,12 @@ extern const String *PORT;
 
 extern unsigned int CERVER_RECEIVE_BUFFER_SIZE;
 extern unsigned int CERVER_TH_THREADS;
+
+extern HttpResponse *oki_doki;
+extern HttpResponse *bad_request;
+extern HttpResponse *server_error;
+extern HttpResponse *bad_user;
+extern HttpResponse *missing_values;
 
 // inits pocket main values
 extern unsigned int pocket_init (void);
@@ -27,7 +34,7 @@ extern unsigned int pocket_end (void);
 
 #pragma region routes
 
-// GET api/pocket/
+// GET api/pocket
 extern void pocket_handler (CerverReceive *cr, HttpRequest *request);
 
 // GET api/pocket/version

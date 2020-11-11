@@ -38,8 +38,14 @@ static const String *MONGO_DB = NULL;
 unsigned int CERVER_RECEIVE_BUFFER_SIZE = 4096;
 unsigned int CERVER_TH_THREADS = 4;
 
-static HttpResponse *server_error = NULL;
-static HttpResponse *bad_user = NULL;
+HttpResponse *oki_doki = NULL;
+HttpResponse *bad_request = NULL;
+HttpResponse *server_error = NULL;
+HttpResponse *bad_user = NULL;
+HttpResponse *missing_values = NULL;
+
+static HttpResponse *pocket_works = NULL;
+static HttpResponse *current_version = NULL;
 
 static HttpResponse *no_user_trans = NULL;
 
@@ -242,6 +248,14 @@ static unsigned int pocket_init_responses (void) {
 
 	unsigned int retval = 1;
 
+	oki_doki = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	bad_request = http_response_json_key_value (
+		(http_status) 400, "error", "Bad request!"
+	);
+
 	server_error = http_response_json_key_value (
 		(http_status) 500, "error", "Internal server error!"
 	);
@@ -249,6 +263,23 @@ static unsigned int pocket_init_responses (void) {
 	bad_user = http_response_json_key_value (
 		(http_status) 400, "error", "Bad user!"
 	);
+
+	missing_values = http_response_json_key_value (
+		(http_status) 400, "error", "Missing values!"
+	);
+
+	pocket_works = http_response_json_key_value (
+		(http_status) 200, "msg", "Pocket works!"
+	);
+
+	char *status = c_string_create ("%s - %s", POCKET_VERSION_NAME, POCKET_VERSION_DATE);
+	if (status) {
+		current_version = http_response_json_key_value (
+			(http_status) 200, "version", status
+		);
+
+		free (status);
+	}
 
 	no_user_trans = http_response_json_key_value (
 		(http_status) 404, "msg", "Failed to get user's transaction(s)"
@@ -271,9 +302,11 @@ static unsigned int pocket_init_responses (void) {
 	);
 
 	if (
-		server_error && bad_user && no_user_trans &&
-		trans_created_success && trans_created_bad &&
-		trans_deleted_success && trans_deleted_bad
+		oki_doki && bad_request && server_error && bad_user && missing_values
+		&& pocket_works && current_version
+		&& no_user_trans
+		&& trans_created_success && trans_created_bad
+		&& trans_deleted_success && trans_deleted_bad
 	) retval = 0;
 
 	return retval;
@@ -330,8 +363,14 @@ unsigned int pocket_end (void) {
 
 	pocket_trans_end ();
 
+	http_respponse_delete (oki_doki);
+	http_respponse_delete (bad_request);
 	http_respponse_delete (server_error);
 	http_respponse_delete (bad_user);
+	http_respponse_delete (missing_values);
+
+	http_respponse_delete (pocket_works);
+	http_respponse_delete (current_version);
 
 	http_respponse_delete (no_user_trans);
 
@@ -350,21 +389,17 @@ unsigned int pocket_end (void) {
 
 #pragma region routes
 
-// GET api/pocket/
+// GET api/pocket
 void pocket_handler (CerverReceive *cr, HttpRequest *request) {
 
-	http_response_json_msg_send (cr, 200, "Pocket works!");
+	http_response_send (pocket_works, cr->cerver, cr->connection);
 
 }
 
 // GET api/pocket/version
 void pocket_version_handler (CerverReceive *cr, HttpRequest *request) {
 
-	char *status = c_string_create ("%s - %s", POCKET_VERSION_NAME, POCKET_VERSION_DATE);
-	if (status) {
-		http_response_json_msg_send (cr, 200, status);
-		free (status);
-	}
+	http_response_send (current_version, cr->cerver, cr->connection);
 
 }
 
@@ -372,16 +407,17 @@ void pocket_version_handler (CerverReceive *cr, HttpRequest *request) {
 void pocket_auth_handler (CerverReceive *cr, HttpRequest *request) {
 
 	User *user = (User *) request->decoded_data;
+
 	if (user) {
 		#ifdef POCKET_DEBUG
 		user_print (user);
 		#endif
 
-		http_response_json_msg_send (cr, 200, "Pocket auth!");
+		http_response_send (oki_doki, cr->cerver, cr->connection);
 	}
 
 	else {
-		http_response_json_error_send (cr, 400, "Bad user!");
+		http_response_send (bad_user, cr->cerver, cr->connection);
 	}
 
 }
