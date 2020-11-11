@@ -851,13 +851,110 @@ void pocket_categories_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 
+static Category *pocket_category_create_handler_internal (
+	const char *user_id, const String *request_body
+) {
+
+	Category *category = NULL;
+
+	if (request_body) {
+		// get values from request's json body
+		json_error_t error =  { 0 };
+		json_t *json_body = json_loads (request_body->str, 0, &error);
+		if (json_body) {
+			const char *title = NULL;
+			const char *description = NULL;
+			const char *color = NULL;
+
+			// get values from json to create a new category
+			const char *key = NULL;
+			json_t *value = NULL;
+			if (json_typeof (json_body) == JSON_OBJECT) {
+				json_object_foreach (json_body, key, value) {
+					if (!strcmp (key, "title")) {
+						title = json_string_value (value);
+						printf ("title: \"%s\"\n", title);
+					}
+
+					else if (!strcmp (key, "description")) {
+						description = json_string_value (value);
+						printf ("description: \"%s\"\n", description);
+					}
+
+					else if (!strcmp (key, "color")) {
+						color = json_string_value (value);
+						printf ("color: \"%s\"\n", color);
+					}
+				}
+			}
+
+			category = pocket_category_create (
+				user_id,
+				title, description,
+				color
+			);
+
+			json_decref (json_body);
+		}
+
+		else {
+			cerver_log_error (
+				"json_loads () - json error on line %d: %s\n", 
+				error.line, error.text
+			);
+		}
+	}
+
+	return category;
+
+}
+
 // POST api/pocket/categories
 // a user has requested to create a new category
 void pocket_category_create_handler (CerverReceive *cr, HttpRequest *request) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// TODO:
+		Category *category = pocket_category_create_handler_internal (user->id, request->body);
+		if (category) {
+			#ifdef POCKET_DEBUG
+			category_print (category);
+			#endif
+
+			if (!mongo_insert_one (
+				categories_collection,
+				category_to_bson (category)
+			)) {
+				// update users values
+				(void) mongo_update_one (
+					users_collection,
+					user_query_id (user->id),
+					user_create_update_pocket_categories ()
+				);
+
+				// return success to user
+				http_response_send (
+					category_created_success,
+					cr->cerver, cr->connection
+				);
+			}
+
+			else {
+				http_response_send (
+					category_created_bad,
+					cr->cerver, cr->connection
+				);
+			}
+			
+			pocket_category_delete (category);
+		}
+
+		else {
+			http_response_send (
+				category_created_bad,
+				cr->cerver, cr->connection
+			);
+		}
 	}
 
 	else {
