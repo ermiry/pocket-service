@@ -60,7 +60,7 @@ extern void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *requ
 extern void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request);
 
 // GET api/pocket/categories
-// get all the authenticated user's transactions
+// get all the authenticated user's categories
 extern void pocket_categories_handler (CerverReceive *cr, HttpRequest *request);
 
 // POST api/pocket/categories
