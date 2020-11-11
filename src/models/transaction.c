@@ -11,7 +11,7 @@
 
 #include "models/transaction.h"
 
-#define transactionS_COLL_NAME         				"transactions"
+#define TRANSACTIONS_COLL_NAME         				"transactions"
 
 mongoc_collection_t *transactions_collection = NULL;
 
@@ -20,7 +20,7 @@ unsigned int transactions_collection_get (void) {
 
 	unsigned int retval = 1;
 
-	transactions_collection = mongo_collection_get (transactionS_COLL_NAME);
+	transactions_collection = mongo_collection_get (TRANSACTIONS_COLL_NAME);
 	if (transactions_collection) {
 		retval = 0;
 	}
