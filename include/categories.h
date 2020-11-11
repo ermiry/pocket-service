@@ -4,10 +4,13 @@
 #include <bson/bson.h>
 
 #include <cerver/collections/dlist.h>
+#include <cerver/collections/pool.h>
 
 #include "models/category.h"
 
 #define DEFAULT_CATEGORIES_POOL_INIT			32
+
+extern Pool *categories_pool;
 
 extern const bson_t *category_no_user_query_opts;
 extern DoubleList *category_no_user_select;

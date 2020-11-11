@@ -73,6 +73,115 @@ void category_print (Category *category) {
 
 }
 
+static void category_doc_parse (Category *category, const bson_t *category_doc) {
+
+	bson_iter_t iter = { 0 };
+	if (bson_iter_init (&iter, category_doc)) {
+		char *key = NULL;
+		bson_value_t *value = NULL;
+		while (bson_iter_next (&iter)) {
+			key = (char *) bson_iter_key (&iter);
+			value = (bson_value_t *) bson_iter_value (&iter);
+
+			if (!strcmp (key, "_id"))
+				bson_oid_copy (&value->value.v_oid, &category->oid);
+
+			else if (!strcmp (key, "user"))
+				bson_oid_copy (&value->value.v_oid, &category->user_oid);
+
+			else if (!strcmp (key, "title") && value->value.v_utf8.str) 
+				(void) strncpy (category->title, value->value.v_utf8.str, CATEGORY_TITLE_LEN);
+
+			else if (!strcmp (key, "description")) 
+				(void) strncpy (category->description, value->value.v_utf8.str, CATEGORY_DESCRIPTION_LEN);
+
+			else if (!strcmp (key, "color")) 
+				(void) strncpy (category->color, value->value.v_utf8.str, CATEGORY_COLOR_LEN);
+
+			else if (!strcmp (key, "date")) 
+				category->date = (time_t) bson_iter_date_time (&iter) / 1000;
+		}
+	}
+
+}
+
+const bson_t *category_find_by_oid (
+	const bson_oid_t *oid, const bson_t *query_opts
+) {
+
+	const bson_t *retval = NULL;
+
+	bson_t *category_query = bson_new ();
+	if (category_query) {
+		bson_append_oid (category_query, "_id", -1, oid);
+		retval = mongo_find_one_with_opts (categories_collection, category_query, query_opts);
+	}
+
+	return retval;
+
+}
+
+u8 category_get_by_oid (
+	Category *category, const bson_oid_t *oid, const bson_t *query_opts
+) {
+
+	u8 retval = 1;
+
+	if (category) {
+		const bson_t *category_doc = category_find_by_oid (oid, query_opts);
+		if (category_doc) {
+			category_doc_parse (category, category_doc);
+			bson_destroy ((bson_t *) category_doc);
+
+			retval = 0;
+		}
+	}
+
+	return retval;
+
+}
+
+const bson_t *category_find_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts
+) {
+
+	const bson_t *retval = NULL;
+
+	bson_t *category_query = bson_new ();
+	if (category_query) {
+		bson_append_oid (category_query, "_id", -1, oid);
+		bson_append_oid (category_query, "user", -1, user_oid);
+
+		retval = mongo_find_one_with_opts (categories_collection, category_query, query_opts);
+	}
+
+	return retval;
+
+}
+
+u8 category_get_by_oid_and_user (
+	Category *category,
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts
+) {
+
+	u8 retval = 1;
+
+	if (category) {
+		const bson_t *category_doc = category_find_by_oid_and_user (oid, user_oid, query_opts);
+		if (category_doc) {
+			category_doc_parse (category, category_doc);
+			bson_destroy ((bson_t *) category_doc);
+
+			retval = 0;
+		}
+	}
+
+	return retval;
+
+}
+
 bson_t *category_to_bson (Category *category) {
 
     bson_t *doc = NULL;

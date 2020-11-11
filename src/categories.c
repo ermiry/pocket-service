@@ -15,7 +15,7 @@
 
 #include "models/category.h"
 
-static Pool *categories_pool = NULL;
+Pool *categories_pool = NULL;
 
 const bson_t *category_no_user_query_opts = NULL;
 DoubleList *category_no_user_select = NULL;
