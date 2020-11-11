@@ -16,6 +16,9 @@
 extern const bson_t *user_transactions_query_opts;
 extern DoubleList *user_transactions_select;
 
+extern const bson_t *user_categories_query_opts;
+extern DoubleList *user_categories_select;
+
 extern unsigned int pocket_users_init (void);
 
 extern void pocket_users_end (void);

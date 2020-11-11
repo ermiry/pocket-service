@@ -35,6 +35,9 @@ static DoubleList *user_login_select = NULL;
 const bson_t *user_transactions_query_opts = NULL;
 DoubleList *user_transactions_select = NULL;
 
+const bson_t *user_categories_query_opts = NULL;
+DoubleList *user_categories_select = NULL;
+
 static HttpResponse *users_works = NULL;
 static HttpResponse *missing_user_values = NULL;
 static HttpResponse *wrong_password = NULL;
@@ -83,7 +86,15 @@ static unsigned int pocket_users_init_query_opts (void) {
 
 	user_transactions_query_opts = mongo_find_generate_opts (user_transactions_select);
 
-	if (user_login_query_opts && user_transactions_query_opts) retval = 0;
+	user_categories_select = dlist_init (str_delete, str_comparator);
+	dlist_insert_after (user_categories_select, dlist_end (user_categories_select), str_new ("categoriesCount"));
+
+	user_categories_query_opts = mongo_find_generate_opts (user_categories_select);
+
+	if (
+		user_login_query_opts
+		&& user_transactions_query_opts && user_categories_query_opts
+	) retval = 0;
 
 	return retval;
 
@@ -139,6 +150,9 @@ void pocket_users_end (void) {
 
 	dlist_delete (user_transactions_select);
 	bson_destroy ((bson_t *) user_transactions_query_opts);
+
+	dlist_delete (user_categories_select);
+	bson_destroy ((bson_t *) user_categories_query_opts);
 
 	http_respponse_delete (users_works);
 	http_respponse_delete (missing_user_values);
