@@ -36,36 +36,59 @@ sudo docker run \
 ### Main
 
 #### GET /api/pocket
-Pocket top level route
+**Access:** Public \
+**Description:** Pocket top level route
 
 #### GET api/pocket/version
-Returns pocket-api service current version
+**Access:** Public \
+**Description:** Returns pocket-api service current version
 
 #### GET api/pocket/auth
-Used to test if jwt keys work correctly
-
-#### POST api/users/register
-Used by users to create a new account
+**Access:** Private \
+**Description:** Used to test if jwt keys work correctly
 
 #### GET api/pocket/transactions
-Get all the authenticated user's transactions
+**Access:** Private \
+**Description:** Get all the authenticated user's transactions
 
 #### POST api/pocket/transactions
-A user has requested to create a new transaction
+**Access:** Private \
+**Description:** A user has requested to create a new transaction
 
 #### GET api/pocket/transactions/:id
-Returns information about an existing transaction that belongs to a user
+**Access:** Private \
+**Description:** Returns information about an existing transaction that belongs to a user
 
 #### DELETE api/pocket/transactions/:id
-Deletes an existing user's transaction
+**Access:** Private \
+**Description:** Deletes an existing user's transaction
+
+#### GET api/pocket/categories
+**Access:** Private \
+**Description:** Get all the authenticated user's transactions
+
+#### POST api/pocket/categories
+**Access:** Private \
+**Description:** A user has requested to create a new category
+
+#### GET api/pocket/categories/:id
+**Access:** Private \
+**Description:** Returns information about an existing category that belongs to a user
+
+#### DELETE api/pocket/categories/:id
+**Access:** Private \
+**Description:** Deletes an existing user's category
 
 ### Users
 
 #### GET /api/users
-Users top level route
+**Access:** Public \
+**Description:** Users top level route
 
 #### POST api/users/login
-Uses the user's supplied creedentials to perform a login and generate a jwt token
+**Access:** Public \
+**Description:** Uses the user's supplied creedentials to perform a login and generate a jwt token
 
 #### POST api/users/register
-Used by users to create a new account
+**Access:** Public \
+**Description:** Used by users to create a new account
