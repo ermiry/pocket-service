@@ -1023,7 +1023,32 @@ void pocket_category_delete_handler (CerverReceive *cr, HttpRequest *request) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// TODO:
+		bson_t *category_query = bson_new ();
+		if (category_query) {
+			bson_oid_t oid = { 0 };
+
+			bson_oid_init_from_string (&oid, category_id->str);
+			bson_append_oid (category_query, "_id", -1, &oid);
+
+			bson_oid_init_from_string (&oid, user->id);
+			bson_append_oid (category_query, "user", -1, &oid);
+
+			if (!mongo_delete_one (categories_collection, category_query)) {
+				#ifdef POCKET_DEBUG
+				cerver_log_debug ("Deleted category %s", category_id->str);
+				#endif
+
+				http_response_send (category_deleted_success, cr->cerver, cr->connection);
+			}
+
+			else {
+				http_response_send (category_deleted_bad, cr->cerver, cr->connection);
+			}
+		}
+
+		else {
+			http_response_send (server_error, cr->cerver, cr->connection);
+		}
 	}
 
 	else {
