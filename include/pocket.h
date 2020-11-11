@@ -59,6 +59,22 @@ extern void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *requ
 // deletes an existing user's transaction
 extern void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request);
 
+// GET api/pocket/categories
+// get all the authenticated user's transactions
+extern void pocket_categories_handler (CerverReceive *cr, HttpRequest *request);
+
+// POST api/pocket/categories
+// a user has requested to create a new category
+extern void pocket_category_create_handler (CerverReceive *cr, HttpRequest *request);
+
+// GET api/pocket/categories/:id
+// returns information about an existing category that belongs to a user
+extern void pocket_category_get_handler (CerverReceive *cr, HttpRequest *request);
+
+// DELETE api/pocket/categories/:id
+// deletes an existing user's category
+extern void pocket_category_delete_handler (CerverReceive *cr, HttpRequest *request);
+
 #pragma endregion
 
 #endif

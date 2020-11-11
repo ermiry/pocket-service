@@ -16,14 +16,16 @@
 #include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
 
-#include "pocket.h"
+#include "categories.h"
 #include "mongo.h"
+#include "pocket.h"
 #include "roles.h"
 #include "transactions.h"
 #include "users.h"
 #include "version.h"
 
 #include "models/action.h"
+#include "models/category.h"
 #include "models/role.h"
 #include "models/user.h"
 
@@ -204,6 +206,9 @@ static unsigned int pocket_mongo_connect (void) {
 			// open handle to actions collection
 			errors |= actions_collection_get ();
 
+			// open handle to categories collection
+			errors |= categories_collection_get ();
+
 			// open handle to roles collection
 			errors |= roles_collection_get ();
 
@@ -323,6 +328,8 @@ unsigned int pocket_init (void) {
 
 		errors |= pocket_users_init ();
 
+		errors |= pocket_categories_init ();
+
 		errors |= pocket_trans_init ();
 
 		errors |= pocket_init_responses ();
@@ -336,6 +343,8 @@ static unsigned int pocket_mongo_end (void) {
 
 	if (mongo_get_status () == MONGO_STATUS_CONNECTED) {
 		actions_collection_close ();
+
+		categories_collection_close ();
 
 		roles_collection_close ();
 
@@ -360,6 +369,8 @@ unsigned int pocket_end (void) {
 	pocket_roles_end ();
 
 	pocket_users_end ();
+
+	pocket_categories_end ();
 
 	pocket_trans_end ();
 
@@ -421,6 +432,10 @@ void pocket_auth_handler (CerverReceive *cr, HttpRequest *request) {
 	}
 
 }
+
+#pragma endregion
+
+#pragma region transactions
 
 static char *pocket_transactions_handler_generate_json (
 	User *user,
@@ -617,7 +632,7 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 // returns information about an existing transaction that belongs to a user
 void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
 
-	String *trans_id = request->params[0];
+	const String *trans_id = request->params[0];
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
@@ -663,7 +678,7 @@ void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
 // deletes an existing user's transaction
 void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request) {
 
-	String *trans_id = request->params[0];
+	const String *trans_id = request->params[0];
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
@@ -693,6 +708,74 @@ void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request)
 		else {
 			http_response_send (server_error, cr->cerver, cr->connection);
 		}
+	}
+
+	else {
+		http_response_send (bad_user, cr->cerver, cr->connection);
+	}
+
+}
+
+#pragma endregion
+
+#pragma region categories
+
+// GET api/pocket/categories
+// get all the authenticated user's transactions
+void pocket_categories_handler (CerverReceive *cr, HttpRequest *request) {
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		// TODO:
+	}
+
+	else {
+		http_response_send (bad_user, cr->cerver, cr->connection);
+	}
+
+}
+
+// POST api/pocket/categories
+// a user has requested to create a new category
+void pocket_category_create_handler (CerverReceive *cr, HttpRequest *request) {
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		// TODO:
+	}
+
+	else {
+		http_response_send (bad_user, cr->cerver, cr->connection);
+	}
+
+}
+
+// GET api/pocket/categories/:id
+// returns information about an existing category that belongs to a user
+void pocket_category_get_handler (CerverReceive *cr, HttpRequest *request) {
+
+	const String *category_id = request->params[0];
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		// TODO:
+	}
+
+	else {
+		http_response_send (bad_user, cr->cerver, cr->connection);
+	}
+
+}
+
+// DELETE api/pocket/categories/:id
+// deletes an existing user's category
+void pocket_category_delete_handler (CerverReceive *cr, HttpRequest *request) {
+
+	const String *category_id = request->params[0];
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		// TODO:
 	}
 
 	else {
