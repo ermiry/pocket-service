@@ -42,6 +42,7 @@ static HttpResponse *users_works = NULL;
 static HttpResponse *missing_user_values = NULL;
 static HttpResponse *wrong_password = NULL;
 static HttpResponse *user_not_found = NULL;
+static HttpResponse *repeated_email = NULL;
 
 static unsigned int pocket_users_init_pool (void) {
 
@@ -120,6 +121,10 @@ static unsigned int pocket_users_init_responses (void) {
 		(http_status) 404, "error", "User not found!"
 	);
 
+	repeated_email = http_response_json_key_value (
+		(http_status) 400, "error", "Email was already registered!"
+	);
+
 	if (
 		users_works
 		&& missing_user_values && wrong_password && user_not_found
@@ -158,6 +163,7 @@ void pocket_users_end (void) {
 	http_respponse_delete (missing_user_values);
 	http_respponse_delete (wrong_password);
 	http_respponse_delete (user_not_found);
+	http_respponse_delete (repeated_email);
 
 	pool_delete (users_pool);
 	users_pool = NULL;
@@ -205,6 +211,27 @@ static User *pocket_user_get_by_email (const String *email) {
 
 }
 
+static u8 pocket_user_check_by_email (
+	CerverReceive *cr, const String *email
+) {
+
+	u8 retval = 1;
+
+	if (!mongo_check (users_collection, user_query_email (email->str))) {
+		retval = 0;
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_warning ("Found matching user with email: %s", email->str);
+		#endif
+		http_response_send (repeated_email, cr->cerver, cr->connection);
+	}
+
+	return retval;
+
+}
+
 // {
 //   "email": "erick.salas@ermiry.com",
 //   "iat": 1596532954
@@ -235,11 +262,11 @@ void *pocket_user_parse_from_json (void *user_json_ptr) {
 			"role", &role,
 			"username", &username
 		)) {
-			strncpy (user->email, email, USER_EMAIL_LEN);
-			strncpy (user->id, id, USER_ID_LEN);
-			strncpy (user->name, name, USER_NAME_LEN);
-			strncpy (user->role, role, USER_ROLE_LEN);
-			strncpy (user->username, username, USER_USERNAME_LEN);
+			(void) strncpy (user->email, email, USER_EMAIL_LEN);
+			(void) strncpy (user->id, id, USER_ID_LEN);
+			(void) strncpy (user->name, name, USER_NAME_LEN);
+			(void) strncpy (user->role, role, USER_ROLE_LEN);
+			(void) strncpy (user->username, username, USER_USERNAME_LEN);
 
 			user_print (user);
 		}
@@ -247,7 +274,7 @@ void *pocket_user_parse_from_json (void *user_json_ptr) {
 		else {
 			cerver_log_error ("user_parse_from_json () - json_unpack () has failed!");
 
-			pool_push (users_pool, user);
+			(void) pool_push (users_pool, user);
 			user = NULL;
 		}
 	}
@@ -258,8 +285,8 @@ void *pocket_user_parse_from_json (void *user_json_ptr) {
 
 void pocket_user_delete (void *user_ptr) {
 
-	memset (user_ptr, 0, sizeof (User));
-	pool_push (users_pool, user_ptr);
+	(void) memset (user_ptr, 0, sizeof (User));
+	(void) pool_push (users_pool, user_ptr);
 
 }
 
@@ -280,11 +307,11 @@ static void users_generate_and_send_token (CerverReceive *cr, const User *user, 
 	bson_oid_to_string (&user->oid, (char *) user->id);
 
 	DoubleList *payload = dlist_init (key_value_pair_delete, NULL);
-	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("email", user->email));
-	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("id", user->id));
-	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("name", user->name));
-	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("role", role_name->str));
-	dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("username", user->username));
+	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("email", user->email));
+	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("id", user->id));
+	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("name", user->name));
+	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("role", role_name->str));
+	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("username", user->username));
 
 	// generate & send back auth token
 	char *token = http_cerver_auth_generate_jwt ((HttpCerver *) cr->cerver->cerver_data, payload);
@@ -357,29 +384,31 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 	const String *confirm = http_request_body_get_value (request, "confirm");
 
 	if (name && username && email && password && confirm) {
-		User *user = pocket_user_create (
-			name->str,
-			username->str,
-			email->str,
-			password->str,
-			&common_role->oid
-		);
-		if (user) {
-			if (!users_register_handler_save_user (cr, user)) {
-				cerver_log_success ("User %s has created an account!", email->str);
+		if (!pocket_user_check_by_email (cr, email)) {
+			User *user = pocket_user_create (
+				name->str,
+				username->str,
+				email->str,
+				password->str,
+				&common_role->oid
+			);
+			if (user) {
+				if (!users_register_handler_save_user (cr, user)) {
+					cerver_log_success ("User %s has created an account!", email->str);
 
-				// return token upon success
-				users_generate_and_send_token (cr, user, common_role->name);
+					// return token upon success
+					users_generate_and_send_token (cr, user, common_role->name);
+				}
+
+				pocket_user_delete (user);
 			}
 
-			pocket_user_delete (user);
-		}
-
-		else {
-			#ifdef POCKET_DEBUG
-			cerver_log_error ("Failed to create user!");
-			#endif
-			http_response_send (server_error, cr->cerver, cr->connection);
+			else {
+				#ifdef POCKET_DEBUG
+				cerver_log_error ("Failed to create user!");
+				#endif
+				http_response_send (server_error, cr->cerver, cr->connection);
+			}
 		}
 	}
 
