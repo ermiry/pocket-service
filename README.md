@@ -37,58 +37,122 @@ sudo docker run \
 
 #### GET /api/pocket
 **Access:** Public \
-**Description:** Pocket top level route
+**Description:** Pocket top level route \
+**Returns:**
+  - 200 on success
 
 #### GET api/pocket/version
 **Access:** Public \
-**Description:** Returns pocket-api service current version
+**Description:** Returns pocket-api service current version \
+**Returns:**
+  - 200 and version's json on success
 
 #### GET api/pocket/auth
 **Access:** Private \
-**Description:** Used to test if jwt keys work correctly
+**Description:** Used to test if jwt keys work correctly \
+**Returns:**
+  - 200 on success
+  - 400 on failed auth
 
 #### GET api/pocket/transactions
 **Access:** Private \
-**Description:** Get all the authenticated user's transactions
+**Description:** Get all the authenticated user's transactions \
+**Returns:**
+  - 200 and transactions json on success
+  - 400 on failed auth
 
 #### POST api/pocket/transactions
 **Access:** Private \
-**Description:** A user has requested to create a new transaction
+**Description:** A user has requested to create a new transaction \
+**Returns:**
+  - 200 on success creating transaction
+  - 400 on failed auth or on failed to create new transaction
+  - 500 on server error
 
 #### GET api/pocket/transactions/:id
 **Access:** Private \
-**Description:** Returns information about an existing transaction that belongs to a user
+**Description:** Returns information about an existing transaction that belongs to a user \
+**Returns:**
+  - 200 and transaction's json on success
+  - 400 on failed auth
+  - 404 on transaction not found
+
+#### POST api/pocket/transactions/:id
+**Access:** Private \
+**Description:** A user wants to update an existing transaction \
+**Returns:**
+  - 200 on success updating user's transaction
+  - 400 on failed auth or bad request due to missing values
+  - 500 on server error
 
 #### DELETE api/pocket/transactions/:id
 **Access:** Private \
-**Description:** Deletes an existing user's transaction
+**Description:** Deletes an existing user's transaction \
+**Returns:**
+  - 200 on success deleting user's transaction
+  - 400 on failed auth or bad request
+  - 500 on server error
 
 #### GET api/pocket/categories
 **Access:** Private \
-**Description:** Get all the authenticated user's transactions
+**Description:** Get all the authenticated user's categories \
+**Returns:**
+  - 200 and categories json on success
+  - 400 on failed auth
 
 #### POST api/pocket/categories
 **Access:** Private \
-**Description:** A user has requested to create a new category
+**Description:** A user has requested to create a new category \
+**Returns:**
+  - 200 on success creating category
+  - 400 on failed auth or on failed to create new category
+  - 500 on server error
 
 #### GET api/pocket/categories/:id
 **Access:** Private \
-**Description:** Returns information about an existing category that belongs to a user
+**Description:** Returns information about an existing category that belongs to a user \
+**Returns:**
+  - 200 and category's json on success
+  - 400 on failed auth
+  - 404 on category not found
+
+#### POST api/pocket/categories/:id
+**Access:** Private \
+**Description:** A user wants to update an existing category \
+**Returns:**
+  - 200 on success updating user's category
+  - 400 on failed auth or bad request due to missing values
+  - 500 on server error
 
 #### DELETE api/pocket/categories/:id
 **Access:** Private \
-**Description:** Deletes an existing user's category
+**Description:** Deletes an existing user's category \
+**Returns:**
+  - 200 on success deleting user's category
+  - 400 on failed auth or bad request
+  - 500 on server error
 
 ### Users
 
 #### GET /api/users
 **Access:** Public \
-**Description:** Users top level route
+**Description:** Users top level route \
+**Returns:**
+  - 200 on success
 
 #### POST api/users/login
 **Access:** Public \
-**Description:** Uses the user's supplied creedentials to perform a login and generate a jwt token
+**Description:** Uses the user's supplied creedentials to perform a login and generate a jwt token \
+**Returns:**
+  - 200 and token on success authenticating user
+  - 400 on bad request due to missing values
+  - 404 on user not found
+  - 500 on server error
 
 #### POST api/users/register
 **Access:** Public \
-**Description:** Used by users to create a new account
+**Description:** Used by users to create a new account \
+**Returns:**
+  - 200 and token on success creating a new user
+  - 400 on bad request due to missing values
+  - 500 on server error
