@@ -857,6 +857,57 @@ void pocket_categories_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 
+static u8 pocket_category_parse_json (
+	const String *request_body,
+	const char **title,
+	const char **description,
+	const char **color
+) {
+
+	u8 retval = 1;
+
+	// get values from request's json body
+	json_error_t error =  { 0 };
+	json_t *json_body = json_loads (request_body->str, 0, &error);
+	if (json_body) {
+		// get values from json to create a new category
+		const char *key = NULL;
+		json_t *value = NULL;
+		if (json_typeof (json_body) == JSON_OBJECT) {
+			json_object_foreach (json_body, key, value) {
+				if (!strcmp (key, "title")) {
+					*title = json_string_value (value);
+					printf ("title: \"%s\"\n", *title);
+				}
+
+				else if (!strcmp (key, "description")) {
+					*description = json_string_value (value);
+					printf ("description: \"%s\"\n", *description);
+				}
+
+				else if (!strcmp (key, "color")) {
+					*color = json_string_value (value);
+					printf ("color: \"%s\"\n", *color);
+				}
+			}
+		}
+
+		json_decref (json_body);
+
+		retval = 0;
+	}
+
+	else {
+		cerver_log_error (
+			"json_loads () - json error on line %d: %s\n", 
+			error.line, error.text
+		);
+	}
+
+	return retval;
+
+}
+
 static Category *pocket_category_create_handler_internal (
 	const char *user_id, const String *request_body
 ) {
@@ -864,49 +915,20 @@ static Category *pocket_category_create_handler_internal (
 	Category *category = NULL;
 
 	if (request_body) {
-		// get values from request's json body
-		json_error_t error =  { 0 };
-		json_t *json_body = json_loads (request_body->str, 0, &error);
-		if (json_body) {
-			const char *title = NULL;
-			const char *description = NULL;
-			const char *color = NULL;
+		const char *title = NULL;
+		const char *description = NULL;
+		const char *color = NULL;
 
-			// get values from json to create a new category
-			const char *key = NULL;
-			json_t *value = NULL;
-			if (json_typeof (json_body) == JSON_OBJECT) {
-				json_object_foreach (json_body, key, value) {
-					if (!strcmp (key, "title")) {
-						title = json_string_value (value);
-						printf ("title: \"%s\"\n", title);
-					}
-
-					else if (!strcmp (key, "description")) {
-						description = json_string_value (value);
-						printf ("description: \"%s\"\n", description);
-					}
-
-					else if (!strcmp (key, "color")) {
-						color = json_string_value (value);
-						printf ("color: \"%s\"\n", color);
-					}
-				}
-			}
-
+		if (!pocket_category_parse_json (
+			request_body,
+			&title,
+			&description,
+			&color
+		)) {
 			category = pocket_category_create (
 				user_id,
 				title, description,
 				color
-			);
-
-			json_decref (json_body);
-		}
-
-		else {
-			cerver_log_error (
-				"json_loads () - json error on line %d: %s\n", 
-				error.line, error.text
 			);
 		}
 	}
@@ -921,7 +943,10 @@ void pocket_category_create_handler (CerverReceive *cr, HttpRequest *request) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		Category *category = pocket_category_create_handler_internal (user->id, request->body);
+		Category *category = pocket_category_create_handler_internal (
+			user->id, request->body
+		);
+
 		if (category) {
 			#ifdef POCKET_DEBUG
 			category_print (category);
@@ -1015,6 +1040,80 @@ void pocket_category_get_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 
+static u8 pocket_category_update_handler_internal (
+	Category *category, const String *request_body
+) {
+
+	u8 retval = 1;
+
+	if (request_body) {
+		const char *title = NULL;
+		const char *description = NULL;
+		const char *color = NULL;
+
+		if (!pocket_category_parse_json (
+			request_body,
+			&title,
+			&description,
+			&color
+		)) {
+			if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_LEN);
+			if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_LEN);
+			if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_LEN);
+
+			retval = 0;
+		}
+	}
+
+	return retval;
+
+}
+
+// POST api/pocket/categories/:id
+// a user wants to update an existing category
+void pocket_category_update_handler (CerverReceive *cr, HttpRequest *request) {
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		bson_oid_init_from_string (&user->oid, user->id);
+
+		Category *category = pocket_category_get_by_id_and_user (
+			request->params[0], &user->oid
+		);
+
+		if (category) {
+			// get update values
+			if (!pocket_category_update_handler_internal (
+				category, request->body
+			)) {
+				// update the category in the db
+				if (!mongo_update_one (
+					categories_collection,
+					category_query_oid (&category->oid),
+					category_update_bson (category)
+				)) {
+					http_response_send (oki_doki, cr->cerver, cr->connection);
+				}
+
+				else {
+					http_response_send (server_error, cr->cerver, cr->connection);
+				}
+			}
+
+			pocket_category_delete (category);
+		}
+
+		else {
+			http_response_send (bad_request, cr->cerver, cr->connection);
+		}
+	}
+
+	else {
+		http_response_send (bad_user, cr->cerver, cr->connection);
+	}
+
+}
+
 // DELETE api/pocket/categories/:id
 // deletes an existing user's category
 void pocket_category_delete_handler (CerverReceive *cr, HttpRequest *request) {
@@ -1028,10 +1127,10 @@ void pocket_category_delete_handler (CerverReceive *cr, HttpRequest *request) {
 			bson_oid_t oid = { 0 };
 
 			bson_oid_init_from_string (&oid, category_id->str);
-			bson_append_oid (category_query, "_id", -1, &oid);
+			(void) bson_append_oid (category_query, "_id", -1, &oid);
 
 			bson_oid_init_from_string (&oid, user->id);
-			bson_append_oid (category_query, "user", -1, &oid);
+			(void) bson_append_oid (category_query, "user", -1, &oid);
 
 			if (!mongo_delete_one (categories_collection, category_query)) {
 				#ifdef POCKET_DEBUG

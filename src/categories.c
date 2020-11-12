@@ -85,6 +85,7 @@ void pocket_categories_end (void) {
 
 }
 
+Category *pocket_category_get_by_id_and_user (
 	const String *category_id, const bson_oid_t *user_oid
 ) {
 
