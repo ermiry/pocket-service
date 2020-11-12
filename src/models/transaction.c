@@ -102,6 +102,21 @@ static void trans_doc_parse (Transaction *trans, const bson_t *trans_doc) {
 
 }
 
+bson_t *transaction_query_oid (const bson_oid_t *oid) {
+
+	bson_t *query = NULL;
+
+	if (oid) {
+		query = bson_new ();
+		if (query) {
+			(void) bson_append_oid (query, "_id", -1, oid);
+		}
+	}
+
+	return query;
+
+}
+
 const bson_t *transaction_find_by_oid (
 	const bson_oid_t *oid, const bson_t *query_opts
 ) {

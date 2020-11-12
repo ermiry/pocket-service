@@ -35,6 +35,8 @@ extern void transaction_delete (void *transaction_ptr);
 
 extern void transaction_print (Transaction *transaction);
 
+extern bson_t *transaction_query_oid (const bson_oid_t *oid);
+
 extern const bson_t *transaction_find_by_oid (
 	const bson_oid_t *oid, const bson_t *query_opts
 );

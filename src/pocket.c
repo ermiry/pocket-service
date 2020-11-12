@@ -574,6 +574,51 @@ void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 
+static u8 pocket_trans_parse_json (
+	const String *request_body,
+	const char **title,
+	double *amount
+) {
+
+	u8 retval = 1;
+
+	// get values from request's json body
+	json_error_t error =  { 0 };
+	json_t *json_body = json_loads (request_body->str, 0, &error);
+	if (json_body) {
+		// get values from json to create a new transaction
+		const char *key = NULL;
+		json_t *value = NULL;
+		if (json_typeof (json_body) == JSON_OBJECT) {
+			json_object_foreach (json_body, key, value) {
+				if (!strcmp (key, "title")) {
+					*title = json_string_value (value);
+					printf ("title: \"%s\"\n", *title);
+				}
+
+				else if (!strcmp (key, "amount")) {
+					*amount = json_real_value (value);
+					printf ("amount: %f\n", *amount);
+				}
+			}
+		}
+
+		json_decref (json_body);
+
+		retval = 0;
+	}
+
+	else {
+		cerver_log_error (
+			"json_loads () - json error on line %d: %s\n", 
+			error.line, error.text
+		);
+	}
+
+	return retval;
+
+}
+
 static Transaction *pocket_transaction_create_handler_internal (
 	const char *user_id, const String *request_body
 ) {
@@ -581,39 +626,17 @@ static Transaction *pocket_transaction_create_handler_internal (
 	Transaction *trans = NULL;
 
 	if (request_body) {
-		// get values from request's json body
-		json_error_t error =  { 0 };
-		json_t *json_body = json_loads (request_body->str, 0, &error);
-		if (json_body) {
-			const char *title = NULL;
-			double amount = 0;
+		const char *title = NULL;
+		double amount = 0;
 
-			// get values from json to create a new transaction
-			const char *key = NULL;
-			json_t *value = NULL;
-			if (json_typeof (json_body) == JSON_OBJECT) {
-				json_object_foreach (json_body, key, value) {
-					if (!strcmp (key, "title")) {
-						title = json_string_value (value);
-						printf ("title: \"%s\"\n", title);
-					}
-
-					else if (!strcmp (key, "amount")) {
-						amount = json_real_value (value);
-						printf ("amount: %f\n", amount);
-					}
-				}
-			}
-
-			trans = pocket_trans_create (user_id, title, amount);
-
-			json_decref (json_body);
-		}
-
-		else {
-			cerver_log_error (
-				"json_loads () - json error on line %d: %s\n", 
-				error.line, error.text
+		if (!pocket_trans_parse_json (
+			request_body,
+			&title,
+			&amount
+		)) {
+			trans = pocket_trans_create (
+				user_id,
+				title, amount
 			);
 		}
 	}
@@ -628,7 +651,10 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		Transaction *trans = pocket_transaction_create_handler_internal (user->id, request->body);
+		Transaction *trans = pocket_transaction_create_handler_internal (
+			user->id, request->body
+		);
+
 		if (trans) {
 			#ifdef POCKET_DEBUG
 			transaction_print (trans);
@@ -713,6 +739,77 @@ void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
 			}
 
 			pocket_trans_delete (trans);
+		}
+	}
+
+	else {
+		http_response_send (bad_user, cr->cerver, cr->connection);
+	}
+
+}
+
+static u8 pocket_transaction_update_handler_internal (
+	Transaction *trans, const String *request_body
+) {
+
+	u8 retval = 1;
+
+	if (request_body) {
+		const char *title = NULL;
+		double amount = 0;
+
+		if (!pocket_trans_parse_json (
+			request_body,
+			&title,
+			&amount
+		)) {
+			if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
+			trans->amount = amount;
+
+			retval = 0;
+		}
+	}
+
+	return retval;
+
+}
+
+// POST api/pocket/transactions/:id
+// a user wants to update an existing transaction
+void pocket_transaction_update_handler (CerverReceive *cr, HttpRequest *request) {
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		bson_oid_init_from_string (&user->oid, user->id);
+
+		Transaction *trans = pocket_trans_get_by_id_and_user (
+			request->params[0], &user->oid
+		);
+
+		if (trans) {
+			// get update values
+			if (!pocket_transaction_update_handler_internal (
+				trans, request->body
+			)) {
+				// update the transaction in the db
+				if (!mongo_update_one (
+					transactions_collection,
+					transaction_query_oid (&trans->oid),
+					transaction_update_bson (trans)
+				)) {
+					http_response_send (oki_doki, cr->cerver, cr->connection);
+				}
+
+				else {
+					http_response_send (server_error, cr->cerver, cr->connection);
+				}
+			}
+
+			pocket_trans_delete (trans);
+		}
+
+		else {
+			http_response_send (bad_request, cr->cerver, cr->connection);
 		}
 	}
 
