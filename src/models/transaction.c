@@ -22,6 +22,7 @@ unsigned int transactions_collection_get (void) {
 
 	transactions_collection = mongo_collection_get (TRANSACTIONS_COLL_NAME);
 	if (transactions_collection) {
+		cerver_log_debug ("Opened handle to transactions collection!");
 		retval = 0;
 	}
 
@@ -43,7 +44,7 @@ void *transaction_new (void) {
 
 	Transaction *transaction = (Transaction *) malloc (sizeof (Transaction));
 	if (transaction) {
-		memset (transaction, 0, sizeof (Transaction));
+		(void) memset (transaction, 0, sizeof (Transaction));
 	}
 
 	return transaction;
@@ -61,13 +62,13 @@ void transaction_print (Transaction *transaction) {
 	if (transaction) {
 		char buffer[128] = { 0 };
 		bson_oid_to_string (&transaction->oid, buffer);
-		printf ("id: %s\n", buffer);
+		(void) printf ("id: %s\n", buffer);
 
-		printf ("title: %s\n", transaction->title);
-		printf ("amount: %.4f\n", transaction->amount);
+		(void) printf ("title: %s\n", transaction->title);
+		(void) printf ("amount: %.4f\n", transaction->amount);
 
-		strftime (buffer, 128, "%d/%m/%y - %T", gmtime (&transaction->date));
-		printf ("date: %s GMT\n", buffer);
+		(void) strftime (buffer, 128, "%d/%m/%y - %T", gmtime (&transaction->date));
+		(void) printf ("date: %s GMT\n", buffer);
 	}
 
 }
@@ -89,7 +90,7 @@ static void trans_doc_parse (Transaction *trans, const bson_t *trans_doc) {
 				bson_oid_copy (&value->value.v_oid, &trans->user_oid);
 
 			else if (!strcmp (key, "title") && value->value.v_utf8.str) 
-				strncpy (trans->title, value->value.v_utf8.str, TRANSACTION_TITLE_LEN);
+				(void) strncpy (trans->title, value->value.v_utf8.str, TRANSACTION_TITLE_LEN);
 
 			else if (!strcmp (key, "amount")) 
 				trans->amount = value->value.v_double;
@@ -109,7 +110,7 @@ const bson_t *transaction_find_by_oid (
 
 	bson_t *trans_query = bson_new ();
 	if (trans_query) {
-		bson_append_oid (trans_query, "_id", -1, oid);
+		(void) bson_append_oid (trans_query, "_id", -1, oid);
 		retval = mongo_find_one_with_opts (transactions_collection, trans_query, query_opts);
 	}
 
@@ -146,8 +147,8 @@ const bson_t *transaction_find_by_oid_and_user (
 
 	bson_t *trans_query = bson_new ();
 	if (trans_query) {
-		bson_append_oid (trans_query, "_id", -1, oid);
-		bson_append_oid (trans_query, "user", -1, user_oid);
+		(void) bson_append_oid (trans_query, "_id", -1, oid);
+		(void) bson_append_oid (trans_query, "user", -1, user_oid);
 
 		retval = mongo_find_one_with_opts (transactions_collection, trans_query, query_opts);
 	}
@@ -185,13 +186,33 @@ bson_t *transaction_to_bson (Transaction *trans) {
     if (trans) {
         doc = bson_new ();
         if (doc) {
-            bson_append_oid (doc, "_id", -1, &trans->oid);
+            (void) bson_append_oid (doc, "_id", -1, &trans->oid);
 
-			bson_append_oid (doc, "user", -1, &trans->user_oid);
+			(void) bson_append_oid (doc, "user", -1, &trans->user_oid);
 
-			bson_append_utf8 (doc, "title", -1, trans->title, -1);
-			bson_append_double (doc, "amount", -1, trans->amount);
-			bson_append_date_time (doc, "date", -1, trans->date * 1000);
+			(void) bson_append_utf8 (doc, "title", -1, trans->title, -1);
+			(void) bson_append_double (doc, "amount", -1, trans->amount);
+			(void) bson_append_date_time (doc, "date", -1, trans->date * 1000);
+        }
+    }
+
+    return doc;
+
+}
+
+bson_t *transaction_update_bson (Transaction *trans) {
+
+	bson_t *doc = NULL;
+
+    if (trans) {
+        doc = bson_new ();
+        if (doc) {
+			bson_t set_doc = { 0 };
+			(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
+			(void) bson_append_utf8 (&set_doc, "title", -1, trans->title, -1);
+			(void) bson_append_double (&set_doc, "amount", -1, trans->amount);
+			// (void) bson_append_date_time (&set_doc, "date", -1, trans->date * 1000);
+			(void) bson_append_document_end (doc, &set_doc);
         }
     }
 
@@ -209,7 +230,7 @@ mongoc_cursor_t *transactions_get_all_by_user (
 	if (user_oid && opts) {
 		bson_t *query = bson_new ();
 		if (query) {
-			bson_append_oid (query, "user", -1, user_oid);
+			(void) bson_append_oid (query, "user", -1, user_oid);
 
 			retval = mongo_find_all_cursor_with_opts (
 				transactions_collection,

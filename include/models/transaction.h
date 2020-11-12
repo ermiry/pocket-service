@@ -56,6 +56,8 @@ extern u8 transaction_get_by_oid_and_user (
 
 extern bson_t *transaction_to_bson (Transaction *trans);
 
+extern bson_t *transaction_update_bson (Transaction *trans);
+
 // get all the transactions that are related to a user
 extern mongoc_cursor_t *transactions_get_all_by_user (
 	const bson_oid_t *user_oid, const bson_t *opts
