@@ -52,21 +52,22 @@ sudo docker run \
 **Description:** Used to test if jwt keys work correctly \
 **Returns:**
   - 200 on success
-  - 400 on failed auth
+  - 401 on failed auth
 
 #### GET api/pocket/transactions
 **Access:** Private \
 **Description:** Get all the authenticated user's transactions \
 **Returns:**
   - 200 and transactions json on success
-  - 400 on failed auth
+  - 401 on failed auth
 
 #### POST api/pocket/transactions
 **Access:** Private \
 **Description:** A user has requested to create a new transaction \
 **Returns:**
   - 200 on success creating transaction
-  - 400 on failed auth or on failed to create new transaction
+  - 400 on failed to create new transaction
+  - 401 on failed auth
   - 500 on server error
 
 #### GET api/pocket/transactions/:id
@@ -74,7 +75,7 @@ sudo docker run \
 **Description:** Returns information about an existing transaction that belongs to a user \
 **Returns:**
   - 200 and transaction's json on success
-  - 400 on failed auth
+  - 401 on failed auth
   - 404 on transaction not found
 
 #### POST api/pocket/transactions/:id
@@ -82,7 +83,8 @@ sudo docker run \
 **Description:** A user wants to update an existing transaction \
 **Returns:**
   - 200 on success updating user's transaction
-  - 400 on failed auth or bad request due to missing values
+  - 400 on bad request due to missing values
+  - 401 on failed auth
   - 500 on server error
 
 #### DELETE api/pocket/transactions/:id
@@ -90,7 +92,8 @@ sudo docker run \
 **Description:** Deletes an existing user's transaction \
 **Returns:**
   - 200 on success deleting user's transaction
-  - 400 on failed auth or bad request
+  - 400 on bad request
+  - 401 on failed auth
   - 500 on server error
 
 #### GET api/pocket/categories
@@ -98,14 +101,15 @@ sudo docker run \
 **Description:** Get all the authenticated user's categories \
 **Returns:**
   - 200 and categories json on success
-  - 400 on failed auth
+  - 401 on failed auth
 
 #### POST api/pocket/categories
 **Access:** Private \
 **Description:** A user has requested to create a new category \
 **Returns:**
   - 200 on success creating category
-  - 400 on failed auth or on failed to create new category
+  - 400 on failed to create new category
+  - 401 on failed auth
   - 500 on server error
 
 #### GET api/pocket/categories/:id
@@ -113,7 +117,7 @@ sudo docker run \
 **Description:** Returns information about an existing category that belongs to a user \
 **Returns:**
   - 200 and category's json on success
-  - 400 on failed auth
+  - 401 on failed auth
   - 404 on category not found
 
 #### POST api/pocket/categories/:id
@@ -121,7 +125,8 @@ sudo docker run \
 **Description:** A user wants to update an existing category \
 **Returns:**
   - 200 on success updating user's category
-  - 400 on failed auth or bad request due to missing values
+  - 400 bad request due to missing values
+  - 401 on failed auth
   - 500 on server error
 
 #### DELETE api/pocket/categories/:id
@@ -129,7 +134,8 @@ sudo docker run \
 **Description:** Deletes an existing user's category \
 **Returns:**
   - 200 on success deleting user's category
-  - 400 on failed auth or bad request
+  - 400 on bad request
+  - 401 on failed auth
   - 500 on server error
 
 ### Users
