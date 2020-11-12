@@ -53,6 +53,8 @@ extern void user_print (User *user);
 
 extern bson_t *user_query_id (const char *id);
 
+extern bson_t *user_query_email (const char *email);
+
 extern u8 user_get_by_id (
 	User *user, const char *id, const bson_t *query_opts
 );
