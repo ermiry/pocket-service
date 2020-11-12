@@ -20,6 +20,8 @@ Pool *categories_pool = NULL;
 const bson_t *category_no_user_query_opts = NULL;
 DoubleList *category_no_user_select = NULL;
 
+void pocket_category_delete (void *category_ptr);
+
 static unsigned int pocket_categories_init_pool (void) {
 
 	unsigned int retval = 1;
@@ -50,9 +52,9 @@ static unsigned int pocket_categories_init_query_opts (void) {
 	unsigned int retval = 1;
 
 	category_no_user_select = dlist_init (str_delete, str_comparator);
-	dlist_insert_after (category_no_user_select, dlist_end (category_no_user_select), str_new ("title"));
-	dlist_insert_after (category_no_user_select, dlist_end (category_no_user_select), str_new ("amount"));
-	dlist_insert_after (category_no_user_select, dlist_end (category_no_user_select), str_new ("date"));
+	(void) dlist_insert_after (category_no_user_select, dlist_end (category_no_user_select), str_new ("title"));
+	(void) dlist_insert_after (category_no_user_select, dlist_end (category_no_user_select), str_new ("amount"));
+	(void) dlist_insert_after (category_no_user_select, dlist_end (category_no_user_select), str_new ("date"));
 
 	category_no_user_query_opts = mongo_find_generate_opts (category_no_user_select);
 
@@ -83,6 +85,31 @@ void pocket_categories_end (void) {
 
 }
 
+	const String *category_id, const bson_oid_t *user_oid
+) {
+
+	Category *category = NULL;
+
+	if (category_id) {
+		category = (Category *) pool_pop (categories_pool);
+		if (category) {
+			bson_oid_init_from_string (&category->oid, category_id->str);
+
+			if (category_get_by_oid_and_user (
+				category,
+				&category->oid, user_oid,
+				NULL
+			)) {
+				pocket_category_delete (category);
+				category = NULL;
+			}
+		}
+	}
+
+	return category;
+
+}
+
 Category *pocket_category_create (
 	const char *user_id,
 	const char *title, const char *description,
@@ -109,7 +136,7 @@ Category *pocket_category_create (
 
 void pocket_category_delete (void *category_ptr) {
 
-	memset (category_ptr, 0, sizeof (Category));
-	pool_push (categories_pool, category_ptr);
+	(void) memset (category_ptr, 0, sizeof (Category));
+	(void) pool_push (categories_pool, category_ptr);
 
 }

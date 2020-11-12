@@ -19,6 +19,10 @@ extern unsigned int pocket_categories_init (void);
 
 extern void pocket_categories_end (void);
 
+extern Category *pocket_category_get_by_id_and_user (
+	const String *category_id, const bson_oid_t *user_oid
+);
+
 extern Category *pocket_category_create (
 	const char *user_id,
 	const char *title, const char *description,
