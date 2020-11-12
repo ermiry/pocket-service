@@ -19,6 +19,10 @@ extern unsigned int pocket_trans_init (void);
 
 extern void pocket_trans_end (void);
 
+extern Transaction *pocket_trans_get_by_id_and_user (
+	const String *trans_id, const bson_oid_t *user_oid
+);
+
 extern Transaction *pocket_trans_create (
 	const char *user_id,
 	const char *title,

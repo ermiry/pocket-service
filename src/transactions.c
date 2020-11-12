@@ -20,6 +20,8 @@ Pool *trans_pool = NULL;
 const bson_t *trans_no_user_query_opts = NULL;
 DoubleList *trans_no_user_select = NULL;
 
+void pocket_trans_delete (void *trans_ptr);
+
 static unsigned int pocket_trans_init_pool (void) {
 
 	unsigned int retval = 1;
@@ -50,9 +52,9 @@ static unsigned int pocket_trans_init_query_opts (void) {
 	unsigned int retval = 1;
 
 	trans_no_user_select = dlist_init (str_delete, str_comparator);
-	dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("title"));
-	dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("amount"));
-	dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("date"));
+	(void) dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("title"));
+	(void) dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("amount"));
+	(void) dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("date"));
 
 	trans_no_user_query_opts = mongo_find_generate_opts (trans_no_user_select);
 
@@ -83,6 +85,32 @@ void pocket_trans_end (void) {
 
 }
 
+Transaction *pocket_trans_get_by_id_and_user (
+	const String *trans_id, const bson_oid_t *user_oid
+) {
+
+	Transaction *trans = NULL;
+
+	if (trans_id) {
+		trans = (Transaction *) pool_pop (trans_pool);
+		if (trans) {
+			bson_oid_init_from_string (&trans->oid, trans_id->str);
+
+			if (transaction_get_by_oid_and_user (
+				trans,
+				&trans->oid, user_oid,
+				NULL
+			)) {
+				pocket_trans_delete (trans);
+				trans = NULL;
+			}
+		}
+	}
+
+	return trans;
+
+}
+
 Transaction *pocket_trans_create (
 	const char *user_id,
 	const char *title,
@@ -95,7 +123,7 @@ Transaction *pocket_trans_create (
 
 		bson_oid_init_from_string (&trans->user_oid, user_id);
 
-		if (title) strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
+		if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
 		trans->amount = amount;
 		trans->date = time (NULL);
 	}
@@ -106,7 +134,7 @@ Transaction *pocket_trans_create (
 
 void pocket_trans_delete (void *trans_ptr) {
 
-	memset (trans_ptr, 0, sizeof (Transaction));
-	pool_push (trans_pool, trans_ptr);
+	(void) memset (trans_ptr, 0, sizeof (Transaction));
+	(void) pool_push (trans_pool, trans_ptr);
 
 }
