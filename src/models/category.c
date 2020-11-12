@@ -22,6 +22,7 @@ unsigned int categories_collection_get (void) {
 
 	categories_collection = mongo_collection_get (CATEGORIES_COLL_NAME);
 	if (categories_collection) {
+		cerver_log_debug ("Opened handle to categories collection!");
 		retval = 0;
 	}
 
@@ -43,7 +44,7 @@ void *category_new (void) {
 
 	Category *category = (Category *) malloc (sizeof (Category));
 	if (category) {
-		memset (category, 0, sizeof (Category));
+		(void) memset (category, 0, sizeof (Category));
 	}
 
 	return category;
@@ -61,14 +62,14 @@ void category_print (Category *category) {
 	if (category) {
 		char buffer[128] = { 0 };
 		bson_oid_to_string (&category->oid, buffer);
-		printf ("id: %s\n", buffer);
+		(void) printf ("id: %s\n", buffer);
 
-		printf ("title: %s\n", category->title);
-		printf ("description: %s\n", category->description);
-		printf ("color: %s\n", category->color);
+		(void) printf ("title: %s\n", category->title);
+		(void) printf ("description: %s\n", category->description);
+		(void) printf ("color: %s\n", category->color);
 
-		strftime (buffer, 128, "%d/%m/%y - %T", gmtime (&category->date));
-		printf ("date: %s GMT\n", buffer);
+		(void) strftime (buffer, 128, "%d/%m/%y - %T", gmtime (&category->date));
+		(void) printf ("date: %s GMT\n", buffer);
 	}
 
 }
@@ -105,6 +106,21 @@ static void category_doc_parse (Category *category, const bson_t *category_doc) 
 
 }
 
+bson_t *category_query_oid (const bson_oid_t *oid) {
+
+	bson_t *query = NULL;
+
+	if (oid) {
+		query = bson_new ();
+		if (query) {
+			(void) bson_append_oid (query, "_id", -1, oid);
+		}
+	}
+
+	return query;
+
+}
+
 const bson_t *category_find_by_oid (
 	const bson_oid_t *oid, const bson_t *query_opts
 ) {
@@ -113,7 +129,7 @@ const bson_t *category_find_by_oid (
 
 	bson_t *category_query = bson_new ();
 	if (category_query) {
-		bson_append_oid (category_query, "_id", -1, oid);
+		(void) bson_append_oid (category_query, "_id", -1, oid);
 		retval = mongo_find_one_with_opts (categories_collection, category_query, query_opts);
 	}
 
@@ -150,8 +166,8 @@ const bson_t *category_find_by_oid_and_user (
 
 	bson_t *category_query = bson_new ();
 	if (category_query) {
-		bson_append_oid (category_query, "_id", -1, oid);
-		bson_append_oid (category_query, "user", -1, user_oid);
+		(void) bson_append_oid (category_query, "_id", -1, oid);
+		(void) bson_append_oid (category_query, "user", -1, user_oid);
 
 		retval = mongo_find_one_with_opts (categories_collection, category_query, query_opts);
 	}
@@ -189,15 +205,15 @@ bson_t *category_to_bson (Category *category) {
     if (category) {
         doc = bson_new ();
         if (doc) {
-            bson_append_oid (doc, "_id", -1, &category->oid);
+            (void) bson_append_oid (doc, "_id", -1, &category->oid);
 
-			bson_append_oid (doc, "user", -1, &category->user_oid);
+			(void) bson_append_oid (doc, "user", -1, &category->user_oid);
 
-			bson_append_utf8 (doc, "title", -1, category->title, -1);
-			bson_append_utf8 (doc, "description", -1, category->description, -1);
-			bson_append_utf8 (doc, "color", -1, category->color, -1);
+			(void) bson_append_utf8 (doc, "title", -1, category->title, -1);
+			(void) bson_append_utf8 (doc, "description", -1, category->description, -1);
+			(void) bson_append_utf8 (doc, "color", -1, category->color, -1);
 
-			bson_append_date_time (doc, "date", -1, category->date * 1000);
+			(void) bson_append_date_time (doc, "date", -1, category->date * 1000);
         }
     }
 
@@ -205,6 +221,25 @@ bson_t *category_to_bson (Category *category) {
 
 }
 
+bson_t *category_update_bson (Category *category) {
+
+	bson_t *doc = NULL;
+
+    if (category) {
+        doc = bson_new ();
+        if (doc) {
+			bson_t set_doc = { 0 };
+			(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
+			(void) bson_append_utf8 (&set_doc, "title", -1, category->title, -1);
+			(void) bson_append_utf8 (&set_doc, "description", -1, category->description, -1);
+			(void) bson_append_utf8 (&set_doc, "color", -1, category->color, -1);
+			(void) bson_append_document_end (doc, &set_doc);
+        }
+    }
+
+    return doc;
+
+}
 
 // get all the categories that are related to a user
 mongoc_cursor_t *categories_get_all_by_user (
@@ -216,7 +251,7 @@ mongoc_cursor_t *categories_get_all_by_user (
 	if (user_oid && opts) {
 		bson_t *query = bson_new ();
 		if (query) {
-			bson_append_oid (query, "user", -1, user_oid);
+			(void) bson_append_oid (query, "user", -1, user_oid);
 
 			retval = mongo_find_all_cursor_with_opts (
 				categories_collection,
