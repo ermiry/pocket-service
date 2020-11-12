@@ -55,6 +55,10 @@ extern void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *r
 // returns information about an existing transaction that belongs to a user
 extern void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request);
 
+// POST api/pocket/transactions/:id
+// a user wants to update an existing transaction
+extern void pocket_transaction_update_handler (CerverReceive *cr, HttpRequest *request);
+
 // DELETE api/pocket/transactions/:id
 // deletes an existing user's transaction
 extern void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request);
@@ -70,6 +74,10 @@ extern void pocket_category_create_handler (CerverReceive *cr, HttpRequest *requ
 // GET api/pocket/categories/:id
 // returns information about an existing category that belongs to a user
 extern void pocket_category_get_handler (CerverReceive *cr, HttpRequest *request);
+
+// POST api/pocket/categories/:id
+// a user wants to update an existing category
+extern void pocket_category_update_handler (CerverReceive *cr, HttpRequest *request);
 
 // DELETE api/pocket/categories/:id
 // deletes an existing user's category
