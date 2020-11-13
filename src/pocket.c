@@ -17,6 +17,7 @@
 #include <cerver/utils/log.h>
 
 #include "categories.h"
+#include "errors.h"
 #include "mongo.h"
 #include "pocket.h"
 #include "roles.h"
@@ -577,7 +578,9 @@ void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 static void pocket_trans_parse_json (
 	json_t *json_body,
 	const char **title,
-	double *amount
+	double *amount,
+	const char **category,
+	const char **date
 ) {
 
 	// get values from json to create a new transaction
@@ -594,34 +597,55 @@ static void pocket_trans_parse_json (
 				*amount = json_real_value (value);
 				(void) printf ("amount: %f\n", *amount);
 			}
+
+			else if (!strcmp (key, "category")) {
+				*category = json_string_value (value);
+				(void) printf ("category: \"%s\"\n", *category);
+			}
+
+			else if (!strcmp (key, "date")) {
+				*date = json_string_value (value);
+				(void) printf ("date: \"%s\"\n", *date);
+			}
 		}
 	}
 
 }
 
-static Transaction *pocket_transaction_create_handler_internal (
+static PocketError pocket_transaction_create_handler_internal (
+	Transaction **trans,
 	const char *user_id, const String *request_body
 ) {
 
-	Transaction *trans = NULL;
+	PocketError error = POCKET_ERROR_NONE;
 
 	if (request_body) {
 		const char *title = NULL;
 		double amount = 0;
+		const char *category_id = NULL;
+		const char *date = NULL;
 
-		json_error_t error =  { 0 };
-		json_t *json_body = json_loads (request_body->str, 0, &error);
+		json_error_t json_error =  { 0 };
+		json_t *json_body = json_loads (request_body->str, 0, &json_error);
 		if (json_body) {
 			pocket_trans_parse_json (
 				json_body,
-				&title,
-				&amount
+				&title, &amount,
+				&category_id, &date
 			);
 
-			trans = pocket_trans_create (
-				user_id,
-				title, amount
-			);
+			if (title && (amount != 0)) {
+				*trans = pocket_trans_create (
+					user_id,
+					title, amount
+				);
+
+				if (*trans == NULL) error = POCKET_ERROR_SERVER_ERROR;
+			}
+
+			else {
+				error = POCKET_ERROR_MISSING_VALUES;
+			}
 
 			json_decref (json_body);
 		}
@@ -629,12 +653,14 @@ static Transaction *pocket_transaction_create_handler_internal (
 		else {
 			cerver_log_error (
 				"json_loads () - json error on line %d: %s\n", 
-				error.line, error.text
+				json_error.line, json_error.text
 			);
+
+			error = POCKET_ERROR_BAD_REQUEST;
 		}
 	}
 
-	return trans;
+	return error;
 
 }
 
@@ -644,11 +670,14 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		Transaction *trans = pocket_transaction_create_handler_internal (
+		Transaction *trans = NULL;
+
+		PocketError error = pocket_transaction_create_handler_internal (
+			&trans,
 			user->id, request->body
 		);
 
-		if (trans) {
+		if (error == POCKET_ERROR_NONE) {
 			#ifdef POCKET_DEBUG
 			transaction_print (trans);
 			#endif
@@ -682,10 +711,7 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 		}
 
 		else {
-			(void) http_response_send (
-				trans_created_bad,
-				cr->cerver, cr->connection
-			);
+			pocket_error_send_response (error, cr);
 		}
 	}
 
@@ -750,14 +776,16 @@ static u8 pocket_transaction_update_handler_internal (
 	if (request_body) {
 		const char *title = NULL;
 		double amount = 0;
+		const char *category_id = NULL;
+		const char *date = NULL;
 
 		json_error_t error =  { 0 };
 		json_t *json_body = json_loads (request_body->str, 0, &error);
 		if (json_body) {
 			pocket_trans_parse_json (
 				json_body,
-				&title,
-				&amount
+				&title, &amount,
+				&category_id, &date
 			);
 
 			if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
