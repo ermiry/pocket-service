@@ -960,54 +960,34 @@ void pocket_categories_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 
-static u8 pocket_category_parse_json (
-	const String *request_body,
+static void pocket_category_parse_json (
+	json_t *json_body,
 	const char **title,
 	const char **description,
 	const char **color
 ) {
 
-	u8 retval = 1;
+	// get values from json to create a new category
+	const char *key = NULL;
+	json_t *value = NULL;
+	if (json_typeof (json_body) == JSON_OBJECT) {
+		json_object_foreach (json_body, key, value) {
+			if (!strcmp (key, "title")) {
+				*title = json_string_value (value);
+				printf ("title: \"%s\"\n", *title);
+			}
 
-	// get values from request's json body
-	json_error_t error =  { 0 };
-	json_t *json_body = json_loads (request_body->str, 0, &error);
-	if (json_body) {
-		// get values from json to create a new category
-		const char *key = NULL;
-		json_t *value = NULL;
-		if (json_typeof (json_body) == JSON_OBJECT) {
-			json_object_foreach (json_body, key, value) {
-				if (!strcmp (key, "title")) {
-					*title = json_string_value (value);
-					printf ("title: \"%s\"\n", *title);
-				}
+			else if (!strcmp (key, "description")) {
+				*description = json_string_value (value);
+				printf ("description: \"%s\"\n", *description);
+			}
 
-				else if (!strcmp (key, "description")) {
-					*description = json_string_value (value);
-					printf ("description: \"%s\"\n", *description);
-				}
-
-				else if (!strcmp (key, "color")) {
-					*color = json_string_value (value);
-					printf ("color: \"%s\"\n", *color);
-				}
+			else if (!strcmp (key, "color")) {
+				*color = json_string_value (value);
+				printf ("color: \"%s\"\n", *color);
 			}
 		}
-
-		json_decref (json_body);
-
-		retval = 0;
 	}
-
-	else {
-		cerver_log_error (
-			"json_loads () - json error on line %d: %s\n", 
-			error.line, error.text
-		);
-	}
-
-	return retval;
 
 }
 
@@ -1022,16 +1002,29 @@ static Category *pocket_category_create_handler_internal (
 		const char *description = NULL;
 		const char *color = NULL;
 
-		if (!pocket_category_parse_json (
-			request_body,
-			&title,
-			&description,
-			&color
-		)) {
+		json_error_t error =  { 0 };
+		json_t *json_body = json_loads (request_body->str, 0, &error);
+		if (json_body) {
+			pocket_category_parse_json (
+				request_body,
+				&title,
+				&description,
+				&color
+			);
+
 			category = pocket_category_create (
 				user_id,
 				title, description,
 				color
+			);
+
+			json_decref (json_body);
+		}
+
+		else {
+			cerver_log_error (
+				"json_loads () - json error on line %d: %s\n", 
+				error.line, error.text
 			);
 		}
 	}
@@ -1154,17 +1147,30 @@ static u8 pocket_category_update_handler_internal (
 		const char *description = NULL;
 		const char *color = NULL;
 
-		if (!pocket_category_parse_json (
-			request_body,
-			&title,
-			&description,
-			&color
-		)) {
+		json_error_t error =  { 0 };
+		json_t *json_body = json_loads (request_body->str, 0, &error);
+		if (json_body) {
+			pocket_category_parse_json (
+				request_body,
+				&title,
+				&description,
+				&color
+			);
+
 			if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_LEN);
 			if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_LEN);
 			if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_LEN);
 
+			json_decref (json_body);
+
 			retval = 0;
+		}
+
+		else {
+			cerver_log_error (
+				"json_loads () - json error on line %d: %s\n", 
+				error.line, error.text
+			);
 		}
 	}
 
