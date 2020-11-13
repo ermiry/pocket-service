@@ -302,12 +302,10 @@ bool mongo_check (mongoc_collection_t *collection, bson_t *query) {
 
 	if (collection && query) {
 		bson_error_t error = { 0 };
-		if (mongoc_collection_count_documents (collection, query, NULL, NULL, NULL, &error) >= 0) {
-			retval = true;
-		}
-
-		else {
-			cerver_log_error ("%s", error.message);
+		switch (mongoc_collection_count_documents (collection, query, NULL, NULL, NULL, &error)) {
+			case -1: cerver_log_error ("%s", error.message); break;
+			case 0: break;
+			default: retval = true; break;
 		}
 
 		bson_destroy (query);
