@@ -31,7 +31,7 @@ void end (int dummy) {
 		cerver_teardown (pocket_api);
 	}
 
-	pocket_end ();
+	(void) pocket_end ();
 
 	cerver_end ();
 
@@ -42,16 +42,16 @@ void end (int dummy) {
 static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 
 	/* register top level route */
-	// GET /api/pocket/
+	// GET /api/pocket
 	HttpRoute *pocket_route = http_route_create (REQUEST_METHOD_GET, "api/pocket", pocket_handler);
 	http_cerver_route_register (http_cerver, pocket_route);
 
 	/* register pocket children routes */
-	// GET api/pocket/version/
+	// GET api/pocket/version
 	HttpRoute *pocket_version_route = http_route_create (REQUEST_METHOD_GET, "version", pocket_version_handler);
 	http_route_child_add (pocket_route, pocket_version_route);
 
-	// GET api/pocket/auth/
+	// GET api/pocket/auth
 	HttpRoute *pocket_auth_route = http_route_create (REQUEST_METHOD_GET, "auth", pocket_auth_handler);
 	http_route_set_auth (pocket_auth_route, HTTP_ROUTE_AUTH_TYPE_BEARER);
 	http_route_set_decode_data (pocket_auth_route, pocket_user_parse_from_json, pocket_user_delete);
@@ -108,7 +108,7 @@ static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 static void pocket_set_users_routes (HttpCerver *http_cerver) {
 
 	/* register top level route */
-	// GET /api/users/
+	// GET /api/users
 	HttpRoute *users_route = http_route_create (REQUEST_METHOD_GET, "api/users", users_handler);
 	http_cerver_route_register (http_cerver, users_route);
 
@@ -125,7 +125,16 @@ static void pocket_set_users_routes (HttpCerver *http_cerver) {
 
 static void start (void) {
 
-	pocket_api = cerver_create (CERVER_TYPE_WEB, "pocket-api", atoi (PORT->str), PROTOCOL_TCP, false, 10, 1000);
+	pocket_api = cerver_create (
+		CERVER_TYPE_WEB,
+		"pocket-api",
+		atoi (PORT->str),
+		PROTOCOL_TCP,
+		false,
+		10,
+		1000
+	);
+
 	if (pocket_api) {
 		/*** cerver configuration ***/
 		cerver_set_receive_buffer_size (pocket_api, CERVER_RECEIVE_BUFFER_SIZE);
