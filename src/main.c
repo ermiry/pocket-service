@@ -149,7 +149,10 @@ static void start (void) {
 		http_cerver_auth_set_jwt_pub_key_filename (http_cerver, "keys/key.pub");
 
 		pocket_set_pocket_routes (http_cerver);
-		pocket_set_users_routes (http_cerver);
+
+		if (ENABLE_USERS_ROUTES) {
+			pocket_set_users_routes (http_cerver);
+		}
 
 		// add a catch all route
 		http_cerver_set_catch_all_route (http_cerver, pocket_catch_all_handler);

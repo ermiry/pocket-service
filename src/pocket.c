@@ -41,6 +41,8 @@ static const String *MONGO_DB = NULL;
 unsigned int CERVER_RECEIVE_BUFFER_SIZE = 4096;
 unsigned int CERVER_TH_THREADS = 4;
 
+bool ENABLE_USERS_ROUTES = false;
+
 HttpResponse *oki_doki = NULL;
 HttpResponse *bad_request = NULL;
 HttpResponse *server_error = NULL;
@@ -179,6 +181,29 @@ static void gepp_env_get_cerver_th_threads (void) {
 
 }
 
+static void gepp_env_get_enable_users_routes (void) {
+
+	char *enable_users = getenv ("ENABLE_USERS_ROUTES");
+	if (enable_users) {
+		if (!strcmp (enable_users, "TRUE")) {
+			ENABLE_USERS_ROUTES = true;
+			cerver_log_success ("ENABLE_USERS_ROUTES -> TRUE\n");
+		}
+
+		else {
+			ENABLE_USERS_ROUTES = false;
+			cerver_log_success ("ENABLE_USERS_ROUTES -> FALSE\n");
+		}
+	}
+
+	else {
+		cerver_log_warning (
+			"Failed to get ENABLE_USERS_ROUTES from env - using default FALSE!"
+		);
+	}
+
+}
+
 #pragma GCC diagnostic pop
 
 static unsigned int pocket_init_env (void) {
@@ -192,6 +217,12 @@ static unsigned int pocket_init_env (void) {
 	errors |= pocket_env_get_mongo_app_name ();
 
 	errors |= pocket_env_get_mongo_db ();
+
+	gepp_env_get_cerver_receive_buffer_size ();
+
+	gepp_env_get_cerver_th_threads ();
+
+	gepp_env_get_enable_users_routes ();
 
 	return errors;
 
@@ -1251,6 +1282,7 @@ void pocket_category_update_handler (CerverReceive *cr, HttpRequest *request) {
 
 }
 
+// TODO: handle things that reference the requested category
 // DELETE api/pocket/categories/:id
 // deletes an existing user's category
 void pocket_category_delete_handler (CerverReceive *cr, HttpRequest *request) {

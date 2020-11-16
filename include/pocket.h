@@ -18,6 +18,8 @@ extern const String *PORT;
 extern unsigned int CERVER_RECEIVE_BUFFER_SIZE;
 extern unsigned int CERVER_TH_THREADS;
 
+extern bool ENABLE_USERS_ROUTES;
+
 extern HttpResponse *oki_doki;
 extern HttpResponse *bad_request;
 extern HttpResponse *server_error;
