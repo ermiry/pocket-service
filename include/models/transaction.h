@@ -23,6 +23,8 @@ typedef struct Transaction {
 
 	bson_oid_t user_oid;
 
+	bson_oid_t category_oid;
+
 	char title[TRANSACTION_TITLE_LEN];
 	double amount;
 	time_t date;

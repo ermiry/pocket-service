@@ -26,7 +26,9 @@ extern Transaction *pocket_trans_get_by_id_and_user (
 extern Transaction *pocket_trans_create (
 	const char *user_id,
 	const char *title,
-	const double amount
+	const double amount,
+	const char *category_id,
+	const char *date
 );
 
 extern void pocket_trans_delete (void *trans_ptr);

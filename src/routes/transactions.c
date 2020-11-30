@@ -179,7 +179,9 @@ static PocketError pocket_transaction_create_handler_internal (
 			if (title && (amount != 0)) {
 				*trans = pocket_trans_create (
 					user_id,
-					title, amount
+					title, amount,
+					category_id,
+					date
 				);
 
 				if (*trans == NULL) error = POCKET_ERROR_SERVER_ERROR;

@@ -115,7 +115,9 @@ Transaction *pocket_trans_get_by_id_and_user (
 Transaction *pocket_trans_create (
 	const char *user_id,
 	const char *title,
-	const double amount
+	const double amount,
+	const char *category_id,
+	const char *date
 ) {
 
 	Transaction *trans = (Transaction *) pool_pop (trans_pool);
@@ -126,7 +128,13 @@ Transaction *pocket_trans_create (
 
 		if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
 		trans->amount = amount;
-		trans->date = time (NULL);
+
+		if (category_id) {
+			bson_oid_init_from_string (&trans->category_oid, category_id);
+		}
+
+		if (date) trans->date = (time_t) atol (date);
+		else trans->date = time (NULL);
 	}
 
 	return trans;
