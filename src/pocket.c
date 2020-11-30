@@ -148,7 +148,7 @@ static unsigned int pocket_env_get_mongo_uri (void) {
 
 }
 
-static void gepp_env_get_cerver_receive_buffer_size (void) {
+static void pocket_env_get_cerver_receive_buffer_size (void) {
 
 	char *buffer_size = getenv ("CERVER_RECEIVE_BUFFER_SIZE");
 	if (buffer_size) {
@@ -166,7 +166,7 @@ static void gepp_env_get_cerver_receive_buffer_size (void) {
 	}
 }
 
-static void gepp_env_get_cerver_th_threads (void) {
+static void pocket_env_get_cerver_th_threads (void) {
 
 	char *th_threads = getenv ("CERVER_TH_THREADS");
 	if (th_threads) {
@@ -200,7 +200,7 @@ static void pocket_env_get_cerver_connection_queue (void) {
 
 }
 
-static void gepp_env_get_enable_users_routes (void) {
+static void pocket_env_get_enable_users_routes (void) {
 
 	char *enable_users = getenv ("ENABLE_USERS_ROUTES");
 	if (enable_users) {
@@ -237,13 +237,13 @@ static unsigned int pocket_init_env (void) {
 
 	errors |= pocket_env_get_mongo_db ();
 
-	gepp_env_get_cerver_receive_buffer_size ();
+	pocket_env_get_cerver_receive_buffer_size ();
 
-	gepp_env_get_cerver_th_threads ();
+	pocket_env_get_cerver_th_threads ();
 
 	pocket_env_get_cerver_connection_queue ();
 
-	gepp_env_get_enable_users_routes ();
+	pocket_env_get_enable_users_routes ();
 
 	return errors;
 
