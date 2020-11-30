@@ -84,6 +84,7 @@ static void user_doc_parse (User *user, const bson_t *user_doc) {
 
 			if (!strcmp (key, "_id")) {
 				bson_oid_copy (&value->value.v_oid, &user->oid);
+				bson_oid_to_string (&user->oid, user->id);
 			}
 
 			else if (!strcmp (key, "role")) {
@@ -168,7 +169,7 @@ u8 user_get_by_id (
 
 	u8 retval = 1;
 
-	if (id) {
+	if (user && id) {
 		bson_oid_t oid = { 0 };
 		bson_oid_init_from_string (&oid, id);
 
