@@ -11,7 +11,8 @@
 #include <cerver/utils/log.h>
 
 #include "mongo.h"
-#include "categories.h"
+
+#include "controllers/categories.h"
 
 #include "models/category.h"
 
