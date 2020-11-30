@@ -13,10 +13,11 @@
 
 #pragma region main
 
-extern const String *PORT;
+extern unsigned int PORT;
 
 extern unsigned int CERVER_RECEIVE_BUFFER_SIZE;
 extern unsigned int CERVER_TH_THREADS;
+extern unsigned int CERVER_CONNECTION_QUEUE;
 
 extern bool ENABLE_USERS_ROUTES;
 

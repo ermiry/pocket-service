@@ -128,11 +128,10 @@ static void start (void) {
 	pocket_api = cerver_create (
 		CERVER_TYPE_WEB,
 		"pocket-api",
-		atoi (PORT->str),
+		PORT,
 		PROTOCOL_TCP,
 		false,
-		10,
-		1000
+		CERVER_CONNECTION_QUEUE
 	);
 
 	if (pocket_api) {

@@ -32,14 +32,15 @@
 
 #pragma region main
 
-const String *PORT = NULL;
+unsigned int PORT = CERVER_DEFAULT_PORT;
+
+unsigned int CERVER_RECEIVE_BUFFER_SIZE = CERVER_DEFAULT_RECEIVE_BUFFER_SIZE;
+unsigned int CERVER_TH_THREADS = CERVER_DEFAULT_POOL_THREADS;
+unsigned int CERVER_CONNECTION_QUEUE = CERVER_DEFAULT_CONNECTION_QUEUE;
 
 static const String *MONGO_URI = NULL;
 static const String *MONGO_APP_NAME = NULL;
 static const String *MONGO_DB = NULL;
-
-unsigned int CERVER_RECEIVE_BUFFER_SIZE = 4096;
-unsigned int CERVER_TH_THREADS = 4;
 
 bool ENABLE_USERS_ROUTES = false;
 
@@ -76,7 +77,7 @@ static unsigned int pocket_env_get_port (void) {
 
 	char *port_env = getenv ("PORT");
 	if (port_env) {
-		PORT = str_new (port_env);
+		PORT = (unsigned int) atoi (port_env);
 
 		retval = 0;
 	}
@@ -181,6 +182,23 @@ static void gepp_env_get_cerver_th_threads (void) {
 
 }
 
+static void pocket_env_get_cerver_connection_queue (void) {
+
+	char *connection_queue = getenv ("CERVER_CONNECTION_QUEUE");
+	if (connection_queue) {
+		CERVER_CONNECTION_QUEUE = (unsigned int) atoi (connection_queue);
+		cerver_log_success ("CERVER_CONNECTION_QUEUE -> %d\n", CERVER_CONNECTION_QUEUE);
+	}
+
+	else {
+		cerver_log_warning (
+			"Failed to get CERVER_CONNECTION_QUEUE from env - using default %d!",
+			CERVER_CONNECTION_QUEUE
+		);
+	}
+
+}
+
 static void gepp_env_get_enable_users_routes (void) {
 
 	char *enable_users = getenv ("ENABLE_USERS_ROUTES");
@@ -221,6 +239,8 @@ static unsigned int pocket_init_env (void) {
 	gepp_env_get_cerver_receive_buffer_size ();
 
 	gepp_env_get_cerver_th_threads ();
+
+	pocket_env_get_cerver_connection_queue ();
 
 	gepp_env_get_enable_users_routes ();
 
