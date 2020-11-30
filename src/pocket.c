@@ -18,6 +18,7 @@
 
 #include "categories.h"
 #include "errors.h"
+#include "handler.h"
 #include "mongo.h"
 #include "pocket.h"
 #include "roles.h"
@@ -416,6 +417,8 @@ unsigned int pocket_init (void) {
 	if (!pocket_init_env ()) {
 		errors |= pocket_mongo_init ();
 
+		errors |= pocket_handler_init ();
+
 		errors |= pocket_users_init ();
 
 		errors |= pocket_categories_init ();
@@ -463,6 +466,8 @@ unsigned int pocket_end (void) {
 	pocket_categories_end ();
 
 	pocket_trans_end ();
+
+	pocket_handler_end ();
 
 	http_respponse_delete (oki_doki);
 	http_respponse_delete (bad_request);

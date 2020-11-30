@@ -1,16 +1,35 @@
-#include <cerver/handler.h>
-
+#include <cerver/http/http.h>
 #include <cerver/http/request.h>
 #include <cerver/http/response.h>
 
-// GET *
-void pocket_catch_all_handler (CerverReceive *cr, HttpRequest *request) {
+static HttpResponse *catch_all = NULL;
 
-	HttpResponse *res = http_response_json_msg (200, "Tiny Pocket Service!");
-	if (res) {
-		// http_response_print (res);
-		http_response_send (res, cr->cerver, cr->connection);
-		http_respponse_delete (res);
-	}
+unsigned int pocket_handler_init (void) {
+
+	unsigned int retval = 1;
+
+	catch_all = http_response_json_key_value (
+		(http_status) 200, "msg", "Tiny Pocket Service!"
+	);
+
+	if (catch_all) retval = 0;
+
+	return retval;
+
+}
+
+void pocket_handler_end (void) {
+
+	http_respponse_delete (catch_all);
+
+}
+
+// GET *
+void pocket_catch_all_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
+
+	http_response_send (catch_all, http_receive);
 
 }
