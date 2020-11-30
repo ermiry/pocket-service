@@ -16,15 +16,14 @@
 #include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
 
-#include "categories.h"
-#include "errors.h"
 #include "handler.h"
 #include "mongo.h"
 #include "pocket.h"
-#include "roles.h"
-#include "transactions.h"
 #include "version.h"
 
+#include "controllers/categories.h"
+#include "controllers/roles.h"
+#include "controllers/transactions.h"
 #include "controllers/users.h"
 
 #include "models/action.h"

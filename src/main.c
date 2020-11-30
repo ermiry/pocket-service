@@ -16,8 +16,14 @@
 
 #include "handler.h"
 #include "pocket.h"
-#include "users.h"
 #include "version.h"
+
+#include "controllers/users.h"
+
+#include "routes/categories.h"
+#include "routes/service.h"
+#include "routes/transactions.h"
+#include "routes/users.h"
 
 static Cerver *pocket_api = NULL;
 

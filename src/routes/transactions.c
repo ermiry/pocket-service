@@ -17,9 +17,9 @@
 #include "errors.h"
 #include "mongo.h"
 #include "pocket.h"
-#include "categories.h"
-#include "transactions.h"
 
+#include "controllers/categories.h"
+#include "controllers/transactions.h"
 #include "controllers/users.h"
 
 #include "models/category.h"

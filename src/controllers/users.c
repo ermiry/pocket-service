@@ -18,8 +18,8 @@
 
 #include "mongo.h"
 #include "pocket.h"
-#include "roles.h"
 
+#include "controllers/roles.h"
 #include "controllers/users.h"
 
 #include "models/user.h"

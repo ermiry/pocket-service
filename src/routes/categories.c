@@ -16,8 +16,8 @@
 
 #include "mongo.h"
 #include "pocket.h"
-#include "categories.h"
 
+#include "controllers/categories.h"
 #include "controllers/users.h"
 
 #include "models/category.h"

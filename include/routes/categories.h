@@ -1,6 +1,9 @@
 #ifndef _POCKET_ROUTES_CATEGORIES_H_
 #define _POCKET_ROUTES_CATEGORIES_H_
 
+struct _HttpReceive;
+struct _HttpResponse;
+
 // GET /api/pocket/categories
 // get all the authenticated user's categories
 extern void pocket_categories_handler (
