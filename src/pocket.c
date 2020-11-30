@@ -505,22 +505,31 @@ unsigned int pocket_end (void) {
 
 #pragma region routes
 
-// GET api/pocket
-void pocket_handler (CerverReceive *cr, HttpRequest *request) {
+// GET /api/pocket
+void pocket_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
-	(void) http_response_send (pocket_works, cr->cerver, cr->connection);
-
-}
-
-// GET api/pocket/version
-void pocket_version_handler (CerverReceive *cr, HttpRequest *request) {
-
-	(void) http_response_send (current_version, cr->cerver, cr->connection);
+	(void) http_response_send (pocket_works, http_receive);
 
 }
 
-// GET api/pocket/auth
-void pocket_auth_handler (CerverReceive *cr, HttpRequest *request) {
+// GET /api/pocket/version
+void pocket_version_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
+
+	(void) http_response_send (current_version, http_receive);
+
+}
+
+// GET /api/pocket/auth
+void pocket_auth_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	User *user = (User *) request->decoded_data;
 
@@ -529,11 +538,11 @@ void pocket_auth_handler (CerverReceive *cr, HttpRequest *request) {
 		user_print (user);
 		#endif
 
-		(void) http_response_send (oki_doki, cr->cerver, cr->connection);
+		(void) http_response_send (oki_doki, http_receive);
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
@@ -579,9 +588,12 @@ static char *pocket_transactions_handler_generate_json (
 
 }
 
-// GET api/pocket/transactions
+// GET /api/pocket/transactions
 // get all the authenticated user's transactions
-void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_transactions_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
@@ -600,7 +612,7 @@ void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 
 				if (json) {
 					(void) http_response_json_custom_reference_send (
-						cr,
+						http_receive,
 						200,
 						json, json_len
 					);
@@ -609,24 +621,24 @@ void pocket_transactions_handler (CerverReceive *cr, HttpRequest *request) {
 				}
 
 				else {
-					(void) http_response_send (server_error, cr->cerver, cr->connection);
+					(void) http_response_send (server_error, http_receive);
 				}
 
 				mongoc_cursor_destroy (trans_cursor);
 			}
 
 			else {
-				(void) http_response_send (no_user_trans, cr->cerver, cr->connection);
+				(void) http_response_send (no_user_trans, http_receive);
 			}
 		}
 
 		else {
-			(void) http_response_send (bad_user, cr->cerver, cr->connection);
+			(void) http_response_send (bad_user, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
@@ -720,9 +732,12 @@ static PocketError pocket_transaction_create_handler_internal (
 
 }
 
-// POST api/pocket/transactions
+// POST /api/pocket/transactions
 // a user has requested to create a new transaction
-void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_transaction_create_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
@@ -752,14 +767,14 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 				// return success to user
 				(void) http_response_send (
 					trans_created_success,
-					cr->cerver, cr->connection
+					http_receive
 				);
 			}
 
 			else {
 				(void) http_response_send (
 					trans_created_bad,
-					cr->cerver, cr->connection
+					http_receive
 				);
 			}
 			
@@ -767,19 +782,22 @@ void pocket_transaction_create_handler (CerverReceive *cr, HttpRequest *request)
 		}
 
 		else {
-			pocket_error_send_response (error, cr);
+			pocket_error_send_response (error, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
 
-// GET api/pocket/transactions/:id
+// GET /api/pocket/transactions/:id
 // returns information about an existing transaction that belongs to a user
-void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_transaction_get_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	const String *trans_id = request->params[0];
 
@@ -800,7 +818,7 @@ void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
 				char *json = bson_as_relaxed_extended_json (trans_bson, &json_len);
 				if (json) {
 					(void) http_response_json_custom_reference_send (
-						cr, 200, json, json_len
+						http_receive, 200, json, json_len
 					);
 
 					free (json);
@@ -810,7 +828,7 @@ void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
 			}
 
 			else {
-				(void) http_response_send (no_user_trans, cr->cerver, cr->connection);
+				(void) http_response_send (no_user_trans, http_receive);
 			}
 
 			pocket_trans_delete (trans);
@@ -818,7 +836,7 @@ void pocket_transaction_get_handler (CerverReceive *cr, HttpRequest *request) {
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
@@ -864,9 +882,12 @@ static u8 pocket_transaction_update_handler_internal (
 
 }
 
-// POST api/pocket/transactions/:id
+// POST /api/pocket/transactions/:id
 // a user wants to update an existing transaction
-void pocket_transaction_update_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_transaction_update_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
@@ -887,11 +908,11 @@ void pocket_transaction_update_handler (CerverReceive *cr, HttpRequest *request)
 					transaction_query_oid (&trans->oid),
 					transaction_update_bson (trans)
 				)) {
-					(void) http_response_send (oki_doki, cr->cerver, cr->connection);
+					(void) http_response_send (oki_doki, http_receive);
 				}
 
 				else {
-					(void) http_response_send (server_error, cr->cerver, cr->connection);
+					(void) http_response_send (server_error, http_receive);
 				}
 			}
 
@@ -899,19 +920,22 @@ void pocket_transaction_update_handler (CerverReceive *cr, HttpRequest *request)
 		}
 
 		else {
-			(void) http_response_send (bad_request, cr->cerver, cr->connection);
+			(void) http_response_send (bad_request, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
 
-// DELETE api/pocket/transactions/:id
+// DELETE /api/pocket/transactions/:id
 // deletes an existing user's transaction
-void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_transaction_delete_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	const String *trans_id = request->params[0];
 
@@ -932,21 +956,21 @@ void pocket_transaction_delete_handler (CerverReceive *cr, HttpRequest *request)
 				cerver_log_debug ("Deleted transaction %s", trans_id->str);
 				#endif
 
-				(void) http_response_send (trans_deleted_success, cr->cerver, cr->connection);
+				(void) http_response_send (trans_deleted_success, http_receive);
 			}
 
 			else {
-				(void) http_response_send (trans_deleted_bad, cr->cerver, cr->connection);
+				(void) http_response_send (trans_deleted_bad, http_receive);
 			}
 		}
 
 		else {
-			(void) http_response_send (server_error, cr->cerver, cr->connection);
+			(void) http_response_send (server_error, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
@@ -992,9 +1016,12 @@ static char *pocket_categories_handler_generate_json (
 
 }
 
-// GET api/pocket/categories
+// GET /api/pocket/categories
 // get all the authenticated user's categories
-void pocket_categories_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_categories_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
@@ -1013,7 +1040,7 @@ void pocket_categories_handler (CerverReceive *cr, HttpRequest *request) {
 
 				if (json) {
 					(void) http_response_json_custom_reference_send (
-						cr,
+						http_receive,
 						200,
 						json, json_len
 					);
@@ -1022,24 +1049,24 @@ void pocket_categories_handler (CerverReceive *cr, HttpRequest *request) {
 				}
 
 				else {
-					(void) http_response_send (server_error, cr->cerver, cr->connection);
+					(void) http_response_send (server_error, http_receive);
 				}
 
 				mongoc_cursor_destroy (categories_cursor);
 			}
 
 			else {
-				(void) http_response_send (no_user_categories, cr->cerver, cr->connection);
+				(void) http_response_send (no_user_categories, http_receive);
 			}
 		}
 
 		else {
-			(void) http_response_send (bad_user, cr->cerver, cr->connection);
+			(void) http_response_send (bad_user, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
@@ -1117,9 +1144,12 @@ static Category *pocket_category_create_handler_internal (
 
 }
 
-// POST api/pocket/categories
+// POST /api/pocket/categories
 // a user has requested to create a new category
-void pocket_category_create_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_category_create_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
@@ -1146,14 +1176,14 @@ void pocket_category_create_handler (CerverReceive *cr, HttpRequest *request) {
 				// return success to user
 				(void) http_response_send (
 					category_created_success,
-					cr->cerver, cr->connection
+					http_receive
 				);
 			}
 
 			else {
 				(void) http_response_send (
 					category_created_bad,
-					cr->cerver, cr->connection
+					http_receive
 				);
 			}
 			
@@ -1163,20 +1193,23 @@ void pocket_category_create_handler (CerverReceive *cr, HttpRequest *request) {
 		else {
 			(void) http_response_send (
 				category_created_bad,
-				cr->cerver, cr->connection
+				http_receive
 			);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
 
-// GET api/pocket/categories/:id
+// GET /api/pocket/categories/:id
 // returns information about an existing category that belongs to a user
-void pocket_category_get_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_category_get_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	const String *category_id = request->params[0];
 
@@ -1197,7 +1230,7 @@ void pocket_category_get_handler (CerverReceive *cr, HttpRequest *request) {
 				char *json = bson_as_relaxed_extended_json (category_bson, &json_len);
 				if (json) {
 					(void) http_response_json_custom_reference_send (
-						cr, 200, json, json_len
+						http_receive, 200, json, json_len
 					);
 
 					free (json);
@@ -1207,7 +1240,7 @@ void pocket_category_get_handler (CerverReceive *cr, HttpRequest *request) {
 			}
 
 			else {
-				(void) http_response_send (no_user_category, cr->cerver, cr->connection);
+				(void) http_response_send (no_user_category, http_receive);
 			}
 
 			pocket_category_delete (category);
@@ -1215,7 +1248,7 @@ void pocket_category_get_handler (CerverReceive *cr, HttpRequest *request) {
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
@@ -1262,9 +1295,12 @@ static u8 pocket_category_update_handler_internal (
 
 }
 
-// POST api/pocket/categories/:id
+// POST /api/pocket/categories/:id
 // a user wants to update an existing category
-void pocket_category_update_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_category_update_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
@@ -1285,11 +1321,11 @@ void pocket_category_update_handler (CerverReceive *cr, HttpRequest *request) {
 					category_query_oid (&category->oid),
 					category_update_bson (category)
 				)) {
-					(void) http_response_send (oki_doki, cr->cerver, cr->connection);
+					(void) http_response_send (oki_doki, http_receive);
 				}
 
 				else {
-					(void) http_response_send (server_error, cr->cerver, cr->connection);
+					(void) http_response_send (server_error, http_receive);
 				}
 			}
 
@@ -1297,20 +1333,23 @@ void pocket_category_update_handler (CerverReceive *cr, HttpRequest *request) {
 		}
 
 		else {
-			(void) http_response_send (bad_request, cr->cerver, cr->connection);
+			(void) http_response_send (bad_request, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
 
 // TODO: handle things that reference the requested category
-// DELETE api/pocket/categories/:id
+// DELETE /api/pocket/categories/:id
 // deletes an existing user's category
-void pocket_category_delete_handler (CerverReceive *cr, HttpRequest *request) {
+void pocket_category_delete_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	const String *category_id = request->params[0];
 
@@ -1331,21 +1370,21 @@ void pocket_category_delete_handler (CerverReceive *cr, HttpRequest *request) {
 				cerver_log_debug ("Deleted category %s", category_id->str);
 				#endif
 
-				(void) http_response_send (category_deleted_success, cr->cerver, cr->connection);
+				(void) http_response_send (category_deleted_success, http_receive);
 			}
 
 			else {
-				(void) http_response_send (category_deleted_bad, cr->cerver, cr->connection);
+				(void) http_response_send (category_deleted_bad, http_receive);
 			}
 		}
 
 		else {
-			(void) http_response_send (server_error, cr->cerver, cr->connection);
+			(void) http_response_send (server_error, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, cr->cerver, cr->connection);
+		(void) http_response_send (bad_user, http_receive);
 	}
 
 }
