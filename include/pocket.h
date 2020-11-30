@@ -24,6 +24,21 @@ extern struct _HttpResponse *server_error;
 extern struct _HttpResponse *bad_user;
 extern struct _HttpResponse *missing_values;
 
+extern struct _HttpResponse *no_user_trans;
+
+extern struct _HttpResponse *trans_created_success;
+extern struct _HttpResponse *trans_created_bad;
+extern struct _HttpResponse *trans_deleted_success;
+extern struct _HttpResponse *trans_deleted_bad;
+
+extern struct _HttpResponse *no_user_categories;
+extern struct _HttpResponse *no_user_category;
+
+extern struct _HttpResponse *category_created_success;
+extern struct _HttpResponse *category_created_bad;
+extern struct _HttpResponse *category_deleted_success;
+extern struct _HttpResponse *category_deleted_bad;
+
 #pragma region main
 
 // inits pocket main values
@@ -85,41 +100,6 @@ extern void pocket_transaction_update_handler (
 // DELETE /api/pocket/transactions/:id
 // deletes an existing user's transaction
 extern void pocket_transaction_delete_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// GET /api/pocket/categories
-// get all the authenticated user's categories
-extern void pocket_categories_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// POST /api/pocket/categories
-// a user has requested to create a new category
-extern void pocket_category_create_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// GET /api/pocket/categories/:id
-// returns information about an existing category that belongs to a user
-extern void pocket_category_get_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// POST /api/pocket/categories/:id
-// a user wants to update an existing category
-extern void pocket_category_update_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// DELETE /api/pocket/categories/:id
-// deletes an existing user's category
-extern void pocket_category_delete_handler (
     const struct _HttpReceive *http_receive,
 	const struct _HttpRequest *request
 );
