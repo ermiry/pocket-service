@@ -8,6 +8,7 @@
 
 struct _HttpReceive;
 struct _HttpRequest;
+struct _HttpResponse;
 
 extern unsigned int PORT;
 
@@ -17,11 +18,11 @@ extern unsigned int CERVER_CONNECTION_QUEUE;
 
 extern bool ENABLE_USERS_ROUTES;
 
-extern HttpResponse *oki_doki;
-extern HttpResponse *bad_request;
-extern HttpResponse *server_error;
-extern HttpResponse *bad_user;
-extern HttpResponse *missing_values;
+extern struct _HttpResponse *oki_doki;
+extern struct _HttpResponse *bad_request;
+extern struct _HttpResponse *server_error;
+extern struct _HttpResponse *bad_user;
+extern struct _HttpResponse *missing_values;
 
 #pragma region main
 
