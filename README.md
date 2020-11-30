@@ -13,6 +13,8 @@ sudo docker run \
   -e MONGO_APP_NAME=api -e MONGO_DB=pocket \
   -e MONGO_URI=mongodb://api:password@192.168.100.39:27017/pocket \
   -e CERVER_RECEIVE_BUFFER_SIZE=4096 -e CERVER_TH_THREADS=4 \
+  -e CERVER_CONNECTION_QUEUE=4 \
+  -e ENABLE_USERS_ROUTES=TRUE \
   ermiry/tiny-pocket-api:development /bin/bash
 ```
 
@@ -27,7 +29,9 @@ sudo docker run \
   -e PORT=5002 \
   -e PRIV_KEY=/home/pocket/keys/key.key -e PUB_KEY=/home/pocket/keys/key.pub \
   -e MONGO_URI=mongodb://pocket:pocketpassword@192.168.100.39:27017/ermiry \
-  -e CERVER_RECEIVE_BUFFER_SIZE=4096 -e CERVER_TH_THREADS=4 \
+  -e CERVER_RECEIVE_BUFFER_SIZE=4096 -e CERVER_TH_THREADS=16 \
+  -e CERVER_CONNECTION_QUEUE=16 \
+  -e ENABLE_USERS_ROUTES=TRUE \
   ermiry/tiny-pocket-api:development /bin/bash
 ```
 
