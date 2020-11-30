@@ -6,8 +6,6 @@
 
 #define DEFAULT_PORT					"5001"
 
-struct _HttpReceive;
-struct _HttpRequest;
 struct _HttpResponse;
 
 extern unsigned int PORT;
@@ -24,6 +22,9 @@ extern struct _HttpResponse *server_error;
 extern struct _HttpResponse *bad_user;
 extern struct _HttpResponse *missing_values;
 
+extern struct _HttpResponse *pocket_works;
+extern struct _HttpResponse *current_version;
+
 extern struct _HttpResponse *no_user_trans;
 
 extern struct _HttpResponse *trans_created_success;
@@ -39,36 +40,10 @@ extern struct _HttpResponse *category_created_bad;
 extern struct _HttpResponse *category_deleted_success;
 extern struct _HttpResponse *category_deleted_bad;
 
-#pragma region main
-
 // inits pocket main values
 extern unsigned int pocket_init (void);
 
 // ends pocket main values
 extern unsigned int pocket_end (void);
-
-#pragma endregion
-
-#pragma region routes
-
-// GET /api/pocket
-extern void pocket_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// GET /api/pocket/version
-extern void pocket_version_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// GET /api/pocket/auth
-extern void pocket_auth_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-#pragma endregion
 
 #endif
