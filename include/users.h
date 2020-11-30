@@ -5,11 +5,10 @@
 
 #include <cerver/collections/dlist.h>
 
-#include <cerver/handler.h>
-
-#include <cerver/http/request.h>
-
 #define DEFAULT_USERS_POOL_INIT			16
+
+struct _HttpReceive;
+struct _HttpRequest;
 
 #pragma region main
 
@@ -39,14 +38,23 @@ extern void pocket_user_delete (void *user_ptr);
 
 #pragma region routes
 
-// GET api/users/
-extern void users_handler (CerverReceive *cr, HttpRequest *request);
+// GET /api/users/
+extern void users_handler (
+    const struct _HttpReceive *http_receive,
+	const struct _HttpRequest *request
+);
 
-// POST api/users/login
-extern void users_login_handler (CerverReceive *cr, HttpRequest *request);
+// POST /api/users/login
+extern void users_login_handler (
+    const struct _HttpReceive *http_receive,
+	const struct _HttpRequest *request
+);
 
-// POST api/users/register
-extern void users_register_handler (CerverReceive *cr, HttpRequest *request);
+// POST /api/users/register
+extern void users_register_handler (
+    const struct _HttpReceive *http_receive,
+	const struct _HttpRequest *request
+);
 
 #pragma endregion
 

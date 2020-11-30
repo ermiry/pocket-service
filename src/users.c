@@ -212,7 +212,7 @@ static User *pocket_user_get_by_email (const String *email) {
 }
 
 static u8 pocket_user_check_by_email (
-	CerverReceive *cr, const String *email
+	const HttpReceive *http_receive, const String *email
 ) {
 
 	u8 retval = 1;
@@ -225,7 +225,7 @@ static u8 pocket_user_check_by_email (
 		#ifdef POCKET_DEBUG
 		cerver_log_warning ("Found matching user with email: %s", email->str);
 		#endif
-		http_response_send (repeated_email, cr->cerver, cr->connection);
+		(void) http_response_send (repeated_email, http_receive);
 	}
 
 	return retval;
@@ -294,15 +294,21 @@ void pocket_user_delete (void *user_ptr) {
 
 #pragma region routes
 
-// GET api/users
-void users_handler (CerverReceive *cr, HttpRequest *request) {
+// GET /api/users
+void users_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
-	http_response_send (users_works, cr->cerver, cr->connection);
+	(void) http_response_send (users_works, http_receive);
 
 }
 
 // generate and send back token
-static void users_generate_and_send_token (CerverReceive *cr, const User *user, const String *role_name) {
+static void users_generate_and_send_token (
+	const HttpReceive *http_receive,
+	const User *user, const String *role_name
+) {
 
 	bson_oid_to_string (&user->oid, (char *) user->id);
 
@@ -314,7 +320,7 @@ static void users_generate_and_send_token (CerverReceive *cr, const User *user, 
 	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("username", user->username));
 
 	// generate & send back auth token
-	char *token = http_cerver_auth_generate_jwt ((HttpCerver *) cr->cerver->cerver_data, payload);
+	char *token = http_cerver_auth_generate_jwt ((HttpCerver *) http_receive->cr->cerver->cerver_data, payload);
 	if (token) {
 		char *bearer = c_string_create ("Bearer %s", token);
 		if (bearer) {
@@ -324,7 +330,7 @@ static void users_generate_and_send_token (CerverReceive *cr, const User *user, 
 				if (res) {
 					http_response_compile (res);
 					// http_response_print (res);
-					http_response_send (res, cr->cerver, cr->connection);
+					(void) http_response_send (res, http_receive);
 					http_respponse_delete (res);
 				}
 
@@ -332,28 +338,31 @@ static void users_generate_and_send_token (CerverReceive *cr, const User *user, 
 			}
 
 			else {
-				http_response_send (server_error, cr->cerver, cr->connection);
+				(void) http_response_send (server_error, http_receive);
 			}
 
 			free (bearer);
 		}
 
 		else {
-			http_response_send (server_error, cr->cerver, cr->connection);
+			(void) http_response_send (server_error, http_receive);
 		}
 
 		free (token);
 	}
 
 	else {
-		http_response_send (server_error, cr->cerver, cr->connection);
+		(void) http_response_send (server_error, http_receive);
 	}
 
 	dlist_delete (payload);
 
 }
 
-static u8 users_register_handler_save_user (CerverReceive *cr, User *user) {
+static u8 users_register_handler_save_user (
+	const HttpReceive *http_receive,
+	User *user
+) {
 
 	u8 retval = 1;
 
@@ -366,15 +375,18 @@ static u8 users_register_handler_save_user (CerverReceive *cr, User *user) {
 
 	else {
 		cerver_log_error ("Failed to save new user!");
-		http_response_send (server_error, cr->cerver, cr->connection);
+		(void) http_response_send (server_error, http_receive);
 	}
 
 	return retval;
 
 }
 
-// POST api/users/register
-void users_register_handler (CerverReceive *cr, HttpRequest *request) {
+// POST /api/users/register
+void users_register_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	// get the user values from the request
 	const String *name = http_request_body_get_value (request, "name");
@@ -384,7 +396,7 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 	const String *confirm = http_request_body_get_value (request, "confirm");
 
 	if (name && username && email && password && confirm) {
-		if (!pocket_user_check_by_email (cr, email)) {
+		if (!pocket_user_check_by_email (http_receive, email)) {
 			User *user = pocket_user_create (
 				name->str,
 				username->str,
@@ -393,11 +405,11 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 				&common_role->oid
 			);
 			if (user) {
-				if (!users_register_handler_save_user (cr, user)) {
+				if (!users_register_handler_save_user (http_receive, user)) {
 					cerver_log_success ("User %s has created an account!", email->str);
 
 					// return token upon success
-					users_generate_and_send_token (cr, user, common_role->name);
+					users_generate_and_send_token (http_receive, user, common_role->name);
 				}
 
 				pocket_user_delete (user);
@@ -407,7 +419,7 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 				#ifdef POCKET_DEBUG
 				cerver_log_error ("Failed to create user!");
 				#endif
-				http_response_send (server_error, cr->cerver, cr->connection);
+				(void) http_response_send (server_error, http_receive);
 			}
 		}
 	}
@@ -416,13 +428,16 @@ void users_register_handler (CerverReceive *cr, HttpRequest *request) {
 		#ifdef POCKET_DEBUG
 		cerver_log_warning ("Missing user values!");
 		#endif
-		http_response_send (missing_user_values, cr->cerver, cr->connection);
+		(void) http_response_send (missing_user_values, http_receive);
 	}
 
 }
 
-// POST api/users/login
-void users_login_handler (CerverReceive *cr, HttpRequest *request) {
+// POST /api/users/login
+void users_login_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
 
 	// get the user values from the request
 	// const String *username = http_request_body_get_value (request, "username");
@@ -443,7 +458,10 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 				#endif
 
 				// generate and send token back to the user
-				users_generate_and_send_token (cr, user, pocket_roles_get_by_oid (&user->role_oid));
+				users_generate_and_send_token (
+					http_receive,
+					user, pocket_roles_get_by_oid (&user->role_oid)
+				);
 			}
 
 			else {
@@ -451,7 +469,7 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 				cerver_log_error ("User %s login -> wrong password", oid_buffer);
 				#endif
 
-				http_response_send (wrong_password, cr->cerver, cr->connection);
+				(void) http_response_send (wrong_password, http_receive);
 			}
 
 			pocket_user_delete (user);
@@ -461,7 +479,7 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 			#ifdef POCKET_DEBUG
 			cerver_log_warning ("User not found!");
 			#endif
-			http_response_send (user_not_found, cr->cerver, cr->connection);
+			(void) http_response_send (user_not_found, http_receive);
 		}
 	}
 
@@ -469,7 +487,7 @@ void users_login_handler (CerverReceive *cr, HttpRequest *request) {
 		#ifdef POCKET_DEBUG
 		cerver_log_warning ("Missing user values!");
 		#endif
-		http_response_send (missing_user_values, cr->cerver, cr->connection);
+		(void) http_response_send (missing_user_values, http_receive);
 	}
 
 }
