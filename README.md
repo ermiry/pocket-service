@@ -82,7 +82,7 @@ sudo docker run \
   - 401 on failed auth
   - 404 on transaction not found
 
-#### POST api/pocket/transactions/:id
+#### PUT api/pocket/transactions/:id
 **Access:** Private \
 **Description:** A user wants to update an existing transaction \
 **Returns:**
@@ -124,7 +124,7 @@ sudo docker run \
   - 401 on failed auth
   - 404 on category not found
 
-#### POST api/pocket/categories/:id
+#### PUT api/pocket/categories/:id
 **Access:** Private \
 **Description:** A user wants to update an existing category \
 **Returns:**

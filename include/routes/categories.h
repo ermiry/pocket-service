@@ -25,7 +25,7 @@ extern void pocket_category_get_handler (
 	const struct _HttpRequest *request
 );
 
-// POST /api/pocket/categories/:id
+// PUT /api/pocket/categories/:id
 // a user wants to update an existing category
 extern void pocket_category_update_handler (
 	const struct _HttpReceive *http_receive,

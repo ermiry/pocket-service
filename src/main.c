@@ -80,8 +80,8 @@ static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 	http_route_set_decode_data (single_trans_route, pocket_user_parse_from_json, pocket_user_delete);
 	http_route_child_add (pocket_route, single_trans_route);
 
-	// POST api/pocket/transactions/:id
-	http_route_set_handler (single_trans_route, REQUEST_METHOD_POST, pocket_transaction_update_handler);
+	// PUT api/pocket/transactions/:id
+	http_route_set_handler (single_trans_route, REQUEST_METHOD_PUT, pocket_transaction_update_handler);
 
 	// DELETE api/pocket/transactions/:id
 	http_route_set_handler (single_trans_route, REQUEST_METHOD_DELETE, pocket_transaction_delete_handler);
@@ -103,8 +103,8 @@ static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 	http_route_set_decode_data (single_category_route, pocket_user_parse_from_json, pocket_user_delete);
 	http_route_child_add (pocket_route, single_category_route);
 
-	// POST api/pocket/categories/:id
-	http_route_set_handler (single_category_route, REQUEST_METHOD_POST, pocket_category_update_handler);
+	// PUT api/pocket/categories/:id
+	http_route_set_handler (single_category_route, REQUEST_METHOD_PUT, pocket_category_update_handler);
 
 	// DELETE api/pocket/categories/:id
 	http_route_set_handler (single_category_route, REQUEST_METHOD_DELETE, pocket_category_delete_handler);

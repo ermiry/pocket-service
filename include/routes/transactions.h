@@ -25,7 +25,7 @@ extern void pocket_transaction_get_handler (
 	const struct _HttpRequest *request
 );
 
-// POST /api/pocket/transactions/:id
+// PUT /api/pocket/transactions/:id
 // a user wants to update an existing transaction
 extern void pocket_transaction_update_handler (
 	const struct _HttpReceive *http_receive,
