@@ -1,8 +1,6 @@
 #ifndef _POCKET_ERRORS_H_
 #define _POCKET_ERRORS_H_
 
-#include <cerver/handler.h>
-
 #define POCKET_ERROR_MAP(XX)						\
 	XX(0,	NONE, 				None)				\
 	XX(1,	BAD_REQUEST, 		Bad Request)		\
@@ -20,6 +18,9 @@ typedef enum PocketError {
 
 extern const char *pocket_error_to_string (PocketError type);
 
-extern void pocket_error_send_response (PocketError error, CerverReceive *cr);
+extern void pocket_error_send_response (
+	PocketError error,
+	const struct _HttpReceive *http_receive
+);
 
 #endif

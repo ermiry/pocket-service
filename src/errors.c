@@ -1,5 +1,6 @@
 #include <cerver/handler.h>
 
+#include <cerver/http/http.h>
 #include <cerver/http/response.h>
 
 #include "pocket.h"
@@ -17,25 +18,28 @@ const char *pocket_error_to_string (PocketError type) {
 
 }
 
-void pocket_error_send_response (PocketError error, CerverReceive *cr) {
+void pocket_error_send_response (
+	PocketError error,
+	const HttpReceive *http_receive
+) {
 
 	switch (error) {
 		case POCKET_ERROR_NONE: break;
 
 		case POCKET_ERROR_BAD_REQUEST:
-			(void) http_response_send (bad_request, cr->cerver, cr->connection);
+			(void) http_response_send (bad_request, http_receive);
 			break;
 
 		case POCKET_ERROR_MISSING_VALUES:
-			(void) http_response_send (missing_values, cr->cerver, cr->connection);
+			(void) http_response_send (missing_values, http_receive);
 			break;
 
 		case POCKET_ERROR_BAD_USER:
-			(void) http_response_send (bad_user, cr->cerver, cr->connection);
+			(void) http_response_send (bad_user, http_receive);
 			break;
 
 		case POCKET_ERROR_SERVER_ERROR:
-			(void) http_response_send (server_error, cr->cerver, cr->connection);
+			(void) http_response_send (server_error, http_receive);
 			break;
 
 		default: break;
