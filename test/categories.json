@@ -1,0 +1,33 @@
+{
+    "categories": [
+        {
+            "title": "Work",
+            "description": "Related to work stuff",
+            "color": "#192a56"
+        },
+        
+        {
+            "title": "Groceries",
+            "description": "Related to groceries",
+            "color": "#487eb0"
+        },
+
+        {
+            "title": "Fun",
+            "description": "Related to fun stuff",
+            "color": "#8c7ae6"
+        },
+
+        {
+            "title": "Health",
+            "description": "Related to health stuff",
+            "color": "#4cd137"
+        },
+
+        {
+            "title": "Banking",
+            "description": "Related to cards & banking stuff",
+            "color": "#c23616"
+        }
+    ]
+}

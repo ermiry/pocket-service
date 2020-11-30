@@ -1,0 +1,53 @@
+{
+    "work": [
+        {
+            "title": "Bought disk for office computer",
+            "amount": 99.99,
+            "category": "5fc5494d954f1728c65018f4"
+        },
+        {
+            "title": "Bought new mouse pad",
+            "amount": 19.59,
+            "category": "5fc5494d954f1728c65018f4"
+        },
+        {
+            "title": "Bought new pencils",
+            "amount": 5.99,
+            "category": "5fc5494d954f1728c65018f4"
+        }
+    ],
+
+    "groceries": [
+        {
+            "title": "Weekly groceries",
+            "amount": 129.99,
+            "category": "5fc54a34954f1728c65018f5"
+        }
+    ],
+
+    "fun": [
+        {
+            "title": "Went to the movies",
+            "amount": 9.99,
+            "category": "5fc54a3d954f1728c65018f6"
+        }
+    ],
+
+    "health": [
+        {
+            "title": "Payed gym membership",
+            "amount": 18.99,
+            "category": "5fc54a48954f1728c65018f7"
+        }
+    ],
+
+    "banking": [
+        {
+            "title": "Payed credit card",
+            "amount": 369.99,
+            "category": "5fc54a4f954f1728c65018f8"
+        }
+    ]
+
+}
+
