@@ -374,6 +374,7 @@ void pocket_place_update_handler (
 
 }
 
+// TODO: handle things that reference the requested place
 // DELETE /api/pocket/places/:id
 // deletes an existing user's place
 void pocket_place_delete_handler (
@@ -381,9 +382,36 @@ void pocket_place_delete_handler (
 	const HttpRequest *request
 ) {
 
+	const String *place_id = request->params[0];
+
 	User *user = (User *) request->decoded_data;
 	if (user) {
+		bson_t *place_query = bson_new ();
+		if (place_query) {
+			bson_oid_t oid = { 0 };
 
+			bson_oid_init_from_string (&oid, place_id->str);
+			(void) bson_append_oid (place_query, "_id", -1, &oid);
+
+			bson_oid_init_from_string (&oid, user->id);
+			(void) bson_append_oid (place_query, "user", -1, &oid);
+
+			if (!mongo_delete_one (places_collection, place_query)) {
+				#ifdef POCKET_DEBUG
+				cerver_log_debug ("Deleted place %s", place_id->str);
+				#endif
+
+				(void) http_response_send (place_deleted_success, http_receive);
+			}
+
+			else {
+				(void) http_response_send (place_deleted_bad, http_receive);
+			}
+		}
+
+		else {
+			(void) http_response_send (server_error, http_receive);
+		}
 	}
 
 	else {
