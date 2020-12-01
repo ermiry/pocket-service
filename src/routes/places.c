@@ -69,11 +69,10 @@ void pocket_places_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// TODO: query opts
 		// get user's places from the db
-		if (!user_get_by_id (user, user->id, NULL)) {
+		if (!user_get_by_id (user, user->id, user_places_query_opts)) {
 			mongoc_cursor_t *places_cursor = places_get_all_by_user (
-				&user->oid, NULL
+				&user->oid, place_no_user_query_opts
 			);
 
 			if (places_cursor) {

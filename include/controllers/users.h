@@ -21,6 +21,9 @@ extern DoubleList *user_transactions_select;
 extern const bson_t *user_categories_query_opts;
 extern DoubleList *user_categories_select;
 
+extern const bson_t *user_places_query_opts;
+extern DoubleList *user_places_select;
+
 extern struct _HttpResponse *users_works;
 extern struct _HttpResponse *missing_user_values;
 extern struct _HttpResponse *wrong_password;
