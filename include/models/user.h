@@ -42,6 +42,7 @@ typedef struct User {
 
 	int trans_count;
 	int categories_count;
+	int places_count;
 
 } User;
 
@@ -76,5 +77,8 @@ extern bson_t *user_create_update_pocket_transactions (void);
 
 // adds one to user's categories count
 extern bson_t *user_create_update_pocket_categories (void);
+
+// adds one to user's places count
+extern bson_t *user_create_update_pocket_places (void);
 
 #endif
