@@ -122,7 +122,7 @@ static void pocket_place_parse_json (
 	const char **description
 ) {
 
-	// get values from json to create a new category
+	// get values from json to create a new place
 	const char *key = NULL;
 	json_t *value = NULL;
 	if (json_typeof (json_body) == JSON_OBJECT) {
@@ -238,9 +238,44 @@ void pocket_place_get_handler (
 	const HttpRequest *request
 ) {
 
+	const String *place_id = request->params[0];
+
 	User *user = (User *) request->decoded_data;
 	if (user) {
+		Place *place = (Place *) pool_pop (places_pool);
+		if (place) {
+			bson_oid_init_from_string (&place->oid, place_id->str);
+			bson_oid_init_from_string (&place->user_oid, user->id);
 
+			const bson_t *place_bson = place_find_by_oid_and_user (
+				&place->oid, &place->user_oid,
+				place_no_user_query_opts
+			);
+
+			if (place_bson) {
+				size_t json_len = 0;
+				char *json = bson_as_relaxed_extended_json (place_bson, &json_len);
+				if (json) {
+					(void) http_response_json_custom_reference_send (
+						http_receive, 200, json, json_len
+					);
+
+					free (json);
+				}
+
+				bson_destroy ((bson_t *) place_bson);
+			}
+
+			else {
+				(void) http_response_send (no_user_place, http_receive);
+			}
+
+			pocket_place_delete (place);
+		}
+
+		else {
+			(void) http_response_send (server_error, http_receive);
+		}
 	}
 
 	else {
