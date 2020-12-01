@@ -22,12 +22,14 @@
 #include "version.h"
 
 #include "controllers/categories.h"
+#include "controllers/places.h"
 #include "controllers/roles.h"
 #include "controllers/transactions.h"
 #include "controllers/users.h"
 
 #include "models/action.h"
 #include "models/category.h"
+#include "models/place.h"
 #include "models/role.h"
 #include "models/user.h"
 
@@ -268,6 +270,9 @@ static unsigned int pocket_mongo_connect (void) {
 			// open handle to categories collection
 			errors |= categories_collection_get ();
 
+			// open handle to places collection
+			errors |= places_collection_get ();
+
 			// open handle to roles collection
 			errors |= roles_collection_get ();
 
@@ -421,6 +426,8 @@ unsigned int pocket_init (void) {
 
 		errors |= pocket_categories_init ();
 
+		errors |= pocket_places_init ();
+
 		errors |= pocket_trans_init ();
 
 		errors |= pocket_init_responses ();
@@ -436,6 +443,8 @@ static unsigned int pocket_mongo_end (void) {
 		actions_collection_close ();
 
 		categories_collection_close ();
+
+		places_collection_close ();
 
 		roles_collection_close ();
 
@@ -462,6 +471,8 @@ unsigned int pocket_end (void) {
 	pocket_users_end ();
 
 	pocket_categories_end ();
+
+	pocket_places_end ();
 
 	pocket_trans_end ();
 
