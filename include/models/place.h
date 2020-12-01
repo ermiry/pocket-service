@@ -80,4 +80,13 @@ extern u8 place_get_by_oid_and_user (
 	const bson_t *query_opts
 );
 
+extern bson_t *place_to_bson (Place *place);
+
+extern bson_t *place_update_bson (Place *place);
+
+// get all the places that are related to a user
+extern mongoc_cursor_t *places_get_all_by_user (
+	const bson_oid_t *user_oid, const bson_t *opts
+);
+
 #endif

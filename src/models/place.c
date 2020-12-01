@@ -213,3 +213,71 @@ u8 place_get_by_oid_and_user (
 	return retval;
 
 }
+
+bson_t *place_to_bson (Place *place) {
+
+    bson_t *doc = NULL;
+
+    if (place) {
+        doc = bson_new ();
+        if (doc) {
+            (void) bson_append_oid (doc, "_id", -1, &place->oid);
+
+			(void) bson_append_oid (doc, "user", -1, &place->user_oid);
+
+			(void) bson_append_utf8 (doc, "name", -1, place->name, -1);
+			(void) bson_append_utf8 (doc, "description", -1, place->description, -1);
+
+			(void) bson_append_int32 (doc, "type", -1, place->type);
+
+			(void) bson_append_date_time (doc, "date", -1, place->date * 1000);
+        }
+    }
+
+    return doc;
+
+}
+
+bson_t *place_update_bson (Place *place) {
+
+	bson_t *doc = NULL;
+
+    if (place) {
+        doc = bson_new ();
+        if (doc) {
+			bson_t set_doc = { 0 };
+			(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
+
+			(void) bson_append_utf8 (&set_doc, "name", -1, place->name, -1);
+			(void) bson_append_utf8 (&set_doc, "description", -1, place->description, -1);
+			
+			(void) bson_append_document_end (doc, &set_doc);
+        }
+    }
+
+    return doc;
+
+}
+
+// get all the places that are related to a user
+mongoc_cursor_t *places_get_all_by_user (
+	const bson_oid_t *user_oid, const bson_t *opts
+) {
+
+	mongoc_cursor_t *retval = NULL;
+
+	if (user_oid && opts) {
+		bson_t *query = bson_new ();
+		if (query) {
+			(void) bson_append_oid (query, "user", -1, user_oid);
+
+			retval = mongo_find_all_cursor_with_opts (
+				places_collection,
+				query, opts
+			);
+		}
+	}
+
+	return retval;
+
+}
