@@ -116,12 +116,118 @@ void pocket_places_handler (
 
 }
 
+static void pocket_place_parse_json (
+	json_t *json_body,
+	const char **name,
+	const char **description
+) {
+
+	// get values from json to create a new category
+	const char *key = NULL;
+	json_t *value = NULL;
+	if (json_typeof (json_body) == JSON_OBJECT) {
+		json_object_foreach (json_body, key, value) {
+			if (!strcmp (key, "name")) {
+				*name = json_string_value (value);
+				(void) printf ("name: \"%s\"\n", *name);
+			}
+
+			else if (!strcmp (key, "description")) {
+				*description = json_string_value (value);
+				(void) printf ("description: \"%s\"\n", *description);
+			}
+		}
+	}
+
+}
+
+static Place *pocket_place_create_handler_internal (
+	const char *user_id, const String *request_body
+) {
+
+	Place *place = NULL;
+
+	if (request_body) {
+		const char *name = NULL;
+		const char *description = NULL;
+
+		json_error_t error =  { 0 };
+		json_t *json_body = json_loads (request_body->str, 0, &error);
+		if (json_body) {
+			pocket_place_parse_json (
+				json_body,
+				&name,
+				&description
+			);
+
+			place = pocket_place_create (
+				user_id,
+				name, description
+			);
+
+			json_decref (json_body);
+		}
+
+		else {
+			cerver_log_error (
+				"json_loads () - json error on line %d: %s\n", 
+				error.line, error.text
+			);
+		}
+	}
+
+	return place;
+
+}
+
 // POST /api/pocket/places
 // a user has requested to create a new place
 void pocket_place_create_handler (
 	const HttpReceive *http_receive,
 	const HttpRequest *request
 ) {
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+		Place *place = pocket_place_create_handler_internal (
+			user->id, request->body
+		);
+
+		if (place) {
+			#ifdef POCKET_DEBUG
+			place_print (place);
+			#endif
+
+			if (!mongo_insert_one (
+				places_collection,
+				place_to_bson (place)
+			)) {
+				// update users values
+				(void) mongo_update_one (
+					users_collection,
+					user_query_id (user->id),
+					user_create_update_pocket_places ()
+				);
+
+				// return success to user
+				(void) http_response_send (
+					place_created_success,
+					http_receive
+				);
+			}
+		}
+
+		else {
+			(void) http_response_send (
+				place_created_bad,
+				http_receive
+			);
+		}
+	}
+
+	else {
+		(void) http_response_send (bad_user, http_receive);
+	}
 
 }
 
@@ -132,6 +238,15 @@ void pocket_place_get_handler (
 	const HttpRequest *request
 ) {
 
+	User *user = (User *) request->decoded_data;
+	if (user) {
+
+	}
+
+	else {
+		(void) http_response_send (bad_user, http_receive);
+	}
+
 }
 
 // PUT /api/pocket/places/:id
@@ -141,6 +256,15 @@ void pocket_place_update_handler (
 	const HttpRequest *request
 ) {
 
+	User *user = (User *) request->decoded_data;
+	if (user) {
+
+	}
+
+	else {
+		(void) http_response_send (bad_user, http_receive);
+	}
+
 }
 
 // DELETE /api/pocket/places/:id
@@ -149,5 +273,14 @@ void pocket_place_delete_handler (
 	const HttpReceive *http_receive,
 	const HttpRequest *request
 ) {
+
+	User *user = (User *) request->decoded_data;
+	if (user) {
+
+	}
+
+	else {
+		(void) http_response_send (bad_user, http_receive);
+	}
 
 }
