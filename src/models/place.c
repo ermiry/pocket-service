@@ -85,3 +85,131 @@ void place_print (Place *place) {
 	}
 
 }
+
+static void place_doc_parse (
+	Place *place, const bson_t *place_doc
+) {
+
+	bson_iter_t iter = { 0 };
+	if (bson_iter_init (&iter, place_doc)) {
+		char *key = NULL;
+		bson_value_t *value = NULL;
+		while (bson_iter_next (&iter)) {
+			key = (char *) bson_iter_key (&iter);
+			value = (bson_value_t *) bson_iter_value (&iter);
+
+			if (!strcmp (key, "_id")) {
+				bson_oid_copy (&value->value.v_oid, &place->oid);
+				bson_oid_to_string (&place->oid, place->id);
+			}
+
+			else if (!strcmp (key, "user"))
+				bson_oid_copy (&value->value.v_oid, &place->user_oid);
+
+			else if (!strcmp (key, "name") && value->value.v_utf8.str) 
+				(void) strncpy (place->name, value->value.v_utf8.str, PLACE_NAME_LEN);
+
+			else if (!strcmp (key, "description")) 
+				(void) strncpy (place->description, value->value.v_utf8.str, PLACE_DESCRIPTION_LEN);
+
+			else if (!strcmp (key, "type"))
+				place->type = value->value.v_int32;
+
+			else if (!strcmp (key, "date")) 
+				place->date = (time_t) bson_iter_date_time (&iter) / 1000;
+		}
+	}
+
+}
+
+bson_t *place_query_oid (const bson_oid_t *oid) {
+
+	bson_t *query = NULL;
+
+	if (oid) {
+		query = bson_new ();
+		if (query) {
+			(void) bson_append_oid (query, "_id", -1, oid);
+		}
+	}
+
+	return query;
+
+}
+
+const bson_t *place_find_by_oid (
+	const bson_oid_t *oid, const bson_t *query_opts
+) {
+
+	const bson_t *retval = NULL;
+
+	bson_t *place_query = bson_new ();
+	if (place_query) {
+		(void) bson_append_oid (place_query, "_id", -1, oid);
+		retval = mongo_find_one_with_opts (places_collection, place_query, query_opts);
+	}
+
+	return retval;
+
+}
+
+u8 place_get_by_oid (
+	Place *place, const bson_oid_t *oid, const bson_t *query_opts
+) {
+
+	u8 retval = 1;
+
+	if (place) {
+		const bson_t *place_doc = place_find_by_oid (oid, query_opts);
+		if (place_doc) {
+			place_doc_parse (place, place_doc);
+			bson_destroy ((bson_t *) place_doc);
+
+			retval = 0;
+		}
+	}
+
+	return retval;
+
+}
+
+const bson_t *place_find_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts
+) {
+
+	const bson_t *retval = NULL;
+
+	bson_t *place_query = bson_new ();
+	if (place_query) {
+		(void) bson_append_oid (place_query, "_id", -1, oid);
+		(void) bson_append_oid (place_query, "user", -1, user_oid);
+
+		retval = mongo_find_one_with_opts (places_collection, place_query, query_opts);
+	}
+
+	return retval;
+
+}
+
+u8 place_get_by_oid_and_user (
+	Place *place,
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts
+) {
+
+	u8 retval = 1;
+
+	if (place) {
+		const bson_t *place_doc = place_find_by_oid_and_user (oid, user_oid, query_opts);
+		if (place_doc) {
+			place_doc_parse (place, place_doc);
+			bson_destroy ((bson_t *) place_doc);
+
+			retval = 0;
+		}
+	}
+
+	return retval;
+
+}
