@@ -289,6 +289,10 @@ void pocket_category_get_handler (
 
 			pocket_category_delete (category);
 		}
+
+		else {
+			(void) http_response_send (server_error, http_receive);
+		}
 	}
 
 	else {
@@ -339,7 +343,7 @@ static u8 pocket_category_update_handler_internal (
 
 }
 
-// POST /api/pocket/categories/:id
+// PUT /api/pocket/categories/:id
 // a user wants to update an existing category
 void pocket_category_update_handler (
 	const HttpReceive *http_receive,
@@ -371,6 +375,10 @@ void pocket_category_update_handler (
 				else {
 					(void) http_response_send (server_error, http_receive);
 				}
+			}
+
+			else {
+				(void) http_response_send (bad_request, http_receive);
 			}
 
 			pocket_category_delete (category);
