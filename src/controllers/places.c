@@ -8,11 +8,16 @@
 
 #include <cerver/utils/log.h>
 
+#include "mongo.h"
+
 #include "controllers/places.h"
 
 #include "models/place.h"
 
 Pool *places_pool = NULL;
+
+const bson_t *place_no_user_query_opts = NULL;
+DoubleList *place_no_user_select = NULL;
 
 void pocket_place_delete (void *place_ptr);
 
@@ -41,17 +46,38 @@ static unsigned int pocket_places_init_pool (void) {
 
 }
 
+static unsigned int pocket_places_init_query_opts (void) {
+
+	unsigned int retval = 1;
+
+	place_no_user_select = dlist_init (str_delete, str_comparator);
+	(void) dlist_insert_after (place_no_user_select, dlist_end (place_no_user_select), str_new ("title"));
+	(void) dlist_insert_after (place_no_user_select, dlist_end (place_no_user_select), str_new ("amount"));
+	(void) dlist_insert_after (place_no_user_select, dlist_end (place_no_user_select), str_new ("date"));
+
+	place_no_user_query_opts = mongo_find_generate_opts (place_no_user_select);
+
+	if (place_no_user_query_opts) retval = 0;
+
+	return retval;
+
+}
+
 unsigned int pocket_places_init (void) {
 
 	unsigned int errors = 0;
 
 	errors |= pocket_places_init_pool ();
 
+	errors |= pocket_places_init_query_opts ();
+
 	return errors;
 
 }
 
 void pocket_places_end (void) {
+
+	bson_destroy ((bson_t *) place_no_user_query_opts);
 
 	pool_delete (places_pool);
 	places_pool = NULL;
