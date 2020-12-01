@@ -69,6 +69,14 @@ HttpResponse *category_created_bad = NULL;
 HttpResponse *category_deleted_success = NULL;
 HttpResponse *category_deleted_bad = NULL;
 
+HttpResponse *no_user_places = NULL;
+HttpResponse *no_user_place = NULL;
+
+HttpResponse *place_created_success = NULL;
+HttpResponse *place_created_bad = NULL;
+HttpResponse *place_deleted_success = NULL;
+HttpResponse *place_deleted_bad = NULL;
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
@@ -397,6 +405,32 @@ static unsigned int pocket_init_responses (void) {
 		(http_status) 400, "error", "Failed to delete category!"
 	);
 
+	/*** places ****/
+
+	no_user_places = http_response_json_key_value (
+		(http_status) 404, "msg", "No user's places"
+	);
+
+	no_user_place = http_response_json_key_value (
+		(http_status) 404, "msg", "User's place was not found"
+	);
+
+	place_created_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	place_created_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to create place!"
+	);
+
+	place_deleted_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	place_deleted_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to delete place!"
+	);
+
 	if (
 		oki_doki && bad_request && server_error && bad_user && missing_values
 		&& pocket_works && current_version
@@ -406,6 +440,9 @@ static unsigned int pocket_init_responses (void) {
 		&& no_user_categories && no_user_category
 		&& category_created_success && category_created_bad
 		&& category_deleted_success && category_deleted_bad
+		&& no_user_places && no_user_place
+		&& place_created_success && place_created_bad
+		&& place_deleted_success && place_deleted_bad
 	) retval = 0;
 
 	return retval;
@@ -501,6 +538,14 @@ unsigned int pocket_end (void) {
 	http_respponse_delete (category_created_bad);
 	http_respponse_delete (category_deleted_success);
 	http_respponse_delete (category_deleted_bad);
+
+	http_respponse_delete (no_user_places);
+	http_respponse_delete (no_user_place);
+
+	http_respponse_delete (place_created_success);
+	http_respponse_delete (place_created_bad);
+	http_respponse_delete (place_deleted_success);
+	http_respponse_delete (place_deleted_bad);
 
 	str_delete ((String *) MONGO_URI);
 	str_delete ((String *) MONGO_APP_NAME);
