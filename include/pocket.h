@@ -40,6 +40,14 @@ extern struct _HttpResponse *category_created_bad;
 extern struct _HttpResponse *category_deleted_success;
 extern struct _HttpResponse *category_deleted_bad;
 
+extern struct _HttpResponse *no_user_places;
+extern struct _HttpResponse *no_user_place;
+
+extern struct _HttpResponse *place_created_success;
+extern struct _HttpResponse *place_created_bad;
+extern struct _HttpResponse *place_deleted_success;
+extern struct _HttpResponse *place_deleted_bad;
+
 // inits pocket main values
 extern unsigned int pocket_init (void);
 
