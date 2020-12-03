@@ -53,9 +53,10 @@ static unsigned int pocket_trans_init_query_opts (void) {
 	unsigned int retval = 1;
 
 	trans_no_user_select = dlist_init (str_delete, str_comparator);
-	(void) dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("title"));
-	(void) dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("amount"));
-	(void) dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("date"));
+	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("title"));
+	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("amount"));
+	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("date"));
+	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("category"));
 
 	trans_no_user_query_opts = mongo_find_generate_opts (trans_no_user_select);
 
