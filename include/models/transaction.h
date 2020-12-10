@@ -8,6 +8,7 @@
 
 #include <cerver/types/types.h>
 
+#define	TRANSACTION_ID_LEN				32
 #define TRANSACTION_TITLE_LEN			1024
 
 extern mongoc_collection_t *transactions_collection;
@@ -17,17 +18,41 @@ extern unsigned int transactions_collection_get (void);
 
 extern void transactions_collection_close (void);
 
+#define TRANS_TYPE_MAP(XX)					\
+	XX(0,	NONE, 		None)				\
+	XX(1,	SINGLE, 	Single)				\
+	XX(2,	RECURRENT, 	Recurrent)
+
+typedef enum TransType {
+
+	#define XX(num, name, string) TRANS_TYPE_##name = num,
+	TRANS_TYPE_MAP (XX)
+	#undef XX
+
+} TransType;
+
+extern const char *trans_type_to_string (TransType type);
+
 typedef struct Transaction {
 
 	bson_oid_t oid;
+	char id[TRANSACTION_ID_LEN];
 
 	bson_oid_t user_oid;
 
 	bson_oid_t category_oid;
 
+	bson_oid_t place_oid;
+
+	bson_oid_t payment_oid;
+
+	bson_oid_t currency_oid;
+
 	char title[TRANSACTION_TITLE_LEN];
 	double amount;
 	time_t date;
+
+	TransType type;
 
 } Transaction;
 
