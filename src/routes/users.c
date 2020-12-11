@@ -41,14 +41,17 @@ static void users_generate_and_send_token (
 	bson_oid_to_string (&user->oid, (char *) user->id);
 
 	DoubleList *payload = dlist_init (key_value_pair_delete, NULL);
-	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("email", user->email));
-	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("id", user->id));
-	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("name", user->name));
-	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("role", role_name->str));
-	(void) dlist_insert_after (payload, dlist_end (payload), key_value_pair_create ("username", user->username));
+	(void) dlist_insert_at_end_unsafe (payload, key_value_pair_create ("email", user->email));
+	(void) dlist_insert_at_end_unsafe (payload, key_value_pair_create ("id", user->id));
+	(void) dlist_insert_at_end_unsafe (payload, key_value_pair_create ("name", user->name));
+	(void) dlist_insert_at_end_unsafe (payload, key_value_pair_create ("role", role_name->str));
+	(void) dlist_insert_at_end_unsafe (payload, key_value_pair_create ("username", user->username));
 
 	// generate & send back auth token
-	char *token = http_cerver_auth_generate_jwt ((HttpCerver *) http_receive->cr->cerver->cerver_data, payload);
+	char *token = http_cerver_auth_generate_jwt (
+		(HttpCerver *) http_receive->cr->cerver->cerver_data, payload
+	);
+
 	if (token) {
 		char *bearer = c_string_create ("Bearer %s", token);
 		if (bearer) {
