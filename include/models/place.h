@@ -15,6 +15,13 @@
 #define PLACE_NAME_LEN			    512
 #define PLACE_DESCRIPTION_LEN	    1024
 
+#define LOCATION_ADDRESS_LEN		256
+#define LOCATION_LAT_LEN			32
+#define LOCATION_LON_LEN			32
+
+#define SITE_LINK_LEN				256
+#define SITE_LOGO_LEN				256
+
 extern mongoc_collection_t *places_collection;
 
 // opens handle to place collection
@@ -37,18 +44,50 @@ typedef enum PlaceType {
 
 extern const char *place_type_to_string (PlaceType type);
 
+typedef struct Location {
+
+	// location's unique id
+	bson_oid_t oid;
+
+	char address[LOCATION_ADDRESS_LEN];
+	char lat[LOCATION_LAT_LEN];
+	char lon[LOCATION_LON_LEN];
+
+} Location;
+
+typedef struct Link {
+
+	// location's unique id
+	bson_oid_t oid;
+
+	char link[SITE_LINK_LEN];
+	char logo[SITE_LOGO_LEN];
+
+} Link;
+
 typedef struct Place {
 
+	// place's unique id
 	bson_oid_t oid;
 	char id[PLACE_ID_LEN];
 
+	// reference to the user that registered this place
 	bson_oid_t user_oid;
 
+	// the name of the place
 	char name[PLACE_NAME_LEN];
+	// a text providing additional information about the place
 	char description[PLACE_DESCRIPTION_LEN];
 
+	// the place's type
+	// location -> reference to a physicial place
+	// link -> reference to a website or online store
 	PlaceType type;
 
+	Location location;
+	Link link;
+
+	// the date when the place was created
 	time_t date;
 
 } Place;
