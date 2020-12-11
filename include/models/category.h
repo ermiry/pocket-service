@@ -21,13 +21,24 @@ extern void categories_collection_close (void);
 
 typedef struct Category {
 
+	// category's unique id
 	bson_oid_t oid;
 
+	// reference to the owner of this category
 	bson_oid_t user_oid;
 
+	// how the user defined this transaction
 	char title[CATEGORY_TITLE_LEN];
+
+	// a description added by the user to give extra information
 	char description[CATEGORY_DESCRIPTION_LEN];
+
+	// the user can select a color
+	// that will be used to display all matching transactions
+	// in the mobile app
 	char color[CATEGORY_COLOR_LEN];
+
+	// the date when the category was created
 	time_t date;
 
 } Category;

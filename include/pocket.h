@@ -6,8 +6,6 @@
 
 #define DEFAULT_PORT					"5001"
 
-struct _HttpReceive;
-struct _HttpRequest;
 struct _HttpResponse;
 
 extern unsigned int PORT;
@@ -24,106 +22,36 @@ extern struct _HttpResponse *server_error;
 extern struct _HttpResponse *bad_user;
 extern struct _HttpResponse *missing_values;
 
-#pragma region main
+extern struct _HttpResponse *pocket_works;
+extern struct _HttpResponse *current_version;
+
+extern struct _HttpResponse *no_user_trans;
+
+extern struct _HttpResponse *trans_created_success;
+extern struct _HttpResponse *trans_created_bad;
+extern struct _HttpResponse *trans_deleted_success;
+extern struct _HttpResponse *trans_deleted_bad;
+
+extern struct _HttpResponse *no_user_categories;
+extern struct _HttpResponse *no_user_category;
+
+extern struct _HttpResponse *category_created_success;
+extern struct _HttpResponse *category_created_bad;
+extern struct _HttpResponse *category_deleted_success;
+extern struct _HttpResponse *category_deleted_bad;
+
+extern struct _HttpResponse *no_user_places;
+extern struct _HttpResponse *no_user_place;
+
+extern struct _HttpResponse *place_created_success;
+extern struct _HttpResponse *place_created_bad;
+extern struct _HttpResponse *place_deleted_success;
+extern struct _HttpResponse *place_deleted_bad;
 
 // inits pocket main values
 extern unsigned int pocket_init (void);
 
 // ends pocket main values
 extern unsigned int pocket_end (void);
-
-#pragma endregion
-
-#pragma region routes
-
-// GET /api/pocket
-extern void pocket_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// GET /api/pocket/version
-extern void pocket_version_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// GET /api/pocket/auth
-extern void pocket_auth_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// GET /api/pocket/transactions
-// get all the authenticated user's transactions
-extern void pocket_transactions_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// POST /api/pocket/transactions
-// a user has requested to create a new transaction
-extern void pocket_transaction_create_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// GET /api/pocket/transactions/:id
-// returns information about an existing transaction that belongs to a user
-extern void pocket_transaction_get_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// POST /api/pocket/transactions/:id
-// a user wants to update an existing transaction
-extern void pocket_transaction_update_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// DELETE /api/pocket/transactions/:id
-// deletes an existing user's transaction
-extern void pocket_transaction_delete_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// GET /api/pocket/categories
-// get all the authenticated user's categories
-extern void pocket_categories_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// POST /api/pocket/categories
-// a user has requested to create a new category
-extern void pocket_category_create_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// GET /api/pocket/categories/:id
-// returns information about an existing category that belongs to a user
-extern void pocket_category_get_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// POST /api/pocket/categories/:id
-// a user wants to update an existing category
-extern void pocket_category_update_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-// DELETE /api/pocket/categories/:id
-// deletes an existing user's category
-extern void pocket_category_delete_handler (
-    const struct _HttpReceive *http_receive,
-	const struct _HttpRequest *request
-);
-
-#pragma endregion
 
 #endif

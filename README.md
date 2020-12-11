@@ -58,6 +58,8 @@ sudo docker run \
   - 200 on success
   - 401 on failed auth
 
+### Transactions
+
 #### GET api/pocket/transactions
 **Access:** Private \
 **Description:** Get all the authenticated user's transactions \
@@ -82,7 +84,7 @@ sudo docker run \
   - 401 on failed auth
   - 404 on transaction not found
 
-#### POST api/pocket/transactions/:id
+#### PUT api/pocket/transactions/:id
 **Access:** Private \
 **Description:** A user wants to update an existing transaction \
 **Returns:**
@@ -99,6 +101,8 @@ sudo docker run \
   - 400 on bad request
   - 401 on failed auth
   - 500 on server error
+
+### Categories
 
 #### GET api/pocket/categories
 **Access:** Private \
@@ -124,7 +128,7 @@ sudo docker run \
   - 401 on failed auth
   - 404 on category not found
 
-#### POST api/pocket/categories/:id
+#### PUT api/pocket/categories/:id
 **Access:** Private \
 **Description:** A user wants to update an existing category \
 **Returns:**
@@ -138,6 +142,50 @@ sudo docker run \
 **Description:** Deletes an existing user's category \
 **Returns:**
   - 200 on success deleting user's category
+  - 400 on bad request
+  - 401 on failed auth
+  - 500 on server error
+
+### Places
+
+#### GET api/pocket/places
+**Access:** Private \
+**Description:** Get all the authenticated user's places \
+**Returns:**
+  - 200 and places json on success
+  - 401 on failed auth
+
+#### POST api/pocket/places
+**Access:** Private \
+**Description:** A user has requested to create a new place \
+**Returns:**
+  - 200 on success creating place
+  - 400 on failed to create new place
+  - 401 on failed auth
+  - 500 on server error
+
+#### GET api/pocket/places/:id
+**Access:** Private \
+**Description:** Returns information about an existing place that belongs to a user \
+**Returns:**
+  - 200 and place's json on success
+  - 401 on failed auth
+  - 404 on place not found
+
+#### PUT api/pocket/places/:id
+**Access:** Private \
+**Description:** A user wants to update an existing place \
+**Returns:**
+  - 200 on success updating user's place
+  - 400 bad request due to missing values
+  - 401 on failed auth
+  - 500 on server error
+
+#### DELETE api/pocket/places/:id
+**Access:** Private \
+**Description:** Deletes an existing user's place \
+**Returns:**
+  - 200 on success deleting user's place
   - 400 on bad request
   - 401 on failed auth
   - 500 on server error

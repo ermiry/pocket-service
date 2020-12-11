@@ -11,7 +11,8 @@
 #include <cerver/utils/log.h>
 
 #include "mongo.h"
-#include "transactions.h"
+
+#include "controllers/transactions.h"
 
 #include "models/transaction.h"
 
@@ -52,9 +53,10 @@ static unsigned int pocket_trans_init_query_opts (void) {
 	unsigned int retval = 1;
 
 	trans_no_user_select = dlist_init (str_delete, str_comparator);
-	(void) dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("title"));
-	(void) dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("amount"));
-	(void) dlist_insert_after (trans_no_user_select, dlist_end (trans_no_user_select), str_new ("date"));
+	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("title"));
+	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("amount"));
+	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("date"));
+	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("category"));
 
 	trans_no_user_query_opts = mongo_find_generate_opts (trans_no_user_select);
 
@@ -114,7 +116,9 @@ Transaction *pocket_trans_get_by_id_and_user (
 Transaction *pocket_trans_create (
 	const char *user_id,
 	const char *title,
-	const double amount
+	const double amount,
+	const char *category_id,
+	const char *date
 ) {
 
 	Transaction *trans = (Transaction *) pool_pop (trans_pool);
@@ -125,7 +129,13 @@ Transaction *pocket_trans_create (
 
 		if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
 		trans->amount = amount;
-		trans->date = time (NULL);
+
+		if (category_id) {
+			bson_oid_init_from_string (&trans->category_oid, category_id);
+		}
+
+		if (date) trans->date = (time_t) atol (date);
+		else trans->date = time (NULL);
 	}
 
 	return trans;

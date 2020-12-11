@@ -16,8 +16,15 @@
 
 #include "handler.h"
 #include "pocket.h"
-#include "users.h"
 #include "version.h"
+
+#include "controllers/users.h"
+
+#include "routes/categories.h"
+#include "routes/places.h"
+#include "routes/service.h"
+#include "routes/transactions.h"
+#include "routes/users.h"
 
 static Cerver *pocket_api = NULL;
 
@@ -74,8 +81,8 @@ static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 	http_route_set_decode_data (single_trans_route, pocket_user_parse_from_json, pocket_user_delete);
 	http_route_child_add (pocket_route, single_trans_route);
 
-	// POST api/pocket/transactions/:id
-	http_route_set_handler (single_trans_route, REQUEST_METHOD_POST, pocket_transaction_update_handler);
+	// PUT api/pocket/transactions/:id
+	http_route_set_handler (single_trans_route, REQUEST_METHOD_PUT, pocket_transaction_update_handler);
 
 	// DELETE api/pocket/transactions/:id
 	http_route_set_handler (single_trans_route, REQUEST_METHOD_DELETE, pocket_transaction_delete_handler);
@@ -97,11 +104,34 @@ static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 	http_route_set_decode_data (single_category_route, pocket_user_parse_from_json, pocket_user_delete);
 	http_route_child_add (pocket_route, single_category_route);
 
-	// POST api/pocket/categories/:id
-	http_route_set_handler (single_category_route, REQUEST_METHOD_POST, pocket_category_update_handler);
+	// PUT api/pocket/categories/:id
+	http_route_set_handler (single_category_route, REQUEST_METHOD_PUT, pocket_category_update_handler);
 
 	// DELETE api/pocket/categories/:id
 	http_route_set_handler (single_category_route, REQUEST_METHOD_DELETE, pocket_category_delete_handler);
+
+	/*** places ***/
+
+	// GET api/pocket/places
+	HttpRoute *places_route = http_route_create (REQUEST_METHOD_GET, "places", pocket_places_handler);
+	http_route_set_auth (places_route, HTTP_ROUTE_AUTH_TYPE_BEARER);
+	http_route_set_decode_data (places_route, pocket_user_parse_from_json, pocket_user_delete);
+	http_route_child_add (pocket_route, places_route);
+
+	// POST api/pocket/places
+	http_route_set_handler (places_route, REQUEST_METHOD_POST, pocket_place_create_handler);
+
+	// GET api/pocket/places/:id
+	HttpRoute *single_place_route = http_route_create (REQUEST_METHOD_GET, "places/:id", pocket_place_get_handler);
+	http_route_set_auth (single_place_route, HTTP_ROUTE_AUTH_TYPE_BEARER);
+	http_route_set_decode_data (single_place_route, pocket_user_parse_from_json, pocket_user_delete);
+	http_route_child_add (pocket_route, single_place_route);
+
+	// PUT api/pocket/places/:id
+	http_route_set_handler (single_place_route, REQUEST_METHOD_PUT, pocket_place_update_handler);
+
+	// DELETE api/pocket/places/:id
+	http_route_set_handler (single_place_route, REQUEST_METHOD_DELETE, pocket_place_delete_handler);
 
 }
 

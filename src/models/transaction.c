@@ -40,6 +40,18 @@ void transactions_collection_close (void) {
 
 }
 
+const char *trans_type_to_string (TransType type) {
+
+	switch (type) {
+		#define XX(num, name, string) case TRANS_TYPE_##name: return #string;
+		TRANS_TYPE_MAP(XX)
+		#undef XX
+	}
+
+	return trans_type_to_string (TRANS_TYPE_NONE);
+
+}
+
 void *transaction_new (void) {
 
 	Transaction *transaction = (Transaction *) malloc (sizeof (Transaction));
@@ -83,11 +95,25 @@ static void trans_doc_parse (Transaction *trans, const bson_t *trans_doc) {
 			key = (char *) bson_iter_key (&iter);
 			value = (bson_value_t *) bson_iter_value (&iter);
 
-			if (!strcmp (key, "_id"))
+			if (!strcmp (key, "_id")) {
 				bson_oid_copy (&value->value.v_oid, &trans->oid);
+				bson_oid_init_from_string (&trans->oid, trans->id);
+			}
 
 			else if (!strcmp (key, "user"))
 				bson_oid_copy (&value->value.v_oid, &trans->user_oid);
+
+			else if (!strcmp (key, "category"))
+				bson_oid_copy (&value->value.v_oid, &trans->category_oid);
+
+			else if (!strcmp (key, "place"))
+				bson_oid_copy (&value->value.v_oid, &trans->place_oid);
+
+			else if (!strcmp (key, "payment"))
+				bson_oid_copy (&value->value.v_oid, &trans->payment_oid);
+
+			else if (!strcmp (key, "currency"))
+				bson_oid_copy (&value->value.v_oid, &trans->currency_oid);
 
 			else if (!strcmp (key, "title") && value->value.v_utf8.str) 
 				(void) strncpy (trans->title, value->value.v_utf8.str, TRANSACTION_TITLE_LEN);
@@ -97,6 +123,9 @@ static void trans_doc_parse (Transaction *trans, const bson_t *trans_doc) {
 
 			else if (!strcmp (key, "date")) 
 				trans->date = (time_t) bson_iter_date_time (&iter) / 1000;
+
+			else if (!strcmp (key, "type")) 
+				trans->type = (TransType) value->value.v_int32;
 		}
 	}
 
@@ -205,9 +234,13 @@ bson_t *transaction_to_bson (Transaction *trans) {
 
 			(void) bson_append_oid (doc, "user", -1, &trans->user_oid);
 
+			(void) bson_append_oid (doc, "category", -1, &trans->category_oid);
+
 			(void) bson_append_utf8 (doc, "title", -1, trans->title, -1);
 			(void) bson_append_double (doc, "amount", -1, trans->amount);
 			(void) bson_append_date_time (doc, "date", -1, trans->date * 1000);
+
+			(void) bson_append_int32 (doc, "type", -1, trans->type);
         }
     }
 

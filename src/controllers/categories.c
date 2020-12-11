@@ -6,12 +6,11 @@
 
 #include <cerver/collections/pool.h>
 
-#include <cerver/http/json/json.h>
-
 #include <cerver/utils/log.h>
 
 #include "mongo.h"
-#include "categories.h"
+
+#include "controllers/categories.h"
 
 #include "models/category.h"
 
@@ -52,9 +51,10 @@ static unsigned int pocket_categories_init_query_opts (void) {
 	unsigned int retval = 1;
 
 	category_no_user_select = dlist_init (str_delete, str_comparator);
-	(void) dlist_insert_after (category_no_user_select, dlist_end (category_no_user_select), str_new ("title"));
-	(void) dlist_insert_after (category_no_user_select, dlist_end (category_no_user_select), str_new ("amount"));
-	(void) dlist_insert_after (category_no_user_select, dlist_end (category_no_user_select), str_new ("date"));
+	(void) dlist_insert_at_end_unsafe (category_no_user_select, str_new ("title"));
+	(void) dlist_insert_at_end_unsafe (category_no_user_select, str_new ("description"));
+	(void) dlist_insert_at_end_unsafe (category_no_user_select, str_new ("color"));
+	(void) dlist_insert_at_end_unsafe (category_no_user_select, str_new ("date"));
 
 	category_no_user_query_opts = mongo_find_generate_opts (category_no_user_select);
 
