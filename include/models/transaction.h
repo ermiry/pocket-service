@@ -35,23 +35,39 @@ extern const char *trans_type_to_string (TransType type);
 
 typedef struct Transaction {
 
+	// transaction's unique id
 	bson_oid_t oid;
 	char id[TRANSACTION_ID_LEN];
 
+	// reference to the owner of this transaction
 	bson_oid_t user_oid;
 
+	// reference to the owener's defined category
 	bson_oid_t category_oid;
 
+	// reference to the place where this transaction was made
 	bson_oid_t place_oid;
 
+	// reference to the payment method that was used
+	// to create this transaction
 	bson_oid_t payment_oid;
 
+	// reference to the currency the transaction was made on
 	bson_oid_t currency_oid;
 
+	// the name of the transaction
+	// is given by the user and displayed in the app
 	char title[TRANSACTION_TITLE_LEN];
+
+	// the actual value of the transaction
 	double amount;
+
+	// when the transaction was made
 	time_t date;
 
+	// a transaction can be of any of these types
+	// single -> mae only once, like buying a coffe
+	// recurrent -> made every x amount of time, like a subscription
 	TransType type;
 
 } Transaction;
