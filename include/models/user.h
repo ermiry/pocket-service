@@ -27,21 +27,29 @@ extern void users_collection_close (void);
 
 typedef struct User {
 
+	// user's unique id
 	char id[USER_ID_LEN];
 	bson_oid_t oid;
 
+	// main user values
 	char email[USER_EMAIL_LEN];
 	char name[USER_NAME_LEN];
 	char username[USER_USERNAME_LEN];
 	char password[USER_PASSWORD_LEN];
 
+	// the role this user belongs to
+	// based on its role, a user can perform different operations
 	char role[USER_ROLE_LEN];
 	bson_oid_t role_oid;
 
+	// used to validate JWT expiration
 	time_t iat;
 
+	// how many transactions the user has registered
 	int trans_count;
+	// how many categories the user has registered
 	int categories_count;
+	// how many places the user has registered
 	int places_count;
 
 } User;
