@@ -44,43 +44,59 @@ static void users_input_parse_json (
 ) {
 
 	// get values from json to create a new transaction
+	char *string = NULL;
 	const char *key = NULL;
 	json_t *value = NULL;
 	if (json_typeof (json_body) == JSON_OBJECT) {
 		json_object_foreach (json_body, key, value) {
 			if (!strcmp (key, "name")) {
-				*name = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("name: \"%s\"\n", *name);
-				#endif
+				string = (char *) json_string_value (value);
+				if (strlen (string)) {
+					*name = string;
+					#ifdef POCKET_DEBUG
+					(void) printf ("name: \"%s\"\n", *name);
+					#endif
+				}
 			}
 
 			else if (!strcmp (key, "username")) {
-				*username = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("username: \"%s\"\n", *username);
-				#endif
+				string = (char *) json_string_value (value);
+				if (strlen (string)) {
+					*username = string;
+					#ifdef POCKET_DEBUG
+					(void) printf ("username: \"%s\"\n", *username);
+					#endif
+				}
 			}
 
 			else if (!strcmp (key, "email")) {
-				*email = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("email: \"%s\"\n", *email);
-				#endif
+				string = (char *) json_string_value (value);
+				if (strlen (string)) {
+					*email = string;
+					#ifdef POCKET_DEBUG
+					(void) printf ("email: \"%s\"\n", *email);
+					#endif
+				}
 			}
 
 			else if (!strcmp (key, "password")) {
-				*password = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("password: \"%s\"\n", *password);
-				#endif
+				string = (char *) json_string_value (value);
+				if (strlen (string)) {
+					*password = string;
+					#ifdef POCKET_DEBUG
+					(void) printf ("password: \"%s\"\n", *password);
+					#endif
+				}
 			}
 
 			else if (!strcmp (key, "confirm")) {
-				*confirm = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("confirm: \"%s\"\n", *confirm);
-				#endif
+				string = (char *) json_string_value (value);
+				if (strlen (string)) {
+					*confirm = string;
+					#ifdef POCKET_DEBUG
+					(void) printf ("confirm: \"%s\"\n", *confirm);
+					#endif
+				}
 			}
 		}
 	}
@@ -126,7 +142,7 @@ static void users_bad_input (
 
 	else {
 		json = c_string_create (
-			"{\"name\": \"%s\", \"username\": \"%s\", \"email\": \"%s\", \"password\": \"%s\", \"confirm\": \"%s\",}",
+			"{\"name\": \"%s\", \"username\": \"%s\", \"email\": \"%s\", \"password\": \"%s\", \"confirm\": \"%s\"}",
 			name_error, username_error, email_error, password_error, confirm_error
 		);
 	}
@@ -161,7 +177,7 @@ static bool users_register_handler_validate_input (
 	
 	bool valid = false;
 
-	if (name && username && email && password && password) {
+	if (name && username && email && password && confirm) {
 		if (!strcmp (password, confirm)) {
 			(void) strncpy (user_values->name, name, USER_NAME_LEN);
 			(void) strncpy (user_values->username, username, USER_USERNAME_LEN);
@@ -179,8 +195,8 @@ static bool users_register_handler_validate_input (
 
 		users_bad_input (
 			http_receive,
-			NULL, NULL, email, password, NULL,
-			true
+			name, username, email, password, confirm,
+			false
 		);
 	}
 
@@ -373,7 +389,7 @@ void users_register_handler (
 		http_receive,
 		request->body,
 		user_values,
-		true
+		false
 	)) {
 		if (!pocket_user_check_by_email (http_receive, user_values->email)) {
 			User *user = pocket_user_create (
