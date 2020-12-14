@@ -204,6 +204,12 @@ static PocketError pocket_transaction_create_handler_internal (
 		}
 	}
 
+	else {
+		cerver_log_error ("Missing request body to create trans!");
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
 	return error;
 
 }
@@ -352,6 +358,10 @@ static u8 pocket_transaction_update_handler_internal (
 				error.line, error.text
 			);
 		}
+	}
+
+	else {
+		cerver_log_error ("Missing request body to update trans!");
 	}
 
 	return retval;

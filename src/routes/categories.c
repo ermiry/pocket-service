@@ -184,6 +184,10 @@ static Category *pocket_category_create_handler_internal (
 		}
 	}
 
+	else {
+		cerver_log_error ("Missing request body to create category!");
+	}
+
 	return category;
 
 }
@@ -337,6 +341,10 @@ static u8 pocket_category_update_handler_internal (
 				error.line, error.text
 			);
 		}
+	}
+
+	else {
+		cerver_log_error ("Missing request body to update category!");
 	}
 
 	return retval;
