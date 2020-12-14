@@ -12,7 +12,7 @@ RUN mkdir /opt/cerver && cd /opt/cerver \
     && wget -q https://github.com/ermiry/cerver/archive/${CERVER_VERSION}.zip \
     && unzip ${CERVER_VERSION}.zip \
     && cd cerver-${CERVER_VERSION} \
-    && make -j4
+    && make DEVELOPMENT='' -j4
 
 # mongo c driver
 ARG MONGOC_VERSION=1.15.1
@@ -28,7 +28,7 @@ RUN mkdir /opt/mongoc && cd /opt/mongoc \
 # pocket
 WORKDIR /opt/tiny-pocket-api
 COPY . .
-RUN make -j4
+RUN make DEVELOPMENT='' -j4
 
 ############
 FROM ubuntu:bionic
