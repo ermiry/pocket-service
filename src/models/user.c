@@ -192,14 +192,14 @@ u8 user_get_by_id (
 
 // get a user doc from the db by email
 static const bson_t *user_find_by_email (
-	const String *email, const bson_t *query_opts
+	const char *email, const bson_t *query_opts
 ) {
 
 	const bson_t *retval = NULL;
 
 	bson_t *user_query = bson_new ();
 	if (user_query) {
-		(void) bson_append_utf8 (user_query, "email", -1, email->str, email->len);
+		(void) bson_append_utf8 (user_query, "email", -1, email, -1);
 		retval = mongo_find_one_with_opts (users_collection, user_query, query_opts);
 	}
 
@@ -209,7 +209,7 @@ static const bson_t *user_find_by_email (
 
 // gets a user from the db by its email
 u8 user_get_by_email (
-	User *user, const String *email, const bson_t *query_opts
+	User *user, const char *email, const bson_t *query_opts
 ) {
 
 	u8 retval = 1;

@@ -204,7 +204,13 @@ User *pocket_user_create (
 
 }
 
-User *pocket_user_get_by_email (const String *email) {
+User *pocket_user_get (void) {
+
+	return (User *) pool_pop (users_pool);
+
+}
+
+User *pocket_user_get_by_email (const char *email) {
 
 	User *user = NULL;
 	if (email) {
@@ -222,18 +228,18 @@ User *pocket_user_get_by_email (const String *email) {
 }
 
 u8 pocket_user_check_by_email (
-	const HttpReceive *http_receive, const String *email
+	const HttpReceive *http_receive, const char *email
 ) {
 
 	u8 retval = 1;
 
-	if (!mongo_check (users_collection, user_query_email (email->str))) {
+	if (!mongo_check (users_collection, user_query_email (email))) {
 		retval = 0;
 	}
 
 	else {
 		#ifdef POCKET_DEBUG
-		cerver_log_warning ("Found matching user with email: %s", email->str);
+		cerver_log_warning ("Found matching user with email: %s", email);
 		#endif
 		(void) http_response_send (repeated_email, http_receive);
 	}
@@ -278,7 +284,9 @@ void *pocket_user_parse_from_json (void *user_json_ptr) {
 			(void) strncpy (user->role, role, USER_ROLE_LEN);
 			(void) strncpy (user->username, username, USER_USERNAME_LEN);
 
-			user_print (user);
+			if (RUNTIME == RUNTIME_TYPE_DEVELOPMENT) {
+				user_print (user);
+			}
 		}
 
 		else {

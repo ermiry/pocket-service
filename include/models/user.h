@@ -70,7 +70,7 @@ extern u8 user_get_by_id (
 
 // gets a user from the db by its email
 extern u8 user_get_by_email (
-	User *user, const String *email, const bson_t *query_opts
+	User *user, const char *email, const bson_t *query_opts
 );
 
 // gets a user from the db by its username
