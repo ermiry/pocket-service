@@ -174,8 +174,8 @@ static void start (void) {
 		HttpCerver *http_cerver = (HttpCerver *) pocket_api->cerver_data;
 
 		http_cerver_auth_set_jwt_algorithm (http_cerver, JWT_ALG_RS256);
-		http_cerver_auth_set_jwt_priv_key_filename (http_cerver, "keys/key.key");
-		http_cerver_auth_set_jwt_pub_key_filename (http_cerver, "keys/key.pub");
+		http_cerver_auth_set_jwt_priv_key_filename (http_cerver, PRIV_KEY->str);
+		http_cerver_auth_set_jwt_pub_key_filename (http_cerver, PUB_KEY->str);
 
 		pocket_set_pocket_routes (http_cerver);
 
@@ -209,11 +209,11 @@ int main (int argc, char const **argv) {
 	srand (time (NULL));
 
 	// register to the quit signal
-	signal (SIGINT, end);
-	signal (SIGTERM, end);
+	(void) signal (SIGINT, end);
+	(void) signal (SIGTERM, end);
 
 	// to prevent SIGPIPE when writting to socket
-	signal (SIGPIPE, SIG_IGN);
+	(void) signal (SIGPIPE, SIG_IGN);
 
 	cerver_init ();
 
