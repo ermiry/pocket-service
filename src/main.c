@@ -32,9 +32,9 @@ void end (int dummy) {
 	
 	if (pocket_api) {
 		cerver_stats_print (pocket_api, false, false);
-		printf ("\nHTTP Cerver stats:\n");
+		cerver_log_msg ("\nHTTP Cerver stats:\n");
 		http_cerver_all_stats_print ((HttpCerver *) pocket_api->cerver_data);
-		printf ("\n");
+		cerver_log_line_break ();
 		cerver_teardown (pocket_api);
 	}
 
