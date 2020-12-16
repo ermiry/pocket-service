@@ -19,6 +19,7 @@
 #include "handler.h"
 #include "mongo.h"
 #include "pocket.h"
+#include "runtime.h"
 #include "version.h"
 
 #include "controllers/categories.h"
@@ -33,6 +34,8 @@
 #include "models/role.h"
 #include "models/user.h"
 
+RuntimeType RUNTIME = RUNTIME_TYPE_NONE;
+
 unsigned int PORT = CERVER_DEFAULT_PORT;
 
 unsigned int CERVER_RECEIVE_BUFFER_SIZE = CERVER_DEFAULT_RECEIVE_BUFFER_SIZE;
@@ -42,6 +45,9 @@ unsigned int CERVER_CONNECTION_QUEUE = CERVER_DEFAULT_CONNECTION_QUEUE;
 static const String *MONGO_URI = NULL;
 static const String *MONGO_APP_NAME = NULL;
 static const String *MONGO_DB = NULL;
+
+const String *PRIV_KEY = NULL;
+const String *PUB_KEY = NULL;
 
 bool ENABLE_USERS_ROUTES = false;
 
@@ -80,6 +86,22 @@ HttpResponse *place_deleted_bad = NULL;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
+static void pocket_env_get_runtime (void) {
+	
+	char *runtime_env = getenv ("RUNTIME");
+	if (runtime_env) {
+		RUNTIME = runtime_from_string (runtime_env);
+		cerver_log_success (
+			"RUNTIME -> %d\n", runtime_to_string (RUNTIME)
+		);
+	}
+
+	else {
+		cerver_log_warning ("Failed to get RUNTIME from env!");
+	}
+
+}
+
 static unsigned int pocket_env_get_port (void) {
 	
 	unsigned int retval = 1;
@@ -96,6 +118,58 @@ static unsigned int pocket_env_get_port (void) {
 	}
 
 	return retval;
+
+}
+
+static void pocket_env_get_cerver_receive_buffer_size (void) {
+
+	char *buffer_size = getenv ("CERVER_RECEIVE_BUFFER_SIZE");
+	if (buffer_size) {
+		CERVER_RECEIVE_BUFFER_SIZE = (unsigned int) atoi (buffer_size);
+		cerver_log_success (
+			"CERVER_RECEIVE_BUFFER_SIZE -> %d\n", CERVER_RECEIVE_BUFFER_SIZE
+		);
+	}
+
+	else {
+		cerver_log_warning (
+			"Failed to get CERVER_RECEIVE_BUFFER_SIZE from env - using default %d!",
+			CERVER_RECEIVE_BUFFER_SIZE
+		);
+	}
+}
+
+static void pocket_env_get_cerver_th_threads (void) {
+
+	char *th_threads = getenv ("CERVER_TH_THREADS");
+	if (th_threads) {
+		CERVER_TH_THREADS = (unsigned int) atoi (th_threads);
+		cerver_log_success ("CERVER_TH_THREADS -> %d\n", CERVER_TH_THREADS);
+	}
+
+	else {
+		cerver_log_warning (
+			"Failed to get CERVER_TH_THREADS from env - using default %d!",
+			CERVER_TH_THREADS
+		);
+	}
+
+}
+
+static void pocket_env_get_cerver_connection_queue (void) {
+
+	char *connection_queue = getenv ("CERVER_CONNECTION_QUEUE");
+	if (connection_queue) {
+		CERVER_CONNECTION_QUEUE = (unsigned int) atoi (connection_queue);
+		cerver_log_success ("CERVER_CONNECTION_QUEUE -> %d\n", CERVER_CONNECTION_QUEUE);
+	}
+
+	else {
+		cerver_log_warning (
+			"Failed to get CERVER_CONNECTION_QUEUE from env - using default %d!",
+			CERVER_CONNECTION_QUEUE
+		);
+	}
 
 }
 
@@ -156,55 +230,41 @@ static unsigned int pocket_env_get_mongo_uri (void) {
 
 }
 
-static void pocket_env_get_cerver_receive_buffer_size (void) {
+static unsigned int pocket_env_get_private_key (void) {
 
-	char *buffer_size = getenv ("CERVER_RECEIVE_BUFFER_SIZE");
-	if (buffer_size) {
-		CERVER_RECEIVE_BUFFER_SIZE = (unsigned int) atoi (buffer_size);
-		cerver_log_success (
-			"CERVER_RECEIVE_BUFFER_SIZE -> %d\n", CERVER_RECEIVE_BUFFER_SIZE
-		);
+	unsigned int retval = 1;
+
+	char *priv_key_env = getenv ("PRIV_KEY");
+	if (priv_key_env) {
+		PRIV_KEY = str_new (priv_key_env);
+
+		retval = 0;
 	}
 
 	else {
-		cerver_log_warning (
-			"Failed to get CERVER_RECEIVE_BUFFER_SIZE from env - using default %d!",
-			CERVER_RECEIVE_BUFFER_SIZE
-		);
-	}
-}
-
-static void pocket_env_get_cerver_th_threads (void) {
-
-	char *th_threads = getenv ("CERVER_TH_THREADS");
-	if (th_threads) {
-		CERVER_TH_THREADS = (unsigned int) atoi (th_threads);
-		cerver_log_success ("CERVER_TH_THREADS -> %d\n", CERVER_TH_THREADS);
+		cerver_log_error ("Failed to get PRIV_KEY from env!");
 	}
 
-	else {
-		cerver_log_warning (
-			"Failed to get CERVER_TH_THREADS from env - using default %d!",
-			CERVER_TH_THREADS
-		);
-	}
+	return retval;
 
 }
 
-static void pocket_env_get_cerver_connection_queue (void) {
+static unsigned int pocket_env_get_public_key (void) {
 
-	char *connection_queue = getenv ("CERVER_CONNECTION_QUEUE");
-	if (connection_queue) {
-		CERVER_CONNECTION_QUEUE = (unsigned int) atoi (connection_queue);
-		cerver_log_success ("CERVER_CONNECTION_QUEUE -> %d\n", CERVER_CONNECTION_QUEUE);
+	unsigned int retval = 1;
+
+	char *pub_key_env = getenv ("PUB_KEY");
+	if (pub_key_env) {
+		PUB_KEY = str_new (pub_key_env);
+
+		retval = 0;
 	}
 
 	else {
-		cerver_log_warning (
-			"Failed to get CERVER_CONNECTION_QUEUE from env - using default %d!",
-			CERVER_CONNECTION_QUEUE
-		);
+		cerver_log_error ("Failed to get PUB_KEY from env!");
 	}
+
+	return retval;
 
 }
 
@@ -237,19 +297,25 @@ static unsigned int pocket_init_env (void) {
 
 	unsigned int errors = 0;
 
+	pocket_env_get_runtime ();
+
 	errors |= pocket_env_get_port ();
-
-	errors |= pocket_env_get_mongo_uri ();
-
-	errors |= pocket_env_get_mongo_app_name ();
-
-	errors |= pocket_env_get_mongo_db ();
 
 	pocket_env_get_cerver_receive_buffer_size ();
 
 	pocket_env_get_cerver_th_threads ();
 
 	pocket_env_get_cerver_connection_queue ();
+
+	errors |= pocket_env_get_mongo_app_name ();
+
+	errors |= pocket_env_get_mongo_db ();
+
+	errors |= pocket_env_get_mongo_uri ();
+
+	errors |= pocket_env_get_private_key ();
+
+	errors |= pocket_env_get_public_key ();
 
 	pocket_env_get_enable_users_routes ();
 
@@ -550,6 +616,9 @@ unsigned int pocket_end (void) {
 	str_delete ((String *) MONGO_URI);
 	str_delete ((String *) MONGO_APP_NAME);
 	str_delete ((String *) MONGO_DB);
+
+	str_delete ((String *) PRIV_KEY);
+	str_delete ((String *) PUB_KEY);
 
 	return errors;
 

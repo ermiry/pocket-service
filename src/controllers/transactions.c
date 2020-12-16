@@ -134,8 +134,25 @@ Transaction *pocket_trans_create (
 			bson_oid_init_from_string (&trans->category_oid, category_id);
 		}
 
-		if (date) trans->date = (time_t) atol (date);
-		else trans->date = time (NULL);
+		if (date) {
+			int y = 0, M = 0, d = 0, h = 0, m = 0;
+			float s = 0;
+			(void) sscanf (date, "%d-%d-%dT%d:%d:%f", &y, &M, &d, &h, &m, &s);
+
+			struct tm date;
+			date.tm_year = y - 1900;	// Year since 1900
+			date.tm_mon = M - 1;		// 0-11
+			date.tm_mday = d;			// 1-31
+			date.tm_hour = h;			// 0-23
+			date.tm_min = m;			// 0-59
+			date.tm_sec = (int) s;		// 0-61 (0-60 in C++11)
+
+			trans->date = mktime (&date);
+		}
+
+		else {
+			trans->date = time (NULL);
+		}
 	}
 
 	return trans;

@@ -175,6 +175,10 @@ static Place *pocket_place_create_handler_internal (
 		}
 	}
 
+	else {
+		cerver_log_error ("Missing request body to create place!");
+	}
+
 	return place;
 
 }
@@ -316,6 +320,10 @@ static u8 pocket_place_update_handler_internal (
 				error.line, error.text
 			);
 		}
+	}
+
+	else {
+		cerver_log_error ("Missing request body to update place!");
 	}
 
 	return retval;
