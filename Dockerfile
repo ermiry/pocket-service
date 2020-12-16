@@ -12,7 +12,7 @@ RUN mkdir /opt/cerver && cd /opt/cerver \
     && wget -q https://github.com/ermiry/cerver/archive/${CERVER_VERSION}.zip \
     && unzip ${CERVER_VERSION}.zip \
     && cd cerver-${CERVER_VERSION} \
-    && make DEVELOPMENT='' -j4
+    && make -j4 && make install
 
 # mongo c driver
 ARG MONGOC_VERSION=1.15.1
@@ -28,7 +28,7 @@ RUN mkdir /opt/mongoc && cd /opt/mongoc \
 # pocket
 WORKDIR /opt/tiny-pocket-api
 COPY . .
-RUN make DEVELOPMENT='' -j4
+RUN make -j4
 
 ############
 FROM ubuntu:bionic
@@ -39,8 +39,8 @@ RUN apt-get update && apt-get install -y ${RUNTIME_DEPS} && apt-get clean
 
 # cerver files
 ARG CERVER_VERSION
-COPY --from=builder /opt/cerver-${CERVER_VERSION}/bin/libcerver.so /usr/local/lib/
-COPY --from=builder /opt/cerver-${CERVER_VERSION}/include/cerver /usr/local/include/cerver
+COPY --from=builder /opt/cerver/cerver-${CERVER_VERSION}/bin/libcerver.so /usr/local/lib/
+COPY --from=builder /opt/cerver/cerver-${CERVER_VERSION}/include/cerver /usr/local/include/cerver
 
 # mongoc files
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libicudata.so.63 /usr/lib/x86_64-linux-gnu/libicudata.so.63
