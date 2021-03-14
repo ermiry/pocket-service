@@ -8,36 +8,38 @@
 
 #include <cerver/utils/log.h>
 
-#include "mongo.h"
+#include <cmongo/collections.h>
+#include <cmongo/crud.h>
+#include <cmongo/model.h>
 
 #include "models/user.h"
 
 #define USERS_COLL_NAME         				"users"
 
-mongoc_collection_t *users_collection = NULL;
+static CMongoModel *users_model = NULL;
 
-// opens handle to user collection
-unsigned int users_collection_get (void) {
+static void user_doc_parse (
+	void *user_ptr, const bson_t *user_doc
+);
+
+unsigned int users_model_init (void) {
 
 	unsigned int retval = 1;
 
-	users_collection = mongo_collection_get (USERS_COLL_NAME);
-	if (users_collection) {
-		cerver_log_debug ("Opened handle to users collection!");
-		retval = 0;
-	}
+	users_model = cmongo_model_create (USERS_COLL_NAME);
+	if (users_model) {
+		cmongo_model_set_parser (users_model, user_doc_parse);
 
-	else {
-		cerver_log_error ("Failed to get handle to users collection!");
+		retval = 0;
 	}
 
 	return retval;
 
 }
 
-void users_collection_close (void) {
+void users_model_end (void) {
 
-	if (users_collection) mongoc_collection_destroy (users_collection);
+	cmongo_model_delete (users_model);
 
 }
 
@@ -72,7 +74,11 @@ void user_print (User *user) {
 }
 
 // parses a bson doc into a user model
-static void user_doc_parse (User *user, const bson_t *user_doc) {
+static void user_doc_parse (
+	void *user_ptr, const bson_t *user_doc
+) {
+
+	User *user = (User *) user_ptr;
 
 	bson_iter_t iter = { 0 };
 	if (bson_iter_init (&iter, user_doc)) {
@@ -91,17 +97,37 @@ static void user_doc_parse (User *user, const bson_t *user_doc) {
 				bson_oid_copy (&value->value.v_oid, &user->role_oid);
 			}
 
-			else if (!strcmp (key, "name") && value->value.v_utf8.str) 
-				(void) strncpy (user->name, value->value.v_utf8.str, USER_NAME_LEN);
+			else if (!strcmp (key, "name") && value->value.v_utf8.str) {
+				(void) strncpy (
+					user->name,
+					value->value.v_utf8.str,
+					USER_NAME_LEN - 1
+				);
+			}
 
-			else if (!strcmp (key, "email") && value->value.v_utf8.str) 
-				(void) strncpy (user->email, value->value.v_utf8.str, USER_EMAIL_LEN);
+			else if (!strcmp (key, "email") && value->value.v_utf8.str) {
+				(void) strncpy (
+					user->email,
+					value->value.v_utf8.str,
+					USER_EMAIL_LEN - 1
+				);
+			}
 
-			else if (!strcmp (key, "username") && value->value.v_utf8.str) 
-				(void) strncpy (user->username, value->value.v_utf8.str, USER_USERNAME_LEN);
+			else if (!strcmp (key, "username") && value->value.v_utf8.str) {
+				(void) strncpy (
+					user->username,
+					value->value.v_utf8.str,
+					USER_USERNAME_LEN - 1
+				);
+			}
 
-			else if (!strcmp (key, "password") && value->value.v_utf8.str)
-				(void) strncpy (user->password, value->value.v_utf8.str, USER_PASSWORD_LEN);
+			else if (!strcmp (key, "password") && value->value.v_utf8.str) {
+				(void) strncpy (
+					user->password,
+					value->value.v_utf8.str,
+					USER_PASSWORD_LEN - 1
+				);
+			}
 
 			else if (!strcmp (key, "transCount")) {
 				user->trans_count = value->value.v_int32;
@@ -151,22 +177,6 @@ bson_t *user_query_email (const char *email) {
 
 }
 
-static const bson_t *user_find_by_oid (
-	const bson_oid_t *oid, const bson_t *query_opts
-) {
-
-	const bson_t *retval = NULL;
-
-	bson_t *user_query = bson_new ();
-	if (user_query) {
-		(void) bson_append_oid (user_query, "_id", -1, oid);
-		retval = mongo_find_one_with_opts (users_collection, user_query, query_opts);
-	}
-
-	return retval;    
-
-}
-
 u8 user_get_by_id (
 	User *user, const char *id, const bson_t *query_opts
 ) {
@@ -177,33 +187,18 @@ u8 user_get_by_id (
 		bson_oid_t oid = { 0 };
 		bson_oid_init_from_string (&oid, id);
 
-		const bson_t *user_doc = user_find_by_oid (&oid, query_opts);
-		if (user_doc) {
-			user_doc_parse (user, user_doc);
-			bson_destroy ((bson_t *) user_doc);
-
-			retval = 0;
+		bson_t *user_query = bson_new ();
+		if (user_query) {
+			(void) bson_append_oid (user_query, "_id", -1, &oid);
+			retval = mongo_find_one_with_opts (
+				users_model,
+				user_query, query_opts,
+				user
+			);
 		}
 	}
 
 	return retval;
-
-}
-
-// get a user doc from the db by email
-static const bson_t *user_find_by_email (
-	const char *email, const bson_t *query_opts
-) {
-
-	const bson_t *retval = NULL;
-
-	bson_t *user_query = bson_new ();
-	if (user_query) {
-		(void) bson_append_utf8 (user_query, "email", -1, email, -1);
-		retval = mongo_find_one_with_opts (users_collection, user_query, query_opts);
-	}
-
-	return retval;    
 
 }
 
@@ -214,34 +209,19 @@ u8 user_get_by_email (
 
 	u8 retval = 1;
 
-	if (email) {
-		const bson_t *user_doc = user_find_by_email (email, query_opts);
-		if (user_doc) {
-			user_doc_parse (user, user_doc);
-			bson_destroy ((bson_t *) user_doc);
-
-			retval = 0;
+	if (user && email) {
+		bson_t *user_query = bson_new ();
+		if (user_query) {
+			(void) bson_append_utf8 (user_query, "email", -1, email, -1);
+			retval = mongo_find_one_with_opts (
+				users_model,
+				user_query, query_opts,
+				user
+			);
 		}
 	}
 
 	return retval;
-
-}
-
-// get a user doc from the db by username
-static const bson_t *user_find_by_username (
-	const String *username, const bson_t *query_opts
-) {
-
-	const bson_t *retval = NULL;
-
-	bson_t *user_query = bson_new ();
-	if (user_query) {
-		(void) bson_append_utf8 (user_query, "username", -1, username->str, username->len);
-		retval = mongo_find_one_with_opts (users_collection, user_query, query_opts);
-	}
-
-	return retval;    
 
 }
 
@@ -252,13 +232,15 @@ u8 user_get_by_username (
 
 	u8 retval = 1;
 
-	if (username) {
-		const bson_t *user_doc = user_find_by_username (username, query_opts);
-		if (user_doc) {
-			user_doc_parse (user, user_doc);
-			bson_destroy ((bson_t *) user_doc);
-
-			retval = 0;
+	if (user && username) {
+		bson_t *user_query = bson_new ();
+		if (user_query) {
+			(void) bson_append_utf8 (user_query, "username", -1, username->str, username->len);
+			retval = mongo_find_one_with_opts (
+				users_model,
+				user_query, query_opts,
+				user
+			);
 		}
 	}
 
@@ -293,7 +275,7 @@ bson_t *user_create_update_pocket_transactions (void) {
 
 	bson_t *doc = bson_new ();
 	if (doc) {
-		bson_t inc_doc = { 0 };
+		bson_t inc_doc = BSON_INITIALIZER;
 		(void) bson_append_document_begin (doc, "$inc", -1, &inc_doc);
 		(void) bson_append_int32 (&inc_doc, "transCount", -1, 1);
 		(void) bson_append_document_end (doc, &inc_doc);
@@ -308,7 +290,7 @@ bson_t *user_create_update_pocket_categories (void) {
 
 	bson_t *doc = bson_new ();
 	if (doc) {
-		bson_t inc_doc = { 0 };
+		bson_t inc_doc = BSON_INITIALIZER;
 		(void) bson_append_document_begin (doc, "$inc", -1, &inc_doc);
 		(void) bson_append_int32 (&inc_doc, "categoriesCount", -1, 1);
 		(void) bson_append_document_end (doc, &inc_doc);
@@ -323,7 +305,7 @@ bson_t *user_create_update_pocket_places (void) {
 
 	bson_t *doc = bson_new ();
 	if (doc) {
-		bson_t inc_doc = { 0 };
+		bson_t inc_doc = BSON_INITIALIZER;
 		(void) bson_append_document_begin (doc, "$inc", -1, &inc_doc);
 		(void) bson_append_int32 (&inc_doc, "placesCount", -1, 1);
 		(void) bson_append_document_end (doc, &inc_doc);

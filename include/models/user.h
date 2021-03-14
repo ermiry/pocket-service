@@ -3,8 +3,8 @@
 
 #include <time.h>
 
-#include <mongoc/mongoc.h>
 #include <bson/bson.h>
+#include <mongoc/mongoc.h>
 
 #include <cerver/types/types.h>
 #include <cerver/types/string.h>
@@ -18,12 +18,9 @@
 #define USER_PASSWORD_LEN		128
 #define USER_ROLE_LEN			64
 
-extern mongoc_collection_t *users_collection;
+extern unsigned int users_model_init (void);
 
-// opens handle to user collection
-extern unsigned int users_collection_get (void);
-
-extern void users_collection_close (void);
+extern void users_model_end (void);
 
 typedef struct User {
 
