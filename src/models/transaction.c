@@ -7,36 +7,38 @@
 
 #include <cerver/utils/log.h>
 
-#include "mongo.h"
+#include <cmongo/collections.h>
+#include <cmongo/crud.h>
+#include <cmongo/model.h>
 
 #include "models/transaction.h"
 
 #define TRANSACTIONS_COLL_NAME         				"transactions"
 
-mongoc_collection_t *transactions_collection = NULL;
+static CMongoModel *transactions_model = NULL;
 
-// opens handle to transaction collection
-unsigned int transactions_collection_get (void) {
+static void transaction_doc_parse (
+	void *transaction_ptr, const bson_t *transaction_doc
+);
+
+unsigned int transactions_model_init (void) {
 
 	unsigned int retval = 1;
 
-	transactions_collection = mongo_collection_get (TRANSACTIONS_COLL_NAME);
-	if (transactions_collection) {
-		cerver_log_debug ("Opened handle to transactions collection!");
-		retval = 0;
-	}
+	transactions_model = cmongo_model_create (TRANSACTIONS_COLL_NAME);
+	if (transactions_model) {
+		cmongo_model_set_parser (transactions_model, transaction_doc_parse);
 
-	else {
-		cerver_log_error ("Failed to get handle to transactions collection!");
+		retval = 0;
 	}
 
 	return retval;
 
 }
 
-void transactions_collection_close (void) {
+void transactions_model_end (void) {
 
-	if (transactions_collection) mongoc_collection_destroy (transactions_collection);
+	cmongo_model_delete (transactions_model);
 
 }
 
@@ -85,7 +87,11 @@ void transaction_print (Transaction *transaction) {
 
 }
 
-static void trans_doc_parse (Transaction *trans, const bson_t *trans_doc) {
+static void trans_doc_parse (
+	void *trans_ptr, const bson_t *trans_doc
+) {
+
+	Transaction *trans = (Transaction *) trans_ptr;
 
 	bson_iter_t iter = { 0 };
 	if (bson_iter_init (&iter, trans_doc)) {
@@ -115,8 +121,13 @@ static void trans_doc_parse (Transaction *trans, const bson_t *trans_doc) {
 			else if (!strcmp (key, "currency"))
 				bson_oid_copy (&value->value.v_oid, &trans->currency_oid);
 
-			else if (!strcmp (key, "title") && value->value.v_utf8.str) 
-				(void) strncpy (trans->title, value->value.v_utf8.str, TRANSACTION_TITLE_LEN);
+			else if (!strcmp (key, "title") && value->value.v_utf8.str) {
+				(void) strncpy (
+					trans->title,
+					value->value.v_utf8.str,
+					TRANSACTION_TITLE_LEN - 1
+				);
+			}
 
 			else if (!strcmp (key, "amount")) 
 				trans->amount = value->value.v_double;
@@ -146,55 +157,22 @@ bson_t *transaction_query_oid (const bson_oid_t *oid) {
 
 }
 
-const bson_t *transaction_find_by_oid (
-	const bson_oid_t *oid, const bson_t *query_opts
-) {
-
-	const bson_t *retval = NULL;
-
-	bson_t *trans_query = bson_new ();
-	if (trans_query) {
-		(void) bson_append_oid (trans_query, "_id", -1, oid);
-		retval = mongo_find_one_with_opts (transactions_collection, trans_query, query_opts);
-	}
-
-	return retval;
-
-}
-
 u8 transaction_get_by_oid (
 	Transaction *trans, const bson_oid_t *oid, const bson_t *query_opts
 ) {
 
 	u8 retval = 1;
 
-	if (trans) {
-		const bson_t *trans_doc = transaction_find_by_oid (oid, query_opts);
-		if (trans_doc) {
-			trans_doc_parse (trans, trans_doc);
-			bson_destroy ((bson_t *) trans_doc);
-
-			retval = 0;
+	if (trans && oid) {
+		bson_t *trans_query = bson_new ();
+		if (trans_query) {
+			(void) bson_append_oid (trans_query, "_id", -1, oid);
+			retval = mongo_find_one_with_opts (
+				transactions_model,
+				trans_query, query_opts,
+				trans
+			);
 		}
-	}
-
-	return retval;
-
-}
-
-const bson_t *transaction_find_by_oid_and_user (
-	const bson_oid_t *oid, const bson_oid_t *user_oid,
-	const bson_t *query_opts
-) {
-
-	const bson_t *retval = NULL;
-
-	bson_t *trans_query = bson_new ();
-	if (trans_query) {
-		(void) bson_append_oid (trans_query, "_id", -1, oid);
-		(void) bson_append_oid (trans_query, "user", -1, user_oid);
-
-		retval = mongo_find_one_with_opts (transactions_collection, trans_query, query_opts);
 	}
 
 	return retval;
@@ -209,13 +187,17 @@ u8 transaction_get_by_oid_and_user (
 
 	u8 retval = 1;
 
-	if (trans) {
-		const bson_t *trans_doc = transaction_find_by_oid_and_user (oid, user_oid, query_opts);
-		if (trans_doc) {
-			trans_doc_parse (trans, trans_doc);
-			bson_destroy ((bson_t *) trans_doc);
+	if (trans && oid && user_oid) {
+		bson_t *trans_query = bson_new ();
+		if (trans_query) {
+			(void) bson_append_oid (trans_query, "_id", -1, oid);
+			(void) bson_append_oid (trans_query, "user", -1, user_oid);
 
-			retval = 0;
+			retval = mongo_find_one_with_opts (
+				transactions_model,
+				trans_query, query_opts,
+				trans
+			);
 		}
 	}
 
@@ -255,7 +237,7 @@ bson_t *transaction_update_bson (Transaction *trans) {
     if (trans) {
         doc = bson_new ();
         if (doc) {
-			bson_t set_doc = { 0 };
+			bson_t set_doc = BSON_INITIALIZER;
 			(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
 			(void) bson_append_utf8 (&set_doc, "title", -1, trans->title, -1);
 			(void) bson_append_double (&set_doc, "amount", -1, trans->amount);
@@ -281,7 +263,7 @@ mongoc_cursor_t *transactions_get_all_by_user (
 			(void) bson_append_oid (query, "user", -1, user_oid);
 
 			retval = mongo_find_all_cursor_with_opts (
-				transactions_collection,
+				transactions_model,
 				query, opts
 			);
 		}

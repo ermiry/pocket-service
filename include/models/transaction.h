@@ -11,12 +11,9 @@
 #define	TRANSACTION_ID_LEN				32
 #define TRANSACTION_TITLE_LEN			1024
 
-extern mongoc_collection_t *transactions_collection;
+extern unsigned int transactions_model_init (void);
 
-// opens handle to transaction collection
-extern unsigned int transactions_collection_get (void);
-
-extern void transactions_collection_close (void);
+extern void transactions_model_end (void);
 
 #define TRANS_TYPE_MAP(XX)					\
 	XX(0,	NONE, 		None)				\
