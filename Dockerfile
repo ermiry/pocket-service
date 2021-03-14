@@ -1,60 +1,61 @@
-ARG CERVER_VERSION=2.0b-16
+ARG CMONGO_VERSION=1.0b-2
+ARG CERVER_VERSION=2.0b-28
+ARG pocket_VERSION=1.0.1
 
-FROM gcc as builder
+ARG BUILD_DEPS='ca-certificates git libssl-dev libcurl4-openssl-dev'
+ARG RUNTIME_DEPS='ca-certificates libssl-dev libcurl4-openssl-dev'
+
+FROM ermiry/mongoc:builder as builder
 
 WORKDIR /opt
 
-RUN apt-get update && apt-get install -y cmake libssl-dev
+ARG BUILD_DEPS
+RUN apt-get update && apt-get install -y ${BUILD_DEPS}
+
+# build cmongo with production flags
+ARG CMONGO_VERSION
+RUN mkdir /opt/cmongo && cd /opt/cmongo \
+    && wget -q --no-check-certificate https://github.com/ermiry-com/cmongo/archive/${CMONGO_VERSION}.zip \
+    && unzip ${CMONGO_VERSION}.zip \
+    && cd cmongo-${CMONGO_VERSION} \
+    && make TYPE=production -j4 && make TYPE=production install
+
+# build cerver with production flags
+ARG CERVER_VERSION
+RUN mkdir /opt/cerver && cd /opt/cerver \
+    && wget -q --no-check-certificate https://github.com/ermiry/cerver/archive/${CERVER_VERSION}.zip \
+    && unzip ${CERVER_VERSION}.zip \
+    && cd cerver-${CERVER_VERSION} \
+    && make TYPE=production -j4 && make TYPE=production install
+
+RUN ldconfig
+
+# pocket
+WORKDIR /opt/pocket
+COPY . .
+RUN make TYPE=production -j4
+
+############
+FROM ermiry/mongoc:latest
+
+ARG RUNTIME_DEPS
+RUN apt-get update && apt-get install -y ${RUNTIME_DEPS}
+
+# cmongo
+ARG CMONGO_VERSION
+COPY --from=builder /opt/cmongo/cmongo-${CMONGO_VERSION}/bin/libcmongo.so /usr/local/lib/
+COPY --from=builder /opt/cmongo/cmongo-${CMONGO_VERSION}/include/cmongo /usr/local/include/cmongo
 
 # cerver
 ARG CERVER_VERSION
-RUN mkdir /opt/cerver && cd /opt/cerver \
-    && wget -q https://github.com/ermiry/cerver/archive/${CERVER_VERSION}.zip \
-    && unzip ${CERVER_VERSION}.zip \
-    && cd cerver-${CERVER_VERSION} \
-    && make -j4 && make install
-
-# mongo c driver
-ARG MONGOC_VERSION=1.15.1
-
-RUN mkdir /opt/mongoc && cd /opt/mongoc \
-    && wget -q https://github.com/mongodb/mongo-c-driver/releases/download/${MONGOC_VERSION}/mongo-c-driver-${MONGOC_VERSION}.tar.gz \
-    && tar xzf mongo-c-driver-${MONGOC_VERSION}.tar.gz \
-    && cd mongo-c-driver-${MONGOC_VERSION} \
-    && mkdir cmake-build && cd cmake-build \
-    && cmake -D ENABLE_AUTOMATIC_INIT_AND_CLEANUP=OFF -D CMAKE_BUILD_TYPE=Release -D ENABLE_SSL=OPENSSL -D ENABLE_SRV=ON .. \
-    && make -j4 && make install
-
-# pocket
-WORKDIR /opt/tiny-pocket-api
-COPY . .
-RUN make -j4
-
-############
-FROM ubuntu:bionic
-
-ARG RUNTIME_DEPS='wget libssl-dev'
-
-RUN apt-get update && apt-get install -y ${RUNTIME_DEPS} && apt-get clean
-
-# cerver files
-ARG CERVER_VERSION
 COPY --from=builder /opt/cerver/cerver-${CERVER_VERSION}/bin/libcerver.so /usr/local/lib/
 COPY --from=builder /opt/cerver/cerver-${CERVER_VERSION}/include/cerver /usr/local/include/cerver
-
-# mongoc files
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libicudata.so.63 /usr/lib/x86_64-linux-gnu/libicudata.so.63
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libicuuc.so.63 /usr/lib/x86_64-linux-gnu/libicuuc.so.63
-COPY --from=builder /usr/local/include/ /usr/local/include/
-COPY --from=builder /usr/local/lib/libmongoc-1.0.so /usr/local/lib/libmongoc-1.0.so
-COPY --from=builder /usr/local/lib/libbson-1.0.so /usr/local/lib/libbson-1.0.so
 
 RUN ldconfig
 
 # pocket
 WORKDIR /home/pocket
 COPY ./start.sh .
-RUN chmod 777 start.sh
-COPY --from=builder /opt/tiny-pocket-api/bin ./bin
+COPY --from=builder /opt/pocket/bin ./bin
 
-CMD ["./start.sh"]
+CMD ["/bin/bash", "start.sh"]
