@@ -7,36 +7,38 @@
 
 #include <cerver/utils/log.h>
 
-#include "mongo.h"
+#include <cmongo/collections.h>
+#include <cmongo/crud.h>
+#include <cmongo/model.h>
 
 #include "models/category.h"
 
 #define CATEGORIES_COLL_NAME         				"categories"
 
-mongoc_collection_t *categories_collection = NULL;
+static CMongoModel *categories_model = NULL;
 
-// opens handle to category collection
-unsigned int categories_collection_get (void) {
+static void category_doc_parse (
+	void *category_ptr, const bson_t *category_doc
+);
+
+unsigned int categories_model_init (void) {
 
 	unsigned int retval = 1;
 
-	categories_collection = mongo_collection_get (CATEGORIES_COLL_NAME);
-	if (categories_collection) {
-		cerver_log_debug ("Opened handle to categories collection!");
-		retval = 0;
-	}
+	categories_model = cmongo_model_create (CATEGORIES_COLL_NAME);
+	if (categories_model) {
+		cmongo_model_set_parser (categories_model, category_doc_parse);
 
-	else {
-		cerver_log_error ("Failed to get handle to categories collection!");
+		retval = 0;
 	}
 
 	return retval;
 
 }
 
-void categories_collection_close (void) {
+void categories_model_end (void) {
 
-	if (categories_collection) mongoc_collection_destroy (categories_collection);
+	cmongo_model_delete (categories_model);
 
 }
 
@@ -74,7 +76,11 @@ void category_print (Category *category) {
 
 }
 
-static void category_doc_parse (Category *category, const bson_t *category_doc) {
+static void category_doc_parse (
+	void *category_ptr, const bson_t *category_doc
+) {
+
+	Category *category = (Category *) category_ptr;
 
 	bson_iter_t iter = { 0 };
 	if (bson_iter_init (&iter, category_doc)) {
@@ -84,23 +90,42 @@ static void category_doc_parse (Category *category, const bson_t *category_doc) 
 			key = (char *) bson_iter_key (&iter);
 			value = (bson_value_t *) bson_iter_value (&iter);
 
-			if (!strcmp (key, "_id"))
+			if (!strcmp (key, "_id")) {
 				bson_oid_copy (&value->value.v_oid, &category->oid);
+				bson_oid_to_string (&category->oid, category->id);
+			}
 
-			else if (!strcmp (key, "user"))
+			else if (!strcmp (key, "user")) {
 				bson_oid_copy (&value->value.v_oid, &category->user_oid);
+			}
 
-			else if (!strcmp (key, "title") && value->value.v_utf8.str) 
-				(void) strncpy (category->title, value->value.v_utf8.str, CATEGORY_TITLE_LEN);
+			else if (!strcmp (key, "title") && value->value.v_utf8.str) {
+				(void) strncpy (
+					category->title,
+					value->value.v_utf8.str,
+					CATEGORY_TITLE_LEN - 1
+				);
+			}
 
-			else if (!strcmp (key, "description")) 
-				(void) strncpy (category->description, value->value.v_utf8.str, CATEGORY_DESCRIPTION_LEN);
+			else if (!strcmp (key, "description")) {
+				(void) strncpy (
+					category->description,
+					value->value.v_utf8.str,
+					CATEGORY_DESCRIPTION_LEN - 1
+				);
+			}
 
-			else if (!strcmp (key, "color")) 
-				(void) strncpy (category->color, value->value.v_utf8.str, CATEGORY_COLOR_LEN);
+			else if (!strcmp (key, "color")) {
+				(void) strncpy (
+					category->color,
+					value->value.v_utf8.str,
+					CATEGORY_COLOR_LEN - 1
+				);
+			}
 
-			else if (!strcmp (key, "date")) 
+			else if (!strcmp (key, "date")) {
 				category->date = (time_t) bson_iter_date_time (&iter) / 1000;
+			}
 		}
 	}
 
@@ -121,55 +146,22 @@ bson_t *category_query_oid (const bson_oid_t *oid) {
 
 }
 
-const bson_t *category_find_by_oid (
-	const bson_oid_t *oid, const bson_t *query_opts
-) {
-
-	const bson_t *retval = NULL;
-
-	bson_t *category_query = bson_new ();
-	if (category_query) {
-		(void) bson_append_oid (category_query, "_id", -1, oid);
-		retval = mongo_find_one_with_opts (categories_collection, category_query, query_opts);
-	}
-
-	return retval;
-
-}
-
 u8 category_get_by_oid (
 	Category *category, const bson_oid_t *oid, const bson_t *query_opts
 ) {
 
 	u8 retval = 1;
 
-	if (category) {
-		const bson_t *category_doc = category_find_by_oid (oid, query_opts);
-		if (category_doc) {
-			category_doc_parse (category, category_doc);
-			bson_destroy ((bson_t *) category_doc);
-
-			retval = 0;
+	if (category && oid) {
+		bson_t *category_query = bson_new ();
+		if (category_query) {
+			(void) bson_append_oid (category_query, "_id", -1, oid);
+			retval = mongo_find_one_with_opts (
+				categories_model,
+				category_query, query_opts,
+				category
+			);
 		}
-	}
-
-	return retval;
-
-}
-
-const bson_t *category_find_by_oid_and_user (
-	const bson_oid_t *oid, const bson_oid_t *user_oid,
-	const bson_t *query_opts
-) {
-
-	const bson_t *retval = NULL;
-
-	bson_t *category_query = bson_new ();
-	if (category_query) {
-		(void) bson_append_oid (category_query, "_id", -1, oid);
-		(void) bson_append_oid (category_query, "user", -1, user_oid);
-
-		retval = mongo_find_one_with_opts (categories_collection, category_query, query_opts);
 	}
 
 	return retval;
@@ -184,13 +176,17 @@ u8 category_get_by_oid_and_user (
 
 	u8 retval = 1;
 
-	if (category) {
-		const bson_t *category_doc = category_find_by_oid_and_user (oid, user_oid, query_opts);
-		if (category_doc) {
-			category_doc_parse (category, category_doc);
-			bson_destroy ((bson_t *) category_doc);
+	if (category && oid && user_oid) {
+		bson_t *category_query = bson_new ();
+		if (category_query) {
+			(void) bson_append_oid (category_query, "_id", -1, oid);
+			(void) bson_append_oid (category_query, "user", -1, user_oid);
 
-			retval = 0;
+			retval = mongo_find_one_with_opts (
+				categories_model,
+				category_query, query_opts,
+				category
+			);
 		}
 	}
 
@@ -228,7 +224,7 @@ bson_t *category_update_bson (Category *category) {
     if (category) {
         doc = bson_new ();
         if (doc) {
-			bson_t set_doc = { 0 };
+			bson_t set_doc = BSON_INITIALIZER;
 			(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
 			(void) bson_append_utf8 (&set_doc, "title", -1, category->title, -1);
 			(void) bson_append_utf8 (&set_doc, "description", -1, category->description, -1);
@@ -254,7 +250,7 @@ mongoc_cursor_t *categories_get_all_by_user (
 			(void) bson_append_oid (query, "user", -1, user_oid);
 
 			retval = mongo_find_all_cursor_with_opts (
-				categories_collection,
+				categories_model,
 				query, opts
 			);
 		}

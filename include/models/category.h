@@ -3,26 +3,25 @@
 
 #include <time.h>
 
-#include <mongoc/mongoc.h>
 #include <bson/bson.h>
+#include <mongoc/mongoc.h>
 
 #include <cerver/types/types.h>
 
+#define CATEGORY_ID_LEN				32
 #define CATEGORY_TITLE_LEN			1024
 #define CATEGORY_DESCRIPTION_LEN	2048
 #define CATEGORY_COLOR_LEN			128
 
-extern mongoc_collection_t *categories_collection;
+extern unsigned int categories_model_init (void);
 
-// opens handle to category collection
-extern unsigned int categories_collection_get (void);
-
-extern void categories_collection_close (void);
+extern void categories_model_end (void);
 
 typedef struct Category {
 
 	// category's unique id
 	bson_oid_t oid;
+	char id[CATEGORY_ID_LEN];
 
 	// reference to the owner of this category
 	bson_oid_t user_oid;
