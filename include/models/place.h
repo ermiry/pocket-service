@@ -3,8 +3,8 @@
 
 #include <time.h>
 
-#include <mongoc/mongoc.h>
 #include <bson/bson.h>
+#include <mongoc/mongoc.h>
 
 #include <cerver/types/types.h>
 #include <cerver/types/string.h>
@@ -22,12 +22,9 @@
 #define SITE_LINK_LEN				256
 #define SITE_LOGO_LEN				256
 
-extern mongoc_collection_t *places_collection;
+extern unsigned int places_model_init (void);
 
-// opens handle to place collection
-extern unsigned int places_collection_get (void);
-
-extern void places_collection_close (void);
+extern void places_model_end (void);
 
 #define PLACE_TYPE_MAP(XX)					\
 	XX(0,	NONE, 		None)				\
