@@ -176,7 +176,7 @@ static PocketError pocket_transaction_create_handler_internal (
 				&category_id, &date
 			);
 
-			if (title && (amount != 0)) {
+			if (title && (amount != 0) && category_id) {
 				*trans = pocket_trans_create (
 					user_id,
 					title, amount,
