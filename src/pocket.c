@@ -17,7 +17,6 @@
 #include <cerver/utils/log.h>
 
 #include "handler.h"
-#include "mongo.h"
 #include "pocket.h"
 #include "runtime.h"
 #include "version.h"
@@ -92,7 +91,7 @@ static void pocket_env_get_runtime (void) {
 	if (runtime_env) {
 		RUNTIME = runtime_from_string (runtime_env);
 		cerver_log_success (
-			"RUNTIME -> %d\n", runtime_to_string (RUNTIME)
+			"RUNTIME -> %s", runtime_to_string (RUNTIME)
 		);
 	}
 
@@ -127,7 +126,7 @@ static void pocket_env_get_cerver_receive_buffer_size (void) {
 	if (buffer_size) {
 		CERVER_RECEIVE_BUFFER_SIZE = (unsigned int) atoi (buffer_size);
 		cerver_log_success (
-			"CERVER_RECEIVE_BUFFER_SIZE -> %d\n", CERVER_RECEIVE_BUFFER_SIZE
+			"CERVER_RECEIVE_BUFFER_SIZE -> %d", CERVER_RECEIVE_BUFFER_SIZE
 		);
 	}
 
@@ -144,7 +143,7 @@ static void pocket_env_get_cerver_th_threads (void) {
 	char *th_threads = getenv ("CERVER_TH_THREADS");
 	if (th_threads) {
 		CERVER_TH_THREADS = (unsigned int) atoi (th_threads);
-		cerver_log_success ("CERVER_TH_THREADS -> %d\n", CERVER_TH_THREADS);
+		cerver_log_success ("CERVER_TH_THREADS -> %d", CERVER_TH_THREADS);
 	}
 
 	else {
@@ -161,7 +160,7 @@ static void pocket_env_get_cerver_connection_queue (void) {
 	char *connection_queue = getenv ("CERVER_CONNECTION_QUEUE");
 	if (connection_queue) {
 		CERVER_CONNECTION_QUEUE = (unsigned int) atoi (connection_queue);
-		cerver_log_success ("CERVER_CONNECTION_QUEUE -> %d\n", CERVER_CONNECTION_QUEUE);
+		cerver_log_success ("CERVER_CONNECTION_QUEUE -> %d", CERVER_CONNECTION_QUEUE);
 	}
 
 	else {
