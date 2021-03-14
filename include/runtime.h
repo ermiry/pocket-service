@@ -4,7 +4,7 @@
 #define RUNTIME_TYPE_MAP(XX)						\
 	XX(0,  NONE,      		Undefined)				\
 	XX(1,  DEVELOPMENT,     Development)			\
-	XX(2,  TESTING,      	Testing)				\
+	XX(2,  TEST,	      	Test)					\
 	XX(3,  PRODUCTION,      Production)
 
 typedef enum RuntimeType {
