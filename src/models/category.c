@@ -208,6 +208,32 @@ u8 category_get_by_oid_and_user (
 
 }
 
+u8 category_get_by_oid_and_user_to_json (
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts,
+	char **json, size_t *json_len
+) {
+
+	u8 retval = 1;
+
+	if (oid && user_oid) {
+		bson_t *category_query = category_query_by_oid_and_user (
+			oid, user_oid
+		);
+
+		if (category_query) {
+			retval = mongo_find_one_with_opts_to_json (
+				categories_model,
+				category_query, query_opts,
+				json, json_len
+			);
+		}
+	}
+
+	return retval;
+
+}
+
 bson_t *category_to_bson (const Category *category) {
 
     bson_t *doc = NULL;

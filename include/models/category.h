@@ -54,23 +54,20 @@ extern bson_t *category_query_by_oid_and_user (
 	const bson_oid_t *oid, const bson_oid_t *user_oid
 );
 
-extern const bson_t *category_find_by_oid (
-	const bson_oid_t *oid, const bson_t *query_opts
-);
-
 extern u8 category_get_by_oid (
 	Category *category, const bson_oid_t *oid, const bson_t *query_opts
-);
-
-extern const bson_t *category_find_by_oid_and_user (
-	const bson_oid_t *oid, const bson_oid_t *user_oid,
-	const bson_t *query_opts
 );
 
 extern u8 category_get_by_oid_and_user (
 	Category *category,
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts
+);
+
+extern u8 category_get_by_oid_and_user_to_json (
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts,
+	char **json, size_t *json_len
 );
 
 extern bson_t *category_to_bson (const Category *category);
