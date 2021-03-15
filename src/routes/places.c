@@ -14,7 +14,6 @@
 #include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
 
-#include "mongo.h"
 #include "pocket.h"
 
 #include "controllers/places.h"
@@ -105,12 +104,12 @@ void pocket_places_handler (
 		}
 
 		else {
-			(void) http_response_send (bad_user, http_receive);
+			(void) http_response_send (bad_user_error, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -128,12 +127,16 @@ static void pocket_place_parse_json (
 		json_object_foreach (json_body, key, value) {
 			if (!strcmp (key, "name")) {
 				*name = json_string_value (value);
+				#ifdef POCKET_DEBUG
 				(void) printf ("name: \"%s\"\n", *name);
+				#endif
 			}
 
 			else if (!strcmp (key, "description")) {
 				*description = json_string_value (value);
+				#ifdef POCKET_DEBUG
 				(void) printf ("description: \"%s\"\n", *description);
+				#endif
 			}
 		}
 	}
@@ -201,16 +204,9 @@ void pocket_place_create_handler (
 			place_print (place);
 			#endif
 
-			if (!mongo_insert_one (
-				places_collection,
-				place_to_bson (place)
-			)) {
+			if (!place_insert_one (place)) {
 				// update users values
-				(void) mongo_update_one (
-					users_collection,
-					user_query_id (user->id),
-					user_create_update_pocket_places ()
-				);
+				(void) user_add_place (user);
 
 				// return success to user
 				(void) http_response_send (
@@ -229,7 +225,7 @@ void pocket_place_create_handler (
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -282,7 +278,7 @@ void pocket_place_get_handler (
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -306,8 +302,8 @@ static u8 pocket_place_update_handler_internal (
 				&description
 			);
 
-			if (title) (void) strncpy (place->name, title, PLACE_NAME_LEN);
-			if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_LEN);
+			if (title) (void) strncpy (place->name, title, PLACE_NAME_LEN - 1);
+			if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_LEN - 1);
 
 			json_decref (json_body);
 
@@ -350,11 +346,7 @@ void pocket_place_update_handler (
 			if (!pocket_place_update_handler_internal (
 				place, request->body
 			)) {
-				if (!mongo_update_one (
-					places_collection,
-					place_query_oid (&place->oid),
-					place_update_bson (place)
-				)) {
+				if (!place_update_one (place)) {
 					(void) http_response_send (oki_doki, http_receive);
 				}
 
@@ -364,19 +356,19 @@ void pocket_place_update_handler (
 			}
 
 			else {
-				(void) http_response_send (bad_request, http_receive);
+				(void) http_response_send (bad_request_error, http_receive);
 			}
 
 			pocket_place_delete (place);
 		}
 
 		else {
-			(void) http_response_send (bad_request, http_receive);
+			(void) http_response_send (bad_request_error, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -393,36 +385,26 @@ void pocket_place_delete_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		bson_t *place_query = bson_new ();
-		if (place_query) {
-			bson_oid_t oid = { 0 };
+		bson_oid_t oid = { 0 };
+		bson_oid_init_from_string (&oid, place_id->str);
 
-			bson_oid_init_from_string (&oid, place_id->str);
-			(void) bson_append_oid (place_query, "_id", -1, &oid);
+		if (!place_delete_one_by_oid_and_user (
+			&oid, &user->oid
+		)) {
+			#ifdef POCKET_DEBUG
+			cerver_log_debug ("Deleted place %s", place_id->str);
+			#endif
 
-			bson_oid_init_from_string (&oid, user->id);
-			(void) bson_append_oid (place_query, "user", -1, &oid);
-
-			if (!mongo_delete_one (places_collection, place_query)) {
-				#ifdef POCKET_DEBUG
-				cerver_log_debug ("Deleted place %s", place_id->str);
-				#endif
-
-				(void) http_response_send (place_deleted_success, http_receive);
-			}
-
-			else {
-				(void) http_response_send (place_deleted_bad, http_receive);
-			}
+			(void) http_response_send (place_deleted_success, http_receive);
 		}
 
 		else {
-			(void) http_response_send (server_error, http_receive);
+			(void) http_response_send (place_deleted_bad, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
