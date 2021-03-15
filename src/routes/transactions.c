@@ -285,35 +285,31 @@ void pocket_transaction_get_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		Transaction *trans = (Transaction *) pool_pop (trans_pool);
-		if (trans) {
-			bson_oid_init_from_string (&trans->oid, trans_id->str);
-			bson_oid_init_from_string (&trans->user_oid, user->id);
+		if (trans_id) {
+			size_t json_len = 0;
+			char *json = NULL;
 
-			const bson_t *trans_bson = transaction_find_by_oid_and_user (
-				&trans->oid, &trans->user_oid,
-				trans_no_user_query_opts
-			);
-
-			if (trans_bson) {
-				size_t json_len = 0;
-				char *json = bson_as_relaxed_extended_json (trans_bson, &json_len);
+			if (!pocket_trans_get_by_id_and_user_to_json (
+				trans_id->str, &user->oid,
+				trans_no_user_query_opts,
+				&json, &json_len
+			)) {
 				if (json) {
 					(void) http_response_json_custom_reference_send (
 						http_receive, 200, json, json_len
 					);
-
+					
 					free (json);
 				}
 
-				bson_destroy ((bson_t *) trans_bson);
+				else {
+					(void) http_response_send (server_error, http_receive);
+				}
 			}
 
 			else {
 				(void) http_response_send (no_user_trans, http_receive);
 			}
-
-			pocket_trans_delete (trans);
 		}
 	}
 
