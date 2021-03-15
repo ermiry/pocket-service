@@ -177,6 +177,12 @@ bson_t *user_query_email (const char *email) {
 
 }
 
+u8 user_check_by_email (const char *email) {
+
+	return mongo_check (users_model, user_query_email (email));
+
+}
+
 u8 user_get_by_id (
 	User *user, const char *id, const bson_t *query_opts
 ) {
@@ -248,7 +254,7 @@ u8 user_get_by_username (
 
 }
 
-bson_t *user_bson_create (User *user) {
+bson_t *user_bson_create (const User *user) {
 
 	bson_t *doc = NULL;
 
@@ -312,5 +318,44 @@ bson_t *user_create_update_pocket_places (void) {
 	}
 
 	return doc;
+
+}
+
+unsigned int user_insert_one (const User *user) {
+
+	return mongo_insert_one (
+		users_model,
+		user_bson_create (user)
+	);
+
+}
+
+unsigned int user_add_transactions (const User *user) {
+
+	return mongo_update_one (
+		users_model,
+		user_query_id (user->id),
+		user_create_update_pocket_transactions ()
+	);
+
+}
+
+unsigned int user_add_category (const User *user) {
+
+	return mongo_update_one (
+		users_model,
+		user_query_id (user->id),
+		user_create_update_pocket_categories ()
+	);
+
+}
+
+unsigned int user_add_place (const User *user) {
+
+	return mongo_update_one (
+		users_model,
+		user_query_id (user->id),
+		user_create_update_pocket_places ()
+	);
 
 }

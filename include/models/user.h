@@ -9,8 +9,6 @@
 #include <cerver/types/types.h>
 #include <cerver/types/string.h>
 
-#include <cerver/collections/dlist.h>
-
 #define USER_ID_LEN				32
 #define USER_EMAIL_LEN			128
 #define USER_NAME_LEN			128
@@ -61,6 +59,8 @@ extern bson_t *user_query_id (const char *id);
 
 extern bson_t *user_query_email (const char *email);
 
+extern u8 user_check_by_email (const char *email);
+
 extern u8 user_get_by_id (
 	User *user, const char *id, const bson_t *query_opts
 );
@@ -75,7 +75,7 @@ extern u8 user_get_by_username (
 	User *user, const String *username, const bson_t *query_opts
 );
 
-extern bson_t *user_bson_create (User *user);
+extern bson_t *user_bson_create (const User *user);
 
 // adds one to user's transactions count
 extern bson_t *user_create_update_pocket_transactions (void);
@@ -85,5 +85,13 @@ extern bson_t *user_create_update_pocket_categories (void);
 
 // adds one to user's places count
 extern bson_t *user_create_update_pocket_places (void);
+
+extern unsigned int user_insert_one (const User *user);
+
+extern unsigned int user_add_transactions (const User *user);
+
+extern unsigned int user_add_category (const User *user);
+
+extern unsigned int user_add_place (const User *user);
 
 #endif
