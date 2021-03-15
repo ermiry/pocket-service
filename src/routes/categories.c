@@ -14,7 +14,6 @@
 #include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
 
-#include "mongo.h"
 #include "pocket.h"
 
 #include "controllers/categories.h"
@@ -105,12 +104,12 @@ void pocket_categories_handler (
 		}
 
 		else {
-			(void) http_response_send (bad_user, http_receive);
+			(void) http_response_send (bad_user_error, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -129,17 +128,23 @@ static void pocket_category_parse_json (
 		json_object_foreach (json_body, key, value) {
 			if (!strcmp (key, "title")) {
 				*title = json_string_value (value);
+				#ifdef POCKET_DEBUG
 				(void) printf ("title: \"%s\"\n", *title);
+				#endif
 			}
 
 			else if (!strcmp (key, "description")) {
 				*description = json_string_value (value);
+				#ifdef POCKET_DEBUG
 				(void) printf ("description: \"%s\"\n", *description);
+				#endif
 			}
 
 			else if (!strcmp (key, "color")) {
 				*color = json_string_value (value);
+				#ifdef POCKET_DEBUG
 				(void) printf ("color: \"%s\"\n", *color);
+				#endif
 			}
 		}
 	}
@@ -210,16 +215,11 @@ void pocket_category_create_handler (
 			category_print (category);
 			#endif
 
-			if (!mongo_insert_one (
-				categories_collection,
-				category_to_bson (category)
+			if (!category_insert_one (
+				category
 			)) {
 				// update users values
-				(void) mongo_update_one (
-					users_collection,
-					user_query_id (user->id),
-					user_create_update_pocket_categories ()
-				);
+				(void) user_add_category (user);
 
 				// return success to user
 				(void) http_response_send (
@@ -247,7 +247,7 @@ void pocket_category_create_handler (
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -300,7 +300,7 @@ void pocket_category_get_handler (
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -326,9 +326,9 @@ static u8 pocket_category_update_handler_internal (
 				&color
 			);
 
-			if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_LEN);
-			if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_LEN);
-			if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_LEN);
+			if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_LEN - 1);
+			if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_LEN - 1);
+			if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_LEN - 1);
 
 			json_decref (json_body);
 
@@ -372,11 +372,7 @@ void pocket_category_update_handler (
 				category, request->body
 			)) {
 				// update the category in the db
-				if (!mongo_update_one (
-					categories_collection,
-					category_query_oid (&category->oid),
-					category_update_bson (category)
-				)) {
+				if (!category_update_one (category)) {
 					(void) http_response_send (oki_doki, http_receive);
 				}
 
@@ -386,19 +382,19 @@ void pocket_category_update_handler (
 			}
 
 			else {
-				(void) http_response_send (bad_request, http_receive);
+				(void) http_response_send (bad_request_error, http_receive);
 			}
 
 			pocket_category_delete (category);
 		}
 
 		else {
-			(void) http_response_send (bad_request, http_receive);
+			(void) http_response_send (bad_request_error, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -415,36 +411,26 @@ void pocket_category_delete_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		bson_t *category_query = bson_new ();
-		if (category_query) {
-			bson_oid_t oid = { 0 };
+		bson_oid_t oid = { 0 };
+		bson_oid_init_from_string (&oid, category_id->str);
 
-			bson_oid_init_from_string (&oid, category_id->str);
-			(void) bson_append_oid (category_query, "_id", -1, &oid);
+		if (!category_delete_one_by_oid_and_user (
+			&oid, &user->oid
+		)) {
+			#ifdef POCKET_DEBUG
+			cerver_log_debug ("Deleted category %s", category_id->str);
+			#endif
 
-			bson_oid_init_from_string (&oid, user->id);
-			(void) bson_append_oid (category_query, "user", -1, &oid);
-
-			if (!mongo_delete_one (categories_collection, category_query)) {
-				#ifdef POCKET_DEBUG
-				cerver_log_debug ("Deleted category %s", category_id->str);
-				#endif
-
-				(void) http_response_send (category_deleted_success, http_receive);
-			}
-
-			else {
-				(void) http_response_send (category_deleted_bad, http_receive);
-			}
+			(void) http_response_send (category_deleted_success, http_receive);
 		}
 
 		else {
-			(void) http_response_send (server_error, http_receive);
+			(void) http_response_send (category_deleted_bad, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
