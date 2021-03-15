@@ -112,6 +112,29 @@ Place *pocket_place_get_by_id_and_user (
 
 }
 
+u8 pocket_place_get_by_id_and_user_to_json (
+	const char *place_id, const bson_oid_t *user_oid,
+	const bson_t *query_opts,
+	char **json, size_t *json_len
+) {
+
+	u8 retval = 1;
+
+	if (place_id) {
+		bson_oid_t place_oid = { 0 };
+		bson_oid_init_from_string (&place_oid, place_id);
+
+		retval = place_get_by_oid_and_user_to_json (
+			&place_oid, user_oid,
+			query_opts,
+			json, json_len
+		);
+	}
+
+	return retval;
+
+}
+
 Place *pocket_place_create (
 	const char *user_id,
 	const char *name, const char *description
