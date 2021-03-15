@@ -16,6 +16,8 @@
 #include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
 
+#include <cmongo/mongo.h>
+
 #include "handler.h"
 #include "pocket.h"
 #include "runtime.h"
@@ -32,6 +34,8 @@
 #include "models/place.h"
 #include "models/role.h"
 #include "models/user.h"
+
+CMONGO_EXPORT MongoStatus mongo_get_status (void);
 
 RuntimeType RUNTIME = RUNTIME_TYPE_NONE;
 
@@ -333,23 +337,17 @@ static unsigned int pocket_mongo_connect (void) {
 		if (!mongo_ping_db ()) {
 			cerver_log_success ("Connected to Mongo DB!");
 
-			// open handle to actions collection
-			errors |= actions_collection_get ();
+			errors |= actions_model_init ();
 
-			// open handle to categories collection
-			errors |= categories_collection_get ();
+			errors |= categories_model_init ();
 
-			// open handle to places collection
-			errors |= places_collection_get ();
+			errors |= places_model_init ();
 
-			// open handle to roles collection
-			errors |= roles_collection_get ();
+			errors |= roles_model_init ();
 
-			// open handle to transactions collection
-			errors |= transactions_collection_get ();
+			errors |= transactions_model_init ();
 
-			// open handle to user collection
-			errors |= users_collection_get ();
+			errors |= users_model_init ();
 
 			connected_to_mongo = true;
 		}
@@ -394,7 +392,10 @@ static unsigned int pocket_init_responses (void) {
 		(http_status) 200, "msg", "Pocket works!"
 	);
 
-	char *status = c_string_create ("%s - %s", POCKET_VERSION_NAME, POCKET_VERSION_DATE);
+	char *status = c_string_create (
+		"%s - %s", POCKET_VERSION_NAME, POCKET_VERSION_DATE
+	);
+
 	if (status) {
 		current_version = http_response_json_key_value (
 			(http_status) 200, "version", status
@@ -477,7 +478,7 @@ static unsigned int pocket_init_responses (void) {
 	);
 
 	if (
-		oki_doki && bad_request && server_error && bad_user && missing_values
+		missing_values
 		&& pocket_works && current_version
 		&& no_user_trans
 		&& trans_created_success && trans_created_bad
@@ -522,17 +523,17 @@ unsigned int pocket_init (void) {
 static unsigned int pocket_mongo_end (void) {
 
 	if (mongo_get_status () == MONGO_STATUS_CONNECTED) {
-		actions_collection_close ();
+		actions_model_end ();
 
-		categories_collection_close ();
+		categories_model_end ();
 
-		places_collection_close ();
+		places_model_end ();
 
-		roles_collection_close ();
+		roles_model_end ();
 
-		transactions_collection_close ();
+		transactions_model_end ();
 
-		users_collection_close ();
+		users_model_end ();
 
 		mongo_disconnect ();
 	}
