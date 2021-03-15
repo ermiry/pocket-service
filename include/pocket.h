@@ -22,10 +22,6 @@ extern const String *PUB_KEY;
 
 extern bool ENABLE_USERS_ROUTES;
 
-extern struct _HttpResponse *oki_doki;
-extern struct _HttpResponse *bad_request;
-extern struct _HttpResponse *server_error;
-extern struct _HttpResponse *bad_user;
 extern struct _HttpResponse *missing_values;
 
 extern struct _HttpResponse *pocket_works;

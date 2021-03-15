@@ -50,10 +50,6 @@ const String *PUB_KEY = NULL;
 
 bool ENABLE_USERS_ROUTES = false;
 
-HttpResponse *oki_doki = NULL;
-HttpResponse *bad_request = NULL;
-HttpResponse *server_error = NULL;
-HttpResponse *bad_user = NULL;
 HttpResponse *missing_values = NULL;
 
 HttpResponse *pocket_works = NULL;
@@ -390,22 +386,6 @@ static unsigned int pocket_init_responses (void) {
 
 	unsigned int retval = 1;
 
-	oki_doki = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	bad_request = http_response_json_key_value (
-		(http_status) 400, "error", "Bad request!"
-	);
-
-	server_error = http_response_json_key_value (
-		(http_status) 500, "error", "Internal server error!"
-	);
-
-	bad_user = http_response_json_key_value (
-		(http_status) 400, "error", "Bad user!"
-	);
-
 	missing_values = http_response_json_key_value (
 		(http_status) 400, "error", "Missing values!"
 	);
@@ -580,37 +560,33 @@ unsigned int pocket_end (void) {
 
 	pocket_handler_end ();
 
-	http_respponse_delete (oki_doki);
-	http_respponse_delete (bad_request);
-	http_respponse_delete (server_error);
-	http_respponse_delete (bad_user);
-	http_respponse_delete (missing_values);
+	http_response_delete (missing_values);
 
-	http_respponse_delete (pocket_works);
-	http_respponse_delete (current_version);
+	http_response_delete (pocket_works);
+	http_response_delete (current_version);
 
-	http_respponse_delete (no_user_trans);
+	http_response_delete (no_user_trans);
 
-	http_respponse_delete (trans_created_success);
-	http_respponse_delete (trans_created_bad);
-	http_respponse_delete (trans_deleted_success);
-	http_respponse_delete (trans_deleted_bad);
+	http_response_delete (trans_created_success);
+	http_response_delete (trans_created_bad);
+	http_response_delete (trans_deleted_success);
+	http_response_delete (trans_deleted_bad);
 
-	http_respponse_delete (no_user_categories);
-	http_respponse_delete (no_user_category);
+	http_response_delete (no_user_categories);
+	http_response_delete (no_user_category);
 
-	http_respponse_delete (category_created_success);
-	http_respponse_delete (category_created_bad);
-	http_respponse_delete (category_deleted_success);
-	http_respponse_delete (category_deleted_bad);
+	http_response_delete (category_created_success);
+	http_response_delete (category_created_bad);
+	http_response_delete (category_deleted_success);
+	http_response_delete (category_deleted_bad);
 
-	http_respponse_delete (no_user_places);
-	http_respponse_delete (no_user_place);
+	http_response_delete (no_user_places);
+	http_response_delete (no_user_place);
 
-	http_respponse_delete (place_created_success);
-	http_respponse_delete (place_created_bad);
-	http_respponse_delete (place_deleted_success);
-	http_respponse_delete (place_deleted_bad);
+	http_response_delete (place_created_success);
+	http_response_delete (place_created_bad);
+	http_response_delete (place_deleted_success);
+	http_response_delete (place_deleted_bad);
 
 	str_delete ((String *) MONGO_URI);
 	str_delete ((String *) MONGO_APP_NAME);
