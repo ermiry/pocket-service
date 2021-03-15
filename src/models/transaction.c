@@ -219,6 +219,32 @@ u8 transaction_get_by_oid_and_user (
 
 }
 
+u8 transaction_get_by_oid_and_user_to_json (
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts,
+	char **json, size_t *json_len
+) {
+
+	u8 retval = 1;
+
+	if (oid && user_oid) {
+		bson_t *trans_query = transaction_query_by_oid_and_user (
+			oid, user_oid
+		);
+
+		if (trans_query) {
+			retval = mongo_find_one_with_opts_to_json (
+				transactions_model,
+				trans_query, query_opts,
+				json, json_len
+			);
+		}
+	}
+
+	return retval;
+
+}
+
 bson_t *transaction_to_bson (const Transaction *trans) {
 
     bson_t *doc = NULL;
