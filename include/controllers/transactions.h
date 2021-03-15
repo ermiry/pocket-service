@@ -13,7 +13,6 @@
 extern Pool *trans_pool;
 
 extern const bson_t *trans_no_user_query_opts;
-extern DoubleList *trans_no_user_select;
 
 extern unsigned int pocket_trans_init (void);
 

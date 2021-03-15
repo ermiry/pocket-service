@@ -10,7 +10,8 @@
 
 #include <cerver/utils/log.h>
 
-#include "mongo.h"
+#include <cmongo/crud.h>
+#include <cmongo/select.h>
 
 #include "controllers/transactions.h"
 
@@ -19,7 +20,7 @@
 Pool *trans_pool = NULL;
 
 const bson_t *trans_no_user_query_opts = NULL;
-DoubleList *trans_no_user_select = NULL;
+static CMongoSelect *trans_no_user_select = NULL;
 
 void pocket_trans_delete (void *trans_ptr);
 
@@ -52,11 +53,11 @@ static unsigned int pocket_trans_init_query_opts (void) {
 
 	unsigned int retval = 1;
 
-	trans_no_user_select = dlist_init (str_delete, str_comparator);
-	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("title"));
-	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("amount"));
-	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("date"));
-	(void) dlist_insert_at_end_unsafe (trans_no_user_select, str_new ("category"));
+	trans_no_user_select = cmongo_select_new ();
+	(void) cmongo_select_insert_field (trans_no_user_select, "title");
+	(void) cmongo_select_insert_field (trans_no_user_select, "amount");
+	(void) cmongo_select_insert_field (trans_no_user_select, "date");
+	(void) cmongo_select_insert_field (trans_no_user_select, "category");
 
 	trans_no_user_query_opts = mongo_find_generate_opts (trans_no_user_select);
 
@@ -80,6 +81,7 @@ unsigned int pocket_trans_init (void) {
 
 void pocket_trans_end (void) {
 
+	cmongo_select_delete (trans_no_user_select);
 	bson_destroy ((bson_t *) trans_no_user_query_opts);
 
 	pool_delete (trans_pool);
@@ -127,7 +129,7 @@ Transaction *pocket_trans_create (
 
 		bson_oid_init_from_string (&trans->user_oid, user_id);
 
-		if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
+		if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN - 1);
 		trans->amount = amount;
 
 		if (category_id) {
