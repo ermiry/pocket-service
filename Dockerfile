@@ -1,6 +1,5 @@
 ARG CMONGO_VERSION=1.0b-2
-ARG CERVER_VERSION=2.0b-28
-ARG pocket_VERSION=1.0.1
+ARG CERVER_VERSION=2.0b-30
 
 ARG BUILD_DEPS='ca-certificates git libssl-dev libcurl4-openssl-dev'
 ARG RUNTIME_DEPS='ca-certificates libssl-dev libcurl4-openssl-dev'
