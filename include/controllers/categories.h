@@ -13,7 +13,6 @@
 extern Pool *categories_pool;
 
 extern const bson_t *category_no_user_query_opts;
-extern DoubleList *category_no_user_select;
 
 extern unsigned int pocket_categories_init (void);
 

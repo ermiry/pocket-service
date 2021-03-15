@@ -8,7 +8,8 @@
 
 #include <cerver/utils/log.h>
 
-#include "mongo.h"
+#include <cmongo/crud.h>
+#include <cmongo/select.h>
 
 #include "controllers/categories.h"
 
@@ -17,7 +18,7 @@
 Pool *categories_pool = NULL;
 
 const bson_t *category_no_user_query_opts = NULL;
-DoubleList *category_no_user_select = NULL;
+static CMongoSelect *category_no_user_select = NULL;
 
 void pocket_category_delete (void *category_ptr);
 
@@ -50,11 +51,11 @@ static unsigned int pocket_categories_init_query_opts (void) {
 
 	unsigned int retval = 1;
 
-	category_no_user_select = dlist_init (str_delete, str_comparator);
-	(void) dlist_insert_at_end_unsafe (category_no_user_select, str_new ("title"));
-	(void) dlist_insert_at_end_unsafe (category_no_user_select, str_new ("description"));
-	(void) dlist_insert_at_end_unsafe (category_no_user_select, str_new ("color"));
-	(void) dlist_insert_at_end_unsafe (category_no_user_select, str_new ("date"));
+	category_no_user_select = cmongo_select_new ();
+	(void) cmongo_select_insert_field (category_no_user_select, "title");
+	(void) cmongo_select_insert_field (category_no_user_select, "description");
+	(void) cmongo_select_insert_field (category_no_user_select, "color");
+	(void) cmongo_select_insert_field (category_no_user_select, "date");
 
 	category_no_user_query_opts = mongo_find_generate_opts (category_no_user_select);
 
@@ -78,6 +79,7 @@ unsigned int pocket_categories_init (void) {
 
 void pocket_categories_end (void) {
 
+	cmongo_select_delete (category_no_user_select);
 	bson_destroy ((bson_t *) category_no_user_query_opts);
 
 	pool_delete (categories_pool);
@@ -123,10 +125,10 @@ Category *pocket_category_create (
 
 		bson_oid_init_from_string (&category->user_oid, user_id);
 
-		if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_LEN);
-		if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_LEN);
+		if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_LEN - 1);
+		if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_LEN - 1);
 
-		if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_LEN);
+		if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_LEN - 1);
 		
 		category->date = time (NULL);
 	}
