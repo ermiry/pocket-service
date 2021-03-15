@@ -151,6 +151,20 @@ bson_t *place_query_oid (const bson_oid_t *oid) {
 
 }
 
+bson_t *place_query_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
+) {
+
+	bson_t *place_query = bson_new ();
+	if (place_query) {
+		(void) bson_append_oid (place_query, "_id", -1, oid);
+		(void) bson_append_oid (place_query, "user", -1, user_oid);
+	}
+
+	return place_query;
+
+}
+
 u8 place_get_by_oid (
 	Place *place, const bson_oid_t *oid, const bson_t *query_opts
 ) {
@@ -182,11 +196,11 @@ u8 place_get_by_oid_and_user (
 	u8 retval = 1;
 
 	if (place) {
-		bson_t *place_query = bson_new ();
-		if (place_query) {
-			(void) bson_append_oid (place_query, "_id", -1, oid);
-			(void) bson_append_oid (place_query, "user", -1, user_oid);
+		bson_t *place_query = place_query_by_oid_and_user (
+			oid, user_oid
+		);
 
+		if (place_query) {
 			retval = mongo_find_one_with_opts (
 				places_model,
 				place_query, query_opts,
@@ -199,7 +213,7 @@ u8 place_get_by_oid_and_user (
 
 }
 
-bson_t *place_to_bson (Place *place) {
+bson_t *place_to_bson (const Place *place) {
 
     bson_t *doc = NULL;
 
@@ -223,7 +237,7 @@ bson_t *place_to_bson (Place *place) {
 
 }
 
-bson_t *place_update_bson (Place *place) {
+bson_t *place_update_bson (const Place *place) {
 
 	bson_t *doc = NULL;
 
@@ -259,6 +273,46 @@ mongoc_cursor_t *places_get_all_by_user (
 			retval = mongo_find_all_cursor_with_opts (
 				places_model,
 				query, opts
+			);
+		}
+	}
+
+	return retval;
+
+}
+
+unsigned int place_insert_one (const Place *place) {
+
+	return mongo_insert_one (
+		places_model, place_to_bson (place)
+	);
+
+}
+
+unsigned int place_update_one (const Place *place) {
+
+	return mongo_update_one (
+		places_model,
+		place_query_oid (&place->oid),
+		place_update_bson (place)
+	);
+
+}
+
+unsigned int place_delete_one_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
+) {
+
+	unsigned int retval = 1;
+
+	if (oid && user_oid) {
+		bson_t *place_query = place_query_by_oid_and_user (
+			oid, user_oid
+		);
+
+		if (place_query) {
+			retval = mongo_delete_one (
+				places_model, place_query
 			);
 		}
 	}
