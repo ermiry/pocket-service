@@ -27,7 +27,7 @@ void pocket_error_send_response (
 		case POCKET_ERROR_NONE: break;
 
 		case POCKET_ERROR_BAD_REQUEST:
-			(void) http_response_send (bad_request, http_receive);
+			(void) http_response_send (bad_request_error, http_receive);
 			break;
 
 		case POCKET_ERROR_MISSING_VALUES:
@@ -35,7 +35,7 @@ void pocket_error_send_response (
 			break;
 
 		case POCKET_ERROR_BAD_USER:
-			(void) http_response_send (bad_user, http_receive);
+			(void) http_response_send (bad_user_error, http_receive);
 			break;
 
 		case POCKET_ERROR_SERVER_ERROR:
