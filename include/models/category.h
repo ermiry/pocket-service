@@ -50,6 +50,10 @@ extern void category_print (Category *category);
 
 extern bson_t *category_query_oid (const bson_oid_t *oid);
 
+extern bson_t *category_query_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
+);
+
 extern const bson_t *category_find_by_oid (
 	const bson_oid_t *oid, const bson_t *query_opts
 );
@@ -69,13 +73,21 @@ extern u8 category_get_by_oid_and_user (
 	const bson_t *query_opts
 );
 
-extern bson_t *category_to_bson (Category *category);
+extern bson_t *category_to_bson (const Category *category);
 
-extern bson_t *category_update_bson (Category *category);
+extern bson_t *category_update_bson (const Category *category);
 
 // get all the categories that are related to a user
 extern mongoc_cursor_t *categories_get_all_by_user (
 	const bson_oid_t *user_oid, const bson_t *opts
+);
+
+extern unsigned int category_insert_one (const Category *category);
+
+extern unsigned int category_update_one (const Category *category);
+
+extern unsigned int category_delete_one_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
 );
 
 #endif

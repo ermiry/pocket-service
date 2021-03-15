@@ -146,6 +146,20 @@ bson_t *category_query_oid (const bson_oid_t *oid) {
 
 }
 
+bson_t *category_query_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
+) {
+
+	bson_t *category_query = bson_new ();
+	if (category_query) {
+		(void) bson_append_oid (category_query, "_id", -1, oid);
+		(void) bson_append_oid (category_query, "user", -1, user_oid);
+	}
+
+	return category_query;
+
+}
+
 u8 category_get_by_oid (
 	Category *category, const bson_oid_t *oid, const bson_t *query_opts
 ) {
@@ -177,11 +191,11 @@ u8 category_get_by_oid_and_user (
 	u8 retval = 1;
 
 	if (category && oid && user_oid) {
-		bson_t *category_query = bson_new ();
-		if (category_query) {
-			(void) bson_append_oid (category_query, "_id", -1, oid);
-			(void) bson_append_oid (category_query, "user", -1, user_oid);
+		bson_t *category_query = category_query_by_oid_and_user (
+			oid, user_oid
+		);
 
+		if (category_query) {
 			retval = mongo_find_one_with_opts (
 				categories_model,
 				category_query, query_opts,
@@ -194,7 +208,7 @@ u8 category_get_by_oid_and_user (
 
 }
 
-bson_t *category_to_bson (Category *category) {
+bson_t *category_to_bson (const Category *category) {
 
     bson_t *doc = NULL;
 
@@ -217,7 +231,7 @@ bson_t *category_to_bson (Category *category) {
 
 }
 
-bson_t *category_update_bson (Category *category) {
+bson_t *category_update_bson (const Category *category) {
 
 	bson_t *doc = NULL;
 
@@ -252,6 +266,46 @@ mongoc_cursor_t *categories_get_all_by_user (
 			retval = mongo_find_all_cursor_with_opts (
 				categories_model,
 				query, opts
+			);
+		}
+	}
+
+	return retval;
+
+}
+
+unsigned int category_insert_one (const Category *category) {
+
+	return mongo_insert_one (
+		categories_model, category_to_bson (category)
+	);
+
+}
+
+unsigned int category_update_one (const Category *category) {
+
+	return mongo_update_one (
+		categories_model,
+		category_query_oid (&category->oid),
+		category_update_bson (category)
+	);
+
+}
+
+unsigned int category_delete_one_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
+) {
+
+	unsigned int retval = 1;
+
+	if (oid && user_oid) {
+		bson_t *category_query = category_query_by_oid_and_user (
+			oid, user_oid
+		);
+
+		if (category_query) {
+			retval = mongo_delete_one (
+				categories_model, category_query
 			);
 		}
 	}
