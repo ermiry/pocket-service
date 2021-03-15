@@ -14,7 +14,6 @@
 #include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
 
-#include "mongo.h"
 #include "pocket.h"
 
 #include "controllers/roles.h"
@@ -119,15 +118,15 @@ static void users_bad_input (
 	char password_error[USER_FIELD_LEN] = { "null" };
 	char confirm_error[USER_FIELD_LEN] = { "null" };
 
-	if (!name && !login) (void) strncpy (name_error, "Name field is required!", USER_FIELD_LEN);
-	if (!username && !login) (void) strncpy (username_error, "Username field is required!", USER_FIELD_LEN);
-	if (!email) (void) strncpy (email_error, "Email field is required!", USER_FIELD_LEN);
-	if (!password) (void) strncpy (password_error, "Password field is required!", USER_FIELD_LEN);
-	if (!confirm && !login) (void) strncpy (confirm_error, "Password confirm field is required!", USER_FIELD_LEN);
+	if (!name && !login) (void) strncpy (name_error, "Name field is required!", USER_FIELD_LEN - 1);
+	if (!username && !login) (void) strncpy (username_error, "Username field is required!", USER_FIELD_LEN - 1);
+	if (!email) (void) strncpy (email_error, "Email field is required!", USER_FIELD_LEN - 1);
+	if (!password) (void) strncpy (password_error, "Password field is required!", USER_FIELD_LEN - 1);
+	if (!confirm && !login) (void) strncpy (confirm_error, "Password confirm field is required!", USER_FIELD_LEN - 1);
 
 	if (password && confirm && !login) {
 		if (strcmp (password, confirm)) {
-			(void) strncpy (confirm_error, "Passwords do not match!", USER_FIELD_LEN);
+			(void) strncpy (confirm_error, "Passwords do not match!", USER_FIELD_LEN - 1);
 		}
 	}
 
@@ -153,7 +152,7 @@ static void users_bad_input (
 			http_response_compile (res);
 			// http_response_print (res);
 			(void) http_response_send (res, http_receive);
-			http_respponse_delete (res);
+			http_response_delete (res);
 		}
 
 		free (json);
@@ -179,10 +178,10 @@ static bool users_register_handler_validate_input (
 
 	if (name && username && email && password && confirm) {
 		if (!strcmp (password, confirm)) {
-			(void) strncpy (user_values->name, name, USER_NAME_LEN);
-			(void) strncpy (user_values->username, username, USER_USERNAME_LEN);
-			(void) strncpy (user_values->email, email, USER_EMAIL_LEN);
-			(void) strncpy (user_values->password, password, USER_PASSWORD_LEN);
+			(void) strncpy (user_values->name, name, USER_NAME_LEN - 1);
+			(void) strncpy (user_values->username, username, USER_USERNAME_LEN - 1);
+			(void) strncpy (user_values->email, email, USER_EMAIL_LEN - 1);
+			(void) strncpy (user_values->password, password, USER_PASSWORD_LEN - 1);
 
 			valid = true;
 		}
@@ -214,8 +213,8 @@ static bool users_login_handler_validate_input (
 	bool retval = false;
 
 	if (email && password) {
-		(void) strncpy (user_values->email, email, USER_EMAIL_LEN);
-		(void) strncpy (user_values->password, password, USER_PASSWORD_LEN);
+		(void) strncpy (user_values->email, email, USER_EMAIL_LEN - 1);
+		(void) strncpy (user_values->password, password, USER_PASSWORD_LEN - 1);
 
 		retval = true;
 	}
@@ -299,58 +298,46 @@ static bool users_validate_input (
 // generate and send back token
 static void users_generate_and_send_token (
 	const HttpReceive *http_receive,
-	const User *user, const String *role_name
+	const User *user, const char *role_name
 ) {
 
 	bson_oid_to_string (&user->oid, (char *) user->id);
 
-	DoubleList *payload = dlist_init (key_value_pair_delete, NULL);
-	(void) dlist_insert_at_end_unsafe (payload, key_value_pair_create ("email", user->email));
-	(void) dlist_insert_at_end_unsafe (payload, key_value_pair_create ("id", user->id));
-	(void) dlist_insert_at_end_unsafe (payload, key_value_pair_create ("name", user->name));
-	(void) dlist_insert_at_end_unsafe (payload, key_value_pair_create ("role", role_name->str));
-	(void) dlist_insert_at_end_unsafe (payload, key_value_pair_create ("username", user->username));
+	HttpJwt *http_jwt = http_cerver_auth_jwt_new ();
+	if (http_jwt) {
+		http_cerver_auth_jwt_add_value_int (http_jwt, "iat", time (NULL));
+		http_cerver_auth_jwt_add_value (http_jwt, "id", user->id);
+		http_cerver_auth_jwt_add_value (http_jwt, "email", user->email);
+		http_cerver_auth_jwt_add_value (http_jwt, "name", user->name);
+		http_cerver_auth_jwt_add_value (http_jwt, "role", role_name);
+		http_cerver_auth_jwt_add_value (http_jwt, "username", user->username);
 
-	// generate & send back auth token
-	char *token = http_cerver_auth_generate_jwt (
-		(HttpCerver *) http_receive->cr->cerver->cerver_data, payload
-	);
+		// generate & send back auth token
+		if (!http_cerver_auth_generate_bearer_jwt_json (
+			http_receive->http_cerver, http_jwt
+		)) {
+			HttpResponse *res = http_response_create (
+				200, http_jwt->json, strlen (http_jwt->json)
+			);
 
-	if (token) {
-		char *bearer = c_string_create ("Bearer %s", token);
-		if (bearer) {
-			char *json = c_string_create ("{\"token\": \"%s\"}", bearer);
-			if (json) {
-				HttpResponse *res = http_response_create (200, json, strlen (json));
-				if (res) {
-					http_response_compile (res);
-					// http_response_print (res);
-					(void) http_response_send (res, http_receive);
-					http_respponse_delete (res);
-				}
-
-				free (json);
+			if (res) {
+				(void) http_response_compile (res);
+				// http_response_print (res);
+				(void) http_response_send (res, http_receive);
+				http_response_delete (res);
 			}
-
-			else {
-				(void) http_response_send (server_error, http_receive);
-			}
-
-			free (bearer);
 		}
 
 		else {
 			(void) http_response_send (server_error, http_receive);
 		}
-
-		free (token);
 	}
 
 	else {
 		(void) http_response_send (server_error, http_receive);
 	}
 
-	dlist_delete (payload);
+	http_cerver_auth_jwt_delete (http_jwt);
 
 }
 
@@ -361,10 +348,7 @@ static u8 users_register_handler_save_user (
 
 	u8 retval = 1;
 
-	if (!mongo_insert_one (
-		users_collection,
-		user_bson_create (user)
-	)) {
+	if (!user_insert_one (user)) {
 		retval = 0;
 	}
 
@@ -391,7 +375,7 @@ void users_register_handler (
 		user_values,
 		false
 	)) {
-		if (!pocket_user_check_by_email (http_receive, user_values->email)) {
+		if (!pocket_user_check_by_email (user_values->email)) {
 			User *user = pocket_user_create (
 				user_values->name,
 				user_values->username,
@@ -420,6 +404,13 @@ void users_register_handler (
 				#endif
 				(void) http_response_send (server_error, http_receive);
 			}
+		}
+
+		else {
+			#ifdef POCKET_DEBUG
+			cerver_log_warning ("Found matching user with email: %s", user_values->email);
+			#endif
+			(void) http_response_send (repeated_email, http_receive);
 		}
 	}
 
@@ -456,7 +447,7 @@ void users_login_handler (
 				// generate and send token back to the user
 				users_generate_and_send_token (
 					http_receive,
-					user, pocket_roles_get_by_oid (&user->role_oid)
+					user, pocket_role_name_get_by_oid (&user->role_oid)
 				);
 			}
 
