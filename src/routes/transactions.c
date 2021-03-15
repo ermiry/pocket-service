@@ -15,7 +15,6 @@
 #include <cerver/utils/log.h>
 
 #include "errors.h"
-#include "mongo.h"
 #include "pocket.h"
 
 #include "controllers/categories.h"
@@ -107,12 +106,12 @@ void pocket_transactions_handler (
 		}
 
 		else {
-			(void) http_response_send (bad_user, http_receive);
+			(void) http_response_send (bad_user_error, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -132,22 +131,30 @@ static void pocket_trans_parse_json (
 		json_object_foreach (json_body, key, value) {
 			if (!strcmp (key, "title")) {
 				*title = json_string_value (value);
+				#ifdef POCKET_DEBUG
 				(void) printf ("title: \"%s\"\n", *title);
+				#endif
 			}
 
 			else if (!strcmp (key, "amount")) {
 				*amount = json_real_value (value);
+				#ifdef POCKET_DEBUG
 				(void) printf ("amount: %f\n", *amount);
+				#endif
 			}
 
 			else if (!strcmp (key, "category")) {
 				*category = json_string_value (value);
+				#ifdef POCKET_DEBUG
 				(void) printf ("category: \"%s\"\n", *category);
+				#endif
 			}
 
 			else if (!strcmp (key, "date")) {
 				*date = json_string_value (value);
+				#ifdef POCKET_DEBUG
 				(void) printf ("date: \"%s\"\n", *date);
+				#endif
 			}
 		}
 	}
@@ -176,7 +183,7 @@ static PocketError pocket_transaction_create_handler_internal (
 				&category_id, &date
 			);
 
-			if (title && (amount != 0) && category_id) {
+			if (title && category_id) {
 				*trans = pocket_trans_create (
 					user_id,
 					title, amount,
@@ -235,16 +242,9 @@ void pocket_transaction_create_handler (
 			transaction_print (trans);
 			#endif
 
-			if (!mongo_insert_one (
-				transactions_collection,
-				transaction_to_bson (trans)
-			)) {
+			if (!transaction_insert_one (trans)) {
 				// update users values
-				(void) mongo_update_one (
-					users_collection,
-					user_query_id (user->id),
-					user_create_update_pocket_transactions ()
-				);
+				(void) user_add_transactions (user);
 
 				// return success to user
 				(void) http_response_send (
@@ -269,7 +269,7 @@ void pocket_transaction_create_handler (
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -318,7 +318,7 @@ void pocket_transaction_get_handler (
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -344,7 +344,7 @@ static u8 pocket_transaction_update_handler_internal (
 				&category_id, &date
 			);
 
-			if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN);
+			if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN - 1);
 			trans->amount = amount;
 
 			json_decref (json_body);
@@ -389,11 +389,7 @@ void pocket_transaction_update_handler (
 				trans, request->body
 			)) {
 				// update the transaction in the db
-				if (!mongo_update_one (
-					transactions_collection,
-					transaction_query_oid (&trans->oid),
-					transaction_update_bson (trans)
-				)) {
+				if (!transaction_update_one (trans)) {
 					(void) http_response_send (oki_doki, http_receive);
 				}
 
@@ -406,12 +402,12 @@ void pocket_transaction_update_handler (
 		}
 
 		else {
-			(void) http_response_send (bad_request, http_receive);
+			(void) http_response_send (bad_request_error, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
@@ -427,36 +423,26 @@ void pocket_transaction_delete_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		bson_t *trans_query = bson_new ();
-		if (trans_query) {
-			bson_oid_t oid = { 0 };
+		bson_oid_t oid = { 0 };
+		bson_oid_init_from_string (&oid, trans_id->str);
 
-			bson_oid_init_from_string (&oid, trans_id->str);
-			(void) bson_append_oid (trans_query, "_id", -1, &oid);
+		if (!transaction_delete_one_by_oid_and_user (
+			&oid, &user->oid
+		)) {
+			#ifdef POCKET_DEBUG
+			cerver_log_debug ("Deleted transaction %s", trans_id->str);
+			#endif
 
-			bson_oid_init_from_string (&oid, user->id);
-			(void) bson_append_oid (trans_query, "user", -1, &oid);
-
-			if (!mongo_delete_one (transactions_collection, trans_query)) {
-				#ifdef POCKET_DEBUG
-				cerver_log_debug ("Deleted transaction %s", trans_id->str);
-				#endif
-
-				(void) http_response_send (trans_deleted_success, http_receive);
-			}
-
-			else {
-				(void) http_response_send (trans_deleted_bad, http_receive);
-			}
+			(void) http_response_send (trans_deleted_success, http_receive);
 		}
 
 		else {
-			(void) http_response_send (server_error, http_receive);
+			(void) http_response_send (trans_deleted_bad, http_receive);
 		}
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
 
 }
