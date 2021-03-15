@@ -77,6 +77,10 @@ extern void transaction_print (Transaction *transaction);
 
 extern bson_t *transaction_query_oid (const bson_oid_t *oid);
 
+extern bson_t *transaction_query_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
+);
+
 extern const bson_t *transaction_find_by_oid (
 	const bson_oid_t *oid, const bson_t *query_opts
 );
@@ -96,13 +100,25 @@ extern u8 transaction_get_by_oid_and_user (
 	const bson_t *query_opts
 );
 
-extern bson_t *transaction_to_bson (Transaction *trans);
+extern bson_t *transaction_to_bson (const Transaction *trans);
 
-extern bson_t *transaction_update_bson (Transaction *trans);
+extern bson_t *transaction_update_bson (const Transaction *trans);
 
 // get all the transactions that are related to a user
 extern mongoc_cursor_t *transactions_get_all_by_user (
 	const bson_oid_t *user_oid, const bson_t *opts
+);
+
+extern unsigned int transaction_insert_one (
+	const Transaction *transaction
+);
+
+extern unsigned int transaction_update_one (
+	const Transaction *transaction
+);
+
+extern unsigned int transaction_delete_one_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
 );
 
 #endif

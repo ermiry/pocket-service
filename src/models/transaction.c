@@ -17,8 +17,8 @@
 
 static CMongoModel *transactions_model = NULL;
 
-static void transaction_doc_parse (
-	void *transaction_ptr, const bson_t *transaction_doc
+static void trans_doc_parse (
+	void *trans_ptr, const bson_t *trans_doc
 );
 
 unsigned int transactions_model_init (void) {
@@ -27,7 +27,7 @@ unsigned int transactions_model_init (void) {
 
 	transactions_model = cmongo_model_create (TRANSACTIONS_COLL_NAME);
 	if (transactions_model) {
-		cmongo_model_set_parser (transactions_model, transaction_doc_parse);
+		cmongo_model_set_parser (transactions_model, trans_doc_parse);
 
 		retval = 0;
 	}
@@ -157,6 +157,20 @@ bson_t *transaction_query_oid (const bson_oid_t *oid) {
 
 }
 
+bson_t *transaction_query_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
+) {
+
+	bson_t *transaction_query = bson_new ();
+	if (transaction_query) {
+		(void) bson_append_oid (transaction_query, "_id", -1, oid);
+		(void) bson_append_oid (transaction_query, "user", -1, user_oid);
+	}
+
+	return transaction_query;
+
+}
+
 u8 transaction_get_by_oid (
 	Transaction *trans, const bson_oid_t *oid, const bson_t *query_opts
 ) {
@@ -188,11 +202,11 @@ u8 transaction_get_by_oid_and_user (
 	u8 retval = 1;
 
 	if (trans && oid && user_oid) {
-		bson_t *trans_query = bson_new ();
-		if (trans_query) {
-			(void) bson_append_oid (trans_query, "_id", -1, oid);
-			(void) bson_append_oid (trans_query, "user", -1, user_oid);
+		bson_t *trans_query = transaction_query_by_oid_and_user (
+			oid, user_oid
+		);
 
+		if (trans_query) {
 			retval = mongo_find_one_with_opts (
 				transactions_model,
 				trans_query, query_opts,
@@ -205,7 +219,7 @@ u8 transaction_get_by_oid_and_user (
 
 }
 
-bson_t *transaction_to_bson (Transaction *trans) {
+bson_t *transaction_to_bson (const Transaction *trans) {
 
     bson_t *doc = NULL;
 
@@ -230,7 +244,7 @@ bson_t *transaction_to_bson (Transaction *trans) {
 
 }
 
-bson_t *transaction_update_bson (Transaction *trans) {
+bson_t *transaction_update_bson (const Transaction *trans) {
 
 	bson_t *doc = NULL;
 
@@ -265,6 +279,46 @@ mongoc_cursor_t *transactions_get_all_by_user (
 			retval = mongo_find_all_cursor_with_opts (
 				transactions_model,
 				query, opts
+			);
+		}
+	}
+
+	return retval;
+
+}
+
+unsigned int transaction_insert_one (const Transaction *transaction) {
+
+	return mongo_insert_one (
+		transactions_model, transaction_to_bson (transaction)
+	);
+
+}
+
+unsigned int transaction_update_one (const Transaction *transaction) {
+
+	return mongo_update_one (
+		transactions_model,
+		transaction_query_oid (&transaction->oid),
+		transaction_update_bson (transaction)
+	);
+
+}
+
+unsigned int transaction_delete_one_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
+) {
+
+	unsigned int retval = 1;
+
+	if (oid && user_oid) {
+		bson_t *transaction_query = transaction_query_by_oid_and_user (
+			oid, user_oid
+		);
+
+		if (transaction_query) {
+			retval = mongo_delete_one (
+				transactions_model, transaction_query
 			);
 		}
 	}
