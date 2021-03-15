@@ -13,16 +13,9 @@ struct _HttpReceive;
 struct _HttpResponse;
 
 extern const bson_t *user_login_query_opts;
-extern DoubleList *user_login_select;
-
 extern const bson_t *user_transactions_query_opts;
-extern DoubleList *user_transactions_select;
-
 extern const bson_t *user_categories_query_opts;
-extern DoubleList *user_categories_select;
-
 extern const bson_t *user_places_query_opts;
-extern DoubleList *user_places_select;
 
 extern struct _HttpResponse *users_works;
 extern struct _HttpResponse *missing_user_values;
@@ -47,7 +40,7 @@ extern User *pocket_user_get (void);
 extern User *pocket_user_get_by_email (const char *email);
 
 extern u8 pocket_user_check_by_email (
-	const struct _HttpReceive *http_receive, const char *email
+	const char *email
 );
 
 // {

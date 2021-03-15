@@ -16,7 +16,9 @@
 #include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
 
-#include "mongo.h"
+#include <cmongo/crud.h>
+#include <cmongo/select.h>
+
 #include "pocket.h"
 
 #include "controllers/roles.h"
@@ -27,16 +29,16 @@
 static Pool *users_pool = NULL;
 
 const bson_t *user_login_query_opts = NULL;
-DoubleList *user_login_select = NULL;
+static CMongoSelect *user_login_select = NULL;
 
 const bson_t *user_transactions_query_opts = NULL;
-DoubleList *user_transactions_select = NULL;
+static CMongoSelect *user_transactions_select = NULL;
 
 const bson_t *user_categories_query_opts = NULL;
-DoubleList *user_categories_select = NULL;
+static CMongoSelect *user_categories_select = NULL;
 
 const bson_t *user_places_query_opts = NULL;
-DoubleList *user_places_select = NULL;
+static CMongoSelect *user_places_select = NULL;
 
 HttpResponse *users_works = NULL;
 HttpResponse *missing_user_values = NULL;
@@ -73,27 +75,27 @@ static unsigned int pocket_users_init_query_opts (void) {
 
 	unsigned int retval = 1;
 
-	user_login_select = dlist_init (str_delete, str_comparator);
-	(void) dlist_insert_after (user_login_select, dlist_end (user_login_select), str_new ("name"));
-	(void) dlist_insert_after (user_login_select, dlist_end (user_login_select), str_new ("username"));
-	(void) dlist_insert_after (user_login_select, dlist_end (user_login_select), str_new ("email"));
-	(void) dlist_insert_after (user_login_select, dlist_end (user_login_select), str_new ("password"));
-	(void) dlist_insert_after (user_login_select, dlist_end (user_login_select), str_new ("role"));
+	user_login_select = cmongo_select_new ();
+	(void) cmongo_select_insert_field (user_login_select, "name");
+	(void) cmongo_select_insert_field (user_login_select, "username");
+	(void) cmongo_select_insert_field (user_login_select, "email");
+	(void) cmongo_select_insert_field (user_login_select, "password");
+	(void) cmongo_select_insert_field (user_login_select, "role");
 
 	user_login_query_opts = mongo_find_generate_opts (user_login_select);
 
-	user_transactions_select = dlist_init (str_delete, str_comparator);
-	(void) dlist_insert_after (user_transactions_select, dlist_end (user_transactions_select), str_new ("transCount"));
+	user_transactions_select = cmongo_select_new ();
+	(void) cmongo_select_insert_field (user_transactions_select, "transCount");
 
 	user_transactions_query_opts = mongo_find_generate_opts (user_transactions_select);
 
-	user_categories_select = dlist_init (str_delete, str_comparator);
-	(void) dlist_insert_after (user_categories_select, dlist_end (user_categories_select), str_new ("categoriesCount"));
+	user_categories_select = cmongo_select_new ();
+	(void) cmongo_select_insert_field (user_categories_select, "categoriesCount");
 
 	user_categories_query_opts = mongo_find_generate_opts (user_categories_select);
 
-	user_places_select = dlist_init (str_delete, str_comparator);
-	(void) dlist_insert_after (user_places_select, dlist_end (user_places_select), str_new ("placesCount"));
+	user_places_select = cmongo_select_new ();
+	(void) cmongo_select_insert_field (user_places_select, "placesCount");
 
 	user_places_query_opts = mongo_find_generate_opts (user_places_select);
 
@@ -169,11 +171,11 @@ void pocket_users_end (void) {
 	dlist_delete (user_places_select);
 	bson_destroy ((bson_t *) user_places_query_opts);
 
-	http_respponse_delete (users_works);
-	http_respponse_delete (missing_user_values);
-	http_respponse_delete (wrong_password);
-	http_respponse_delete (user_not_found);
-	http_respponse_delete (repeated_email);
+	http_response_delete (users_works);
+	http_response_delete (missing_user_values);
+	http_response_delete (wrong_password);
+	http_response_delete (user_not_found);
+	http_response_delete (repeated_email);
 
 	pool_delete (users_pool);
 	users_pool = NULL;
@@ -192,10 +194,10 @@ User *pocket_user_create (
 	if (user) {
 		bson_oid_init (&user->oid, NULL);
 
-		strncpy (user->name, name, USER_NAME_LEN);
-		strncpy (user->username, username, USER_USERNAME_LEN);
-		strncpy (user->email, email, USER_EMAIL_LEN);
-		strncpy (user->password, password, USER_PASSWORD_LEN);
+		(void) strncpy (user->name, name, USER_NAME_LEN - 1);
+		(void) strncpy (user->username, username, USER_USERNAME_LEN - 1);
+		(void) strncpy (user->email, email, USER_EMAIL_LEN - 1);
+		(void) strncpy (user->password, password, USER_PASSWORD_LEN - 1);
 
 		bson_oid_copy (role_oid, &user->role_oid);
 	}
@@ -228,30 +230,17 @@ User *pocket_user_get_by_email (const char *email) {
 }
 
 u8 pocket_user_check_by_email (
-	const HttpReceive *http_receive, const char *email
+	const char *email
 ) {
 
-	u8 retval = 1;
-
-	if (!mongo_check (users_collection, user_query_email (email))) {
-		retval = 0;
-	}
-
-	else {
-		#ifdef POCKET_DEBUG
-		cerver_log_warning ("Found matching user with email: %s", email);
-		#endif
-		(void) http_response_send (repeated_email, http_receive);
-	}
-
-	return retval;
+	return user_check_by_email (email);
 
 }
 
 // {
-//   "email": "erick.salas@ermiry.com",
 //   "iat": 1596532954
 //   "id": "5eb2b13f0051f70011e9d3af",
+//   "email": "erick.salas@ermiry.com",
 //   "name": "Erick Salas",
 //   "role": "god",
 //   "username": "erick",
@@ -270,19 +259,21 @@ void *pocket_user_parse_from_json (void *user_json_ptr) {
 
 		if (!json_unpack (
 			user_json,
-			"{s:s, s:i, s:s, s:s, s:s, s:s}",
-			"email", &email,
+			"{s:i, s:s, s:s, s:s, s:s, s:s}",
 			"iat", &user->iat,
 			"id", &id,
+			"email", &email,
 			"name", &name,
 			"role", &role,
 			"username", &username
 		)) {
-			(void) strncpy (user->email, email, USER_EMAIL_LEN);
-			(void) strncpy (user->id, id, USER_ID_LEN);
-			(void) strncpy (user->name, name, USER_NAME_LEN);
-			(void) strncpy (user->role, role, USER_ROLE_LEN);
-			(void) strncpy (user->username, username, USER_USERNAME_LEN);
+			(void) strncpy (user->email, email, USER_EMAIL_LEN - 1);
+			(void) strncpy (user->id, id, USER_ID_LEN - 1);
+			(void) strncpy (user->name, name, USER_NAME_LEN - 1);
+			(void) strncpy (user->role, role, USER_ROLE_LEN - 1);
+			(void) strncpy (user->username, username, USER_USERNAME_LEN - 1);
+
+			bson_oid_init_from_string (&user->oid, user->id);
 
 			if (RUNTIME == RUNTIME_TYPE_DEVELOPMENT) {
 				user_print (user);
