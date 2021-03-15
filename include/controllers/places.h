@@ -15,7 +15,6 @@
 extern Pool *places_pool;
 
 extern const bson_t *place_no_user_query_opts;
-extern DoubleList *place_no_user_select;
 
 extern unsigned int pocket_places_init (void);
 

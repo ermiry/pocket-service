@@ -8,7 +8,8 @@
 
 #include <cerver/utils/log.h>
 
-#include "mongo.h"
+#include <cmongo/crud.h>
+#include <cmongo/select.h>
 
 #include "controllers/places.h"
 
@@ -17,7 +18,7 @@
 Pool *places_pool = NULL;
 
 const bson_t *place_no_user_query_opts = NULL;
-DoubleList *place_no_user_select = NULL;
+static CMongoSelect *place_no_user_select = NULL;
 
 void pocket_place_delete (void *place_ptr);
 
@@ -50,10 +51,10 @@ static unsigned int pocket_places_init_query_opts (void) {
 
 	unsigned int retval = 1;
 
-	place_no_user_select = dlist_init (str_delete, str_comparator);
-	(void) dlist_insert_after (place_no_user_select, dlist_end (place_no_user_select), str_new ("title"));
-	(void) dlist_insert_after (place_no_user_select, dlist_end (place_no_user_select), str_new ("amount"));
-	(void) dlist_insert_after (place_no_user_select, dlist_end (place_no_user_select), str_new ("date"));
+	place_no_user_select = cmongo_select_new ();
+	(void) cmongo_select_insert_field (place_no_user_select, "title");
+	(void) cmongo_select_insert_field (place_no_user_select, "amount");
+	(void) cmongo_select_insert_field (place_no_user_select, "date");
 
 	place_no_user_query_opts = mongo_find_generate_opts (place_no_user_select);
 
@@ -77,6 +78,7 @@ unsigned int pocket_places_init (void) {
 
 void pocket_places_end (void) {
 
+	cmongo_select_delete (place_no_user_select);
 	bson_destroy ((bson_t *) place_no_user_query_opts);
 
 	pool_delete (places_pool);
@@ -121,8 +123,8 @@ Place *pocket_place_create (
 
 		bson_oid_init_from_string (&place->user_oid, user_id);
 
-		if (name) (void) strncpy (place->name, name, PLACE_NAME_LEN);
-		if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_LEN);
+		if (name) (void) strncpy (place->name, name, PLACE_NAME_LEN - 1);
+		if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_LEN - 1);
 		
 		place->date = time (NULL);
 	}
