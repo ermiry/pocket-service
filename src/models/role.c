@@ -9,7 +9,7 @@
 #include <cmongo/model.h>
 #include <cmongo/select.h>
 
-#include "gepp/models/role.h"
+#include "models/role.h"
 
 #define ROLES_COLL_NAME  				"roles"
 

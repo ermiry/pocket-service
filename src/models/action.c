@@ -8,7 +8,7 @@
 #include <cmongo/crud.h>
 #include <cmongo/model.h>
 
-#include "gepp/models/action.h"
+#include "models/action.h"
 
 #define ACTIONS_COLL_NAME  				"actions"
 
