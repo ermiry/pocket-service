@@ -22,6 +22,12 @@ extern Category *pocket_category_get_by_id_and_user (
 	const String *category_id, const bson_oid_t *user_oid
 );
 
+extern u8 pocket_category_get_by_id_and_user_to_json (
+	const char *category_id, const bson_oid_t *user_oid,
+	const bson_t *query_opts,
+	char **json, size_t *json_len
+);
+
 extern Category *pocket_category_create (
 	const char *user_id,
 	const char *title, const char *description,
