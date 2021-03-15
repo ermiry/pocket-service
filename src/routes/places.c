@@ -22,43 +22,6 @@
 #include "models/place.h"
 #include "models/user.h"
 
-static char *pocket_places_handler_generate_json (
-	User *user,
-	mongoc_cursor_t *places_cursor,
-	size_t *json_len
-) {
-
-	char *retval = NULL;
-
-	bson_t *doc = bson_new ();
-	if (doc) {
-		(void) bson_append_int32 (doc, "count", -1, user->places_count);
-
-		bson_t places_array = { 0 };
-		(void) bson_append_array_begin (doc, "places", -1, &places_array);
-		char buf[16] = { 0 };
-		const char *key = NULL;
-		size_t keylen = 0;
-
-		int i = 0;
-		const bson_t *place_doc = NULL;
-		while (mongoc_cursor_next (places_cursor, &place_doc)) {
-			keylen = bson_uint32_to_string (i, &key, buf, sizeof (buf));
-			(void) bson_append_document (&places_array, key, (int) keylen, place_doc);
-
-			bson_destroy ((bson_t *) place_doc);
-
-			i++;
-		}
-		(void) bson_append_array_end (doc, &places_array);
-
-		retval = bson_as_relaxed_extended_json (doc, json_len);
-	}
-
-	return retval;
-
-}
-
 // GET /api/pocket/places
 // get all the authenticated user's places
 void pocket_places_handler (
@@ -68,43 +31,24 @@ void pocket_places_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// get user's places from the db
-		if (!user_get_by_id (user, user->id, user_places_query_opts)) {
-			mongoc_cursor_t *places_cursor = places_get_all_by_user (
-				&user->oid, place_no_user_query_opts
+		size_t json_len = 0;
+		char *json = places_get_all_by_user_to_json (
+			&user->oid, place_no_user_query_opts,
+			&json_len
+		);
+
+		if (json) {
+			(void) http_response_json_custom_reference_send (
+				http_receive,
+				200,
+				json, json_len
 			);
 
-			if (places_cursor) {
-				// convert them to json and send them back
-				size_t json_len = 0;
-				char *json = pocket_places_handler_generate_json (
-					user, places_cursor, &json_len
-				);
-
-				if (json) {
-					(void) http_response_json_custom_reference_send (
-						http_receive,
-						200,
-						json, json_len
-					);
-
-					free (json);
-				}
-
-				else {
-					(void) http_response_send (server_error, http_receive);
-				}
-
-				mongoc_cursor_destroy (places_cursor);
-			}
-
-			else {
-				(void) http_response_send (no_user_places, http_receive);
-			}
+			free (json);
 		}
 
 		else {
-			(void) http_response_send (bad_user_error, http_receive);
+			(void) http_response_send (no_user_places, http_receive);
 		}
 	}
 
