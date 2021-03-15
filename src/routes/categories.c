@@ -263,39 +263,31 @@ void pocket_category_get_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		Category *category = (Category *) pool_pop (categories_pool);
-		if (category) {
-			bson_oid_init_from_string (&category->oid, category_id->str);
-			bson_oid_init_from_string (&category->user_oid, user->id);
+		if (category_id) {
+			size_t json_len = 0;
+			char *json = NULL;
 
-			const bson_t *category_bson = category_find_by_oid_and_user (
-				&category->oid, &category->user_oid,
-				category_no_user_query_opts
-			);
-
-			if (category_bson) {
-				size_t json_len = 0;
-				char *json = bson_as_relaxed_extended_json (category_bson, &json_len);
+			if (!pocket_category_get_by_id_and_user_to_json (
+				category_id->str, &user->oid,
+				category_no_user_query_opts,
+				&json, &json_len
+			)) {
 				if (json) {
 					(void) http_response_json_custom_reference_send (
 						http_receive, 200, json, json_len
 					);
-
+					
 					free (json);
 				}
 
-				bson_destroy ((bson_t *) category_bson);
+				else {
+					(void) http_response_send (server_error, http_receive);
+				}
 			}
 
 			else {
 				(void) http_response_send (no_user_category, http_receive);
 			}
-
-			pocket_category_delete (category);
-		}
-
-		else {
-			(void) http_response_send (server_error, http_receive);
 		}
 	}
 
