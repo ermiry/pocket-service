@@ -79,6 +79,11 @@ extern mongoc_cursor_t *categories_get_all_by_user (
 	const bson_oid_t *user_oid, const bson_t *opts
 );
 
+extern char *categories_get_all_by_user_to_json (
+	const bson_oid_t *user_oid, const bson_t *opts,
+	size_t *json_len
+);
+
 extern unsigned int category_insert_one (const Category *category);
 
 extern unsigned int category_update_one (const Category *category);

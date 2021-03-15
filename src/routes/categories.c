@@ -22,43 +22,6 @@
 #include "models/category.h"
 #include "models/user.h"
 
-static char *pocket_categories_handler_generate_json (
-	User *user,
-	mongoc_cursor_t *categories_cursor,
-	size_t *json_len
-) {
-
-	char *retval = NULL;
-
-	bson_t *doc = bson_new ();
-	if (doc) {
-		(void) bson_append_int32 (doc, "count", -1, user->categories_count);
-
-		bson_t categories_array = { 0 };
-		(void) bson_append_array_begin (doc, "categories", -1, &categories_array);
-		char buf[16] = { 0 };
-		const char *key = NULL;
-		size_t keylen = 0;
-
-		int i = 0;
-		const bson_t *category_doc = NULL;
-		while (mongoc_cursor_next (categories_cursor, &category_doc)) {
-			keylen = bson_uint32_to_string (i, &key, buf, sizeof (buf));
-			(void) bson_append_document (&categories_array, key, (int) keylen, category_doc);
-
-			bson_destroy ((bson_t *) category_doc);
-
-			i++;
-		}
-		(void) bson_append_array_end (doc, &categories_array);
-
-		retval = bson_as_relaxed_extended_json (doc, json_len);
-	}
-
-	return retval;
-
-}
-
 // GET /api/pocket/categories
 // get all the authenticated user's categories
 void pocket_categories_handler (
@@ -68,43 +31,24 @@ void pocket_categories_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// get user's categories from the db
-		if (!user_get_by_id (user, user->id, user_categories_query_opts)) {
-			mongoc_cursor_t *categories_cursor = categories_get_all_by_user (
-				&user->oid, category_no_user_query_opts
+		size_t json_len = 0;
+		char *json = categories_get_all_by_user_to_json (
+			&user->oid, category_no_user_query_opts,
+			&json_len
+		);
+
+		if (json) {
+			(void) http_response_json_custom_reference_send (
+				http_receive,
+				200,
+				json, json_len
 			);
 
-			if (categories_cursor) {
-				// convert them to json and send them back
-				size_t json_len = 0;
-				char *json = pocket_categories_handler_generate_json (
-					user, categories_cursor, &json_len
-				);
-
-				if (json) {
-					(void) http_response_json_custom_reference_send (
-						http_receive,
-						200,
-						json, json_len
-					);
-
-					free (json);
-				}
-
-				else {
-					(void) http_response_send (server_error, http_receive);
-				}
-
-				mongoc_cursor_destroy (categories_cursor);
-			}
-
-			else {
-				(void) http_response_send (no_user_categories, http_receive);
-			}
+			free (json);
 		}
 
 		else {
-			(void) http_response_send (bad_user_error, http_receive);
+			(void) http_response_send (no_user_categories, http_receive);
 		}
 	}
 
