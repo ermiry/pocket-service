@@ -24,43 +24,6 @@
 #include "models/category.h"
 #include "models/user.h"
 
-static char *pocket_transactions_handler_generate_json (
-	User *user,
-	mongoc_cursor_t *trans_cursor,
-	size_t *json_len
-) {
-
-	char *retval = NULL;
-
-	bson_t *doc = bson_new ();
-	if (doc) {
-		(void) bson_append_int32 (doc, "count", -1, user->trans_count);
-
-		bson_t trans_array = { 0 };
-		(void) bson_append_array_begin (doc, "transactions", -1, &trans_array);
-		char buf[16] = { 0 };
-		const char *key = NULL;
-		size_t keylen = 0;
-
-		int i = 0;
-		const bson_t *trans_doc = NULL;
-		while (mongoc_cursor_next (trans_cursor, &trans_doc)) {
-			keylen = bson_uint32_to_string (i, &key, buf, sizeof (buf));
-			(void) bson_append_document (&trans_array, key, (int) keylen, trans_doc);
-
-			bson_destroy ((bson_t *) trans_doc);
-
-			i++;
-		}
-		(void) bson_append_array_end (doc, &trans_array);
-
-		retval = bson_as_relaxed_extended_json (doc, json_len);
-	}
-
-	return retval;
-
-}
-
 // GET /api/pocket/transactions
 // get all the authenticated user's transactions
 void pocket_transactions_handler (
@@ -70,43 +33,24 @@ void pocket_transactions_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		// get user's transactions from the db
-		if (!user_get_by_id (user, user->id, user_transactions_query_opts)) {
-			mongoc_cursor_t *trans_cursor = transactions_get_all_by_user (
-				&user->oid, trans_no_user_query_opts
+		size_t json_len = 0;
+		char *json = transactions_get_all_by_user_to_json (
+			&user->oid, trans_no_user_query_opts,
+			&json_len
+		);
+
+		if (json) {
+			(void) http_response_json_custom_reference_send (
+				http_receive,
+				200,
+				json, json_len
 			);
 
-			if (trans_cursor) {
-				// convert them to json and send them back
-				size_t json_len = 0;
-				char *json = pocket_transactions_handler_generate_json (
-					user, trans_cursor, &json_len
-				);
-
-				if (json) {
-					(void) http_response_json_custom_reference_send (
-						http_receive,
-						200,
-						json, json_len
-					);
-
-					free (json);
-				}
-
-				else {
-					(void) http_response_send (server_error, http_receive);
-				}
-
-				mongoc_cursor_destroy (trans_cursor);
-			}
-
-			else {
-				(void) http_response_send (no_user_trans, http_receive);
-			}
+			free (json);
 		}
 
 		else {
-			(void) http_response_send (bad_user_error, http_receive);
+			(void) http_response_send (no_user_trans, http_receive);
 		}
 	}
 
