@@ -101,23 +101,20 @@ extern bson_t *place_query_by_oid_and_user (
 	const bson_oid_t *oid, const bson_oid_t *user_oid
 );
 
-extern const bson_t *place_find_by_oid (
-	const bson_oid_t *oid, const bson_t *query_opts
-);
-
 extern u8 place_get_by_oid (
 	Place *place, const bson_oid_t *oid, const bson_t *query_opts
-);
-
-extern const bson_t *place_find_by_oid_and_user (
-	const bson_oid_t *oid, const bson_oid_t *user_oid,
-	const bson_t *query_opts
 );
 
 extern u8 place_get_by_oid_and_user (
 	Place *place,
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts
+);
+
+extern u8 place_get_by_oid_and_user_to_json (
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts,
+	char **json, size_t *json_len
 );
 
 extern bson_t *place_to_bson (const Place *place);
