@@ -174,7 +174,10 @@ static void start (void) {
 		HttpCerver *http_cerver = (HttpCerver *) pocket_api->cerver_data;
 
 		http_cerver_auth_set_jwt_algorithm (http_cerver, JWT_ALG_RS256);
-		http_cerver_auth_set_jwt_priv_key_filename (http_cerver, PRIV_KEY->str);
+		if (ENABLE_USERS_ROUTES) {
+			http_cerver_auth_set_jwt_priv_key_filename (http_cerver, PRIV_KEY->str);
+		}
+		
 		http_cerver_auth_set_jwt_pub_key_filename (http_cerver, PUB_KEY->str);
 
 		pocket_set_pocket_routes (http_cerver);
