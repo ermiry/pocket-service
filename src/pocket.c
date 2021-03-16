@@ -35,8 +35,6 @@
 #include "models/role.h"
 #include "models/user.h"
 
-CMONGO_EXPORT MongoStatus mongo_get_status (void);
-
 RuntimeType RUNTIME = RUNTIME_TYPE_NONE;
 
 unsigned int PORT = CERVER_DEFAULT_PORT;
