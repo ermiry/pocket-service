@@ -159,16 +159,16 @@ unsigned int pocket_users_init (void) {
 
 void pocket_users_end (void) {
 
-	dlist_delete (user_login_select);
+	cmongo_select_delete (user_login_select);
 	bson_destroy ((bson_t *) user_login_query_opts);
 
-	dlist_delete (user_transactions_select);
+	cmongo_select_delete (user_transactions_select);
 	bson_destroy ((bson_t *) user_transactions_query_opts);
 
-	dlist_delete (user_categories_select);
+	cmongo_select_delete (user_categories_select);
 	bson_destroy ((bson_t *) user_categories_query_opts);
 
-	dlist_delete (user_places_select);
+	cmongo_select_delete (user_places_select);
 	bson_destroy ((bson_t *) user_places_query_opts);
 
 	http_response_delete (users_works);
