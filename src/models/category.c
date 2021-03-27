@@ -13,8 +13,6 @@
 
 #include "models/category.h"
 
-#define CATEGORIES_COLL_NAME         				"categories"
-
 static CMongoModel *categories_model = NULL;
 
 static void category_doc_parse (

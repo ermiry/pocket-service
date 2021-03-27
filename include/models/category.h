@@ -8,6 +8,8 @@
 
 #include <cerver/types/types.h>
 
+#define CATEGORIES_COLL_NAME        "categories"
+
 #define CATEGORY_ID_LEN				32
 #define CATEGORY_TITLE_LEN			1024
 #define CATEGORY_DESCRIPTION_LEN	2048
