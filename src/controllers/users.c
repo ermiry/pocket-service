@@ -238,12 +238,12 @@ u8 pocket_user_check_by_email (
 }
 
 // {
+//   "email": "erick.salas@ermiry.com",
 //   "iat": 1596532954
 //   "id": "5eb2b13f0051f70011e9d3af",
-//   "email": "erick.salas@ermiry.com",
 //   "name": "Erick Salas",
 //   "role": "god",
-//   "username": "erick",
+//   "username": "erick"
 // }
 void *pocket_user_parse_from_json (void *user_json_ptr) {
 
@@ -259,10 +259,10 @@ void *pocket_user_parse_from_json (void *user_json_ptr) {
 
 		if (!json_unpack (
 			user_json,
-			"{s:i, s:s, s:s, s:s, s:s, s:s}",
+			"{s:s, s:i, s:s, s:s, s:s, s:s}",
+			"email", &email,
 			"iat", &user->iat,
 			"id", &id,
-			"email", &email,
 			"name", &name,
 			"role", &role,
 			"username", &username
