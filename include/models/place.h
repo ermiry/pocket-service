@@ -11,6 +11,8 @@
 
 #include <cerver/cerver.h>
 
+#define PLACES_COLL_NAME         	"places"
+
 #define PLACE_ID_LEN				32
 #define PLACE_NAME_LEN			    512
 #define PLACE_DESCRIPTION_LEN	    1024

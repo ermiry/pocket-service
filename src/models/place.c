@@ -13,8 +13,6 @@
 
 #include "models/place.h"
 
-#define PLACES_COLL_NAME         				"places"
-
 static CMongoModel *places_model = NULL;
 
 static void place_doc_parse (
