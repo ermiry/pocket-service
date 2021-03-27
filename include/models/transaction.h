@@ -8,6 +8,8 @@
 
 #include <cerver/types/types.h>
 
+#define TRANSACTIONS_COLL_NAME         	"transactions"
+
 #define	TRANSACTION_ID_LEN				32
 #define TRANSACTION_TITLE_LEN			1024
 

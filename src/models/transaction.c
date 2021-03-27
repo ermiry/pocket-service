@@ -13,8 +13,6 @@
 
 #include "models/transaction.h"
 
-#define TRANSACTIONS_COLL_NAME         				"transactions"
-
 static CMongoModel *transactions_model = NULL;
 
 static void trans_doc_parse (
