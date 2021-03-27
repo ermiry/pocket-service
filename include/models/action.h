@@ -4,6 +4,8 @@
 #include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
+#define ACTIONS_COLL_NAME  			"actions"
+
 #define ACTION_NAME_LEN				128
 #define ACTION_DESCRIPTION_LEN		256
 

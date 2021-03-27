@@ -10,8 +10,6 @@
 
 #include "models/action.h"
 
-#define ACTIONS_COLL_NAME  				"actions"
-
 static CMongoModel *actions_model = NULL;
 
 void action_doc_parse (
