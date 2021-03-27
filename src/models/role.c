@@ -11,8 +11,6 @@
 
 #include "models/role.h"
 
-#define ROLES_COLL_NAME  				"roles"
-
 static CMongoModel *roles_model = NULL;
 
 void role_doc_parse (

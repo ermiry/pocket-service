@@ -6,6 +6,8 @@
 
 #include <cmongo/select.h>
 
+#define ROLES_COLL_NAME  		"roles"
+
 #define ROLE_NAME_LEN			128
 #define ROLE_ACTIONS_SIZE		32
 #define ROLE_ACTION_LEN			64
