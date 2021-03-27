@@ -14,8 +14,6 @@
 
 #include "models/user.h"
 
-#define USERS_COLL_NAME         				"users"
-
 static CMongoModel *users_model = NULL;
 
 static void user_doc_parse (

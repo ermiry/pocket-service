@@ -9,6 +9,8 @@
 #include <cerver/types/types.h>
 #include <cerver/types/string.h>
 
+#define USERS_COLL_NAME			"users"
+
 #define USER_ID_LEN				32
 #define USER_EMAIL_LEN			128
 #define USER_NAME_LEN			128
