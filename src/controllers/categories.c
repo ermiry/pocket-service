@@ -4,6 +4,8 @@
 
 #include <cerver/types/string.h>
 
+#include <cerver/http/response.h>
+
 #include <cerver/collections/pool.h>
 
 #include <cerver/utils/log.h>
@@ -11,14 +13,22 @@
 #include <cmongo/crud.h>
 #include <cmongo/select.h>
 
-#include "controllers/categories.h"
-
 #include "models/category.h"
+
+#include "controllers/categories.h"
 
 Pool *categories_pool = NULL;
 
 const bson_t *category_no_user_query_opts = NULL;
 static CMongoSelect *category_no_user_select = NULL;
+
+HttpResponse *no_user_categories = NULL;
+HttpResponse *no_user_category = NULL;
+
+HttpResponse *category_created_success = NULL;
+HttpResponse *category_created_bad = NULL;
+HttpResponse *category_deleted_success = NULL;
+HttpResponse *category_deleted_bad = NULL;
 
 void pocket_category_delete (void *category_ptr);
 
@@ -65,6 +75,44 @@ static unsigned int pocket_categories_init_query_opts (void) {
 
 }
 
+static unsigned int pocket_categories_init_responses (void) {
+
+	unsigned int retval = 1;
+
+	no_user_categories = http_response_json_key_value (
+		(http_status) 404, "msg", "Failed to get user's categories"
+	);
+
+	no_user_category = http_response_json_key_value (
+		(http_status) 404, "msg", "User's category was not found"
+	);
+
+	category_created_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	category_created_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to create category!"
+	);
+
+	category_deleted_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	category_deleted_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to delete category!"
+	);
+
+	if (
+		no_user_categories && no_user_category
+		&& category_created_success && category_created_bad
+		&& category_deleted_success && category_deleted_bad
+	) retval = 0;
+
+	return retval;
+
+}
+
 unsigned int pocket_categories_init (void) {
 
 	unsigned int errors = 0;
@@ -72,6 +120,8 @@ unsigned int pocket_categories_init (void) {
 	errors |= pocket_categories_init_pool ();
 
 	errors |= pocket_categories_init_query_opts ();
+
+	errors |= pocket_categories_init_responses ();
 
 	return errors;
 
@@ -84,6 +134,14 @@ void pocket_categories_end (void) {
 
 	pool_delete (categories_pool);
 	categories_pool = NULL;
+
+	http_response_delete (no_user_categories);
+	http_response_delete (no_user_category);
+
+	http_response_delete (category_created_success);
+	http_response_delete (category_created_bad);
+	http_response_delete (category_deleted_success);
+	http_response_delete (category_deleted_bad);
 
 }
 

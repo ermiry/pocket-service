@@ -3,16 +3,25 @@
 
 #include <bson/bson.h>
 
-#include <cerver/collections/dlist.h>
 #include <cerver/collections/pool.h>
 
 #include "models/category.h"
 
 #define DEFAULT_CATEGORIES_POOL_INIT			32
 
+struct _HttpResponse;
+
 extern Pool *categories_pool;
 
 extern const bson_t *category_no_user_query_opts;
+
+extern struct _HttpResponse *no_user_categories;
+extern struct _HttpResponse *no_user_category;
+
+extern struct _HttpResponse *category_created_success;
+extern struct _HttpResponse *category_created_bad;
+extern struct _HttpResponse *category_deleted_success;
+extern struct _HttpResponse *category_deleted_bad;
 
 extern unsigned int pocket_categories_init (void);
 
