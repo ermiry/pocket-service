@@ -23,17 +23,18 @@
 #include "runtime.h"
 #include "version.h"
 
-#include "controllers/categories.h"
-#include "controllers/places.h"
-#include "controllers/roles.h"
-#include "controllers/transactions.h"
-#include "controllers/users.h"
-
 #include "models/action.h"
 #include "models/category.h"
 #include "models/place.h"
 #include "models/role.h"
 #include "models/user.h"
+
+#include "controllers/categories.h"
+#include "controllers/places.h"
+#include "controllers/roles.h"
+#include "controllers/service.h"
+#include "controllers/transactions.h"
+#include "controllers/users.h"
 
 RuntimeType RUNTIME = RUNTIME_TYPE_NONE;
 
@@ -51,34 +52,6 @@ const String *PRIV_KEY = NULL;
 const String *PUB_KEY = NULL;
 
 bool ENABLE_USERS_ROUTES = false;
-
-HttpResponse *missing_values = NULL;
-
-HttpResponse *pocket_works = NULL;
-HttpResponse *current_version = NULL;
-
-HttpResponse *no_user_trans = NULL;
-
-HttpResponse *trans_created_success = NULL;
-HttpResponse *trans_created_bad = NULL;
-HttpResponse *trans_deleted_success = NULL;
-HttpResponse *trans_deleted_bad = NULL;
-
-HttpResponse *no_user_categories = NULL;
-HttpResponse *no_user_category = NULL;
-
-HttpResponse *category_created_success = NULL;
-HttpResponse *category_created_bad = NULL;
-HttpResponse *category_deleted_success = NULL;
-HttpResponse *category_deleted_bad = NULL;
-
-HttpResponse *no_user_places = NULL;
-HttpResponse *no_user_place = NULL;
-
-HttpResponse *place_created_success = NULL;
-HttpResponse *place_created_bad = NULL;
-HttpResponse *place_deleted_success = NULL;
-HttpResponse *place_deleted_bad = NULL;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -378,121 +351,6 @@ static unsigned int pocket_mongo_init (void) {
 
 }
 
-static unsigned int pocket_init_responses (void) {
-
-	unsigned int retval = 1;
-
-	missing_values = http_response_json_key_value (
-		(http_status) 400, "error", "Missing values!"
-	);
-
-	pocket_works = http_response_json_key_value (
-		(http_status) 200, "msg", "Pocket works!"
-	);
-
-	char *status = c_string_create (
-		"%s - %s", POCKET_VERSION_NAME, POCKET_VERSION_DATE
-	);
-
-	if (status) {
-		current_version = http_response_json_key_value (
-			(http_status) 200, "version", status
-		);
-
-		free (status);
-	}
-
-	/*** transactions ***/
-	no_user_trans = http_response_json_key_value (
-		(http_status) 404, "msg", "Failed to get user's transaction(s)"
-	);
-
-	trans_created_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	trans_created_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to create transaction!"
-	);
-
-	trans_deleted_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	trans_deleted_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to delete transaction!"
-	);
-
-	/*** categories ****/
-
-	no_user_categories = http_response_json_key_value (
-		(http_status) 404, "msg", "Failed to get user's categories"
-	);
-
-	no_user_category = http_response_json_key_value (
-		(http_status) 404, "msg", "User's category was not found"
-	);
-
-	category_created_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	category_created_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to create category!"
-	);
-
-	category_deleted_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	category_deleted_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to delete category!"
-	);
-
-	/*** places ****/
-
-	no_user_places = http_response_json_key_value (
-		(http_status) 404, "msg", "No user's places"
-	);
-
-	no_user_place = http_response_json_key_value (
-		(http_status) 404, "msg", "User's place was not found"
-	);
-
-	place_created_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	place_created_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to create place!"
-	);
-
-	place_deleted_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	place_deleted_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to delete place!"
-	);
-
-	if (
-		missing_values
-		&& pocket_works && current_version
-		&& no_user_trans
-		&& trans_created_success && trans_created_bad
-		&& trans_deleted_success && trans_deleted_bad
-		&& no_user_categories && no_user_category
-		&& category_created_success && category_created_bad
-		&& category_deleted_success && category_deleted_bad
-		&& no_user_places && no_user_place
-		&& place_created_success && place_created_bad
-		&& place_deleted_success && place_deleted_bad
-	) retval = 0;
-
-	return retval;
-
-}
-
 // inits pocket main values
 unsigned int pocket_init (void) {
 
@@ -503,6 +361,8 @@ unsigned int pocket_init (void) {
 
 		errors |= pocket_handler_init ();
 
+		errors |= pocket_service_init ();
+
 		errors |= pocket_users_init ();
 
 		errors |= pocket_categories_init ();
@@ -510,8 +370,6 @@ unsigned int pocket_init (void) {
 		errors |= pocket_places_init ();
 
 		errors |= pocket_trans_init ();
-
-		errors |= pocket_init_responses ();
 	}
 
 	return errors;  
@@ -559,33 +417,7 @@ unsigned int pocket_end (void) {
 
 	pocket_handler_end ();
 
-	http_response_delete (missing_values);
-
-	http_response_delete (pocket_works);
-	http_response_delete (current_version);
-
-	http_response_delete (no_user_trans);
-
-	http_response_delete (trans_created_success);
-	http_response_delete (trans_created_bad);
-	http_response_delete (trans_deleted_success);
-	http_response_delete (trans_deleted_bad);
-
-	http_response_delete (no_user_categories);
-	http_response_delete (no_user_category);
-
-	http_response_delete (category_created_success);
-	http_response_delete (category_created_bad);
-	http_response_delete (category_deleted_success);
-	http_response_delete (category_deleted_bad);
-
-	http_response_delete (no_user_places);
-	http_response_delete (no_user_place);
-
-	http_response_delete (place_created_success);
-	http_response_delete (place_created_bad);
-	http_response_delete (place_deleted_success);
-	http_response_delete (place_deleted_bad);
+	pocket_service_end ();
 
 	str_delete ((String *) MONGO_URI);
 	str_delete ((String *) MONGO_APP_NAME);

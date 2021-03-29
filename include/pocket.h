@@ -22,34 +22,6 @@ extern const String *PUB_KEY;
 
 extern bool ENABLE_USERS_ROUTES;
 
-extern struct _HttpResponse *missing_values;
-
-extern struct _HttpResponse *pocket_works;
-extern struct _HttpResponse *current_version;
-
-extern struct _HttpResponse *no_user_trans;
-
-extern struct _HttpResponse *trans_created_success;
-extern struct _HttpResponse *trans_created_bad;
-extern struct _HttpResponse *trans_deleted_success;
-extern struct _HttpResponse *trans_deleted_bad;
-
-extern struct _HttpResponse *no_user_categories;
-extern struct _HttpResponse *no_user_category;
-
-extern struct _HttpResponse *category_created_success;
-extern struct _HttpResponse *category_created_bad;
-extern struct _HttpResponse *category_deleted_success;
-extern struct _HttpResponse *category_deleted_bad;
-
-extern struct _HttpResponse *no_user_places;
-extern struct _HttpResponse *no_user_place;
-
-extern struct _HttpResponse *place_created_success;
-extern struct _HttpResponse *place_created_bad;
-extern struct _HttpResponse *place_deleted_success;
-extern struct _HttpResponse *place_deleted_bad;
-
 // inits pocket main values
 extern unsigned int pocket_init (void);
 
