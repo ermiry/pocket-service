@@ -61,11 +61,11 @@ extern bson_t *user_query_id (const char *id);
 
 extern bson_t *user_query_email (const char *email);
 
-extern u8 user_check_by_email (const char *email);
-
 extern u8 user_get_by_id (
 	User *user, const char *id, const bson_t *query_opts
 );
+
+extern u8 user_check_by_email (const char *email);
 
 // gets a user from the db by its email
 extern u8 user_get_by_email (

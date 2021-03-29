@@ -1,10 +1,9 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <cerver/types/types.h>
 #include <cerver/types/string.h>
-
-#include <cerver/collections/dlist.h>
 
 #include <cerver/utils/log.h>
 
@@ -175,12 +174,6 @@ bson_t *user_query_email (const char *email) {
 
 }
 
-u8 user_check_by_email (const char *email) {
-
-	return mongo_check (users_model, user_query_email (email));
-
-}
-
 u8 user_get_by_id (
 	User *user, const char *id, const bson_t *query_opts
 ) {
@@ -203,6 +196,12 @@ u8 user_get_by_id (
 	}
 
 	return retval;
+
+}
+
+u8 user_check_by_email (const char *email) {
+
+	return mongo_check (users_model, user_query_email (email));
 
 }
 
