@@ -6,6 +6,8 @@
 
 #include <cerver/collections/pool.h>
 
+#include <cerver/http/response.h>
+
 #include <cerver/utils/log.h>
 
 #include <cmongo/crud.h>
@@ -19,6 +21,14 @@ Pool *places_pool = NULL;
 
 const bson_t *place_no_user_query_opts = NULL;
 static CMongoSelect *place_no_user_select = NULL;
+
+HttpResponse *no_user_places = NULL;
+HttpResponse *no_user_place = NULL;
+
+HttpResponse *place_created_success = NULL;
+HttpResponse *place_created_bad = NULL;
+HttpResponse *place_deleted_success = NULL;
+HttpResponse *place_deleted_bad = NULL;
 
 void pocket_place_delete (void *place_ptr);
 
@@ -64,6 +74,44 @@ static unsigned int pocket_places_init_query_opts (void) {
 
 }
 
+static unsigned int pocket_places_init_responses (void) {
+
+	unsigned int retval = 1;
+
+	no_user_places = http_response_json_key_value (
+		(http_status) 404, "msg", "No user's places"
+	);
+
+	no_user_place = http_response_json_key_value (
+		(http_status) 404, "msg", "User's place was not found"
+	);
+
+	place_created_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	place_created_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to create place!"
+	);
+
+	place_deleted_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	place_deleted_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to delete place!"
+	);
+
+	if (
+		no_user_places && no_user_place
+		&& place_created_success && place_created_bad
+		&& place_deleted_success && place_deleted_bad
+	) retval = 0;
+
+	return retval;
+
+}
+
 unsigned int pocket_places_init (void) {
 
 	unsigned int errors = 0;
@@ -71,6 +119,8 @@ unsigned int pocket_places_init (void) {
 	errors |= pocket_places_init_pool ();
 
 	errors |= pocket_places_init_query_opts ();
+
+	errors |= pocket_places_init_responses ();
 
 	return errors;
 
@@ -83,6 +133,14 @@ void pocket_places_end (void) {
 
 	pool_delete (places_pool);
 	places_pool = NULL;
+
+	http_response_delete (no_user_places);
+	http_response_delete (no_user_place);
+
+	http_response_delete (place_created_success);
+	http_response_delete (place_created_bad);
+	http_response_delete (place_deleted_success);
+	http_response_delete (place_deleted_bad);
 
 }
 

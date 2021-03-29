@@ -5,16 +5,25 @@
 
 #include <cerver/types/string.h>
 
-#include <cerver/collections/dlist.h>
 #include <cerver/collections/pool.h>
 
 #include "models/place.h"
 
 #define DEFAULT_PLACES_POOL_INIT			32
 
+struct _HttpResponse;
+
 extern Pool *places_pool;
 
 extern const bson_t *place_no_user_query_opts;
+
+extern struct _HttpResponse *no_user_places;
+extern struct _HttpResponse *no_user_place;
+
+extern struct _HttpResponse *place_created_success;
+extern struct _HttpResponse *place_created_bad;
+extern struct _HttpResponse *place_deleted_success;
+extern struct _HttpResponse *place_deleted_bad;
 
 extern unsigned int pocket_places_init (void);
 
