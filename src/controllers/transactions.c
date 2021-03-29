@@ -6,6 +6,7 @@
 
 #include <cerver/collections/pool.h>
 
+#include <cerver/http/response.h>
 #include <cerver/http/json/json.h>
 
 #include <cerver/utils/log.h>
@@ -13,14 +14,21 @@
 #include <cmongo/crud.h>
 #include <cmongo/select.h>
 
-#include "controllers/transactions.h"
-
 #include "models/transaction.h"
+
+#include "controllers/transactions.h"
 
 Pool *trans_pool = NULL;
 
 const bson_t *trans_no_user_query_opts = NULL;
 static CMongoSelect *trans_no_user_select = NULL;
+
+HttpResponse *no_user_trans = NULL;
+
+HttpResponse *trans_created_success = NULL;
+HttpResponse *trans_created_bad = NULL;
+HttpResponse *trans_deleted_success = NULL;
+HttpResponse *trans_deleted_bad = NULL;
 
 void pocket_trans_delete (void *trans_ptr);
 
@@ -67,6 +75,40 @@ static unsigned int pocket_trans_init_query_opts (void) {
 
 }
 
+static unsigned int pocket_trans_init_responses (void) {
+
+	unsigned int retval = 1;
+
+	no_user_trans = http_response_json_key_value (
+		(http_status) 404, "msg", "Failed to get user's transaction(s)"
+	);
+
+	trans_created_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	trans_created_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to create transaction!"
+	);
+
+	trans_deleted_success = http_response_json_key_value (
+		(http_status) 200, "oki", "doki"
+	);
+
+	trans_deleted_bad = http_response_json_key_value (
+		(http_status) 400, "error", "Failed to delete transaction!"
+	);
+
+	if (
+		no_user_trans
+		&& trans_created_success && trans_created_bad
+		&& trans_deleted_success && trans_deleted_bad
+	) retval = 0;
+
+	return retval;
+
+}
+
 unsigned int pocket_trans_init (void) {
 
 	unsigned int errors = 0;
@@ -74,6 +116,8 @@ unsigned int pocket_trans_init (void) {
 	errors |= pocket_trans_init_pool ();
 
 	errors |= pocket_trans_init_query_opts ();
+
+	errors |= pocket_trans_init_responses ();
 
 	return errors;
 
@@ -86,6 +130,13 @@ void pocket_trans_end (void) {
 
 	pool_delete (trans_pool);
 	trans_pool = NULL;
+
+	http_response_delete (no_user_trans);
+
+	http_response_delete (trans_created_success);
+	http_response_delete (trans_created_bad);
+	http_response_delete (trans_deleted_success);
+	http_response_delete (trans_deleted_bad);
 
 }
 

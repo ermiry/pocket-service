@@ -10,9 +10,18 @@
 
 #define DEFAULT_TRANS_POOL_INIT			32
 
+struct _HttpResponse;
+
 extern Pool *trans_pool;
 
 extern const bson_t *trans_no_user_query_opts;
+
+extern struct _HttpResponse *no_user_trans;
+
+extern struct _HttpResponse *trans_created_success;
+extern struct _HttpResponse *trans_created_bad;
+extern struct _HttpResponse *trans_deleted_success;
+extern struct _HttpResponse *trans_deleted_bad;
 
 extern unsigned int pocket_trans_init (void);
 
