@@ -6,7 +6,9 @@
 #include "pocket.h"
 #include "errors.h"
 
-const char *pocket_error_to_string (PocketError type) {
+#include "controllers/service.h"
+
+const char *pocket_error_to_string (const PocketError type) {
 
 	switch (type) {
 		#define XX(num, name, string) case POCKET_ERROR_##name: return #string;
@@ -19,7 +21,7 @@ const char *pocket_error_to_string (PocketError type) {
 }
 
 void pocket_error_send_response (
-	PocketError error,
+	const PocketError error,
 	const HttpReceive *http_receive
 ) {
 

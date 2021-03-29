@@ -16,10 +16,12 @@ typedef enum PocketError {
 
 } PocketError;
 
-extern const char *pocket_error_to_string (PocketError type);
+extern const char *pocket_error_to_string (
+	const PocketError type
+);
 
 extern void pocket_error_send_response (
-	PocketError error,
+	const PocketError error,
 	const struct _HttpReceive *http_receive
 );
 
