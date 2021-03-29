@@ -15,6 +15,8 @@
 
 #include "models/user.h"
 
+#include "controllers/service.h"
+
 // GET /api/pocket
 void pocket_handler (
 	const HttpReceive *http_receive,
