@@ -5,14 +5,14 @@
 #include <time.h>
 #include <signal.h>
 
-#include <cerver/version.h>
 #include <cerver/cerver.h>
+#include <cerver/version.h>
 
 #include <cerver/http/http.h>
 #include <cerver/http/route.h>
 
-#include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
+#include <cerver/utils/utils.h>
 
 #include "handler.h"
 #include "pocket.h"
@@ -169,6 +169,8 @@ static void start (void) {
 		cerver_set_receive_buffer_size (pocket_api, CERVER_RECEIVE_BUFFER_SIZE);
 		cerver_set_thpool_n_threads (pocket_api, CERVER_TH_THREADS);
 		cerver_set_handler_type (pocket_api, CERVER_HANDLER_TYPE_THREADS);
+
+		cerver_set_reusable_address_flags (pocket_api, true);
 
 		/*** web cerver configuration ***/
 		HttpCerver *http_cerver = (HttpCerver *) pocket_api->cerver_data;
