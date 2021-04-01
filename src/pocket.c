@@ -53,11 +53,8 @@ const String *PUB_KEY = NULL;
 
 bool ENABLE_USERS_ROUTES = false;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 static void pocket_env_get_runtime (void) {
-	
+
 	char *runtime_env = getenv ("RUNTIME");
 	if (runtime_env) {
 		RUNTIME = runtime_from_string (runtime_env);
@@ -73,7 +70,7 @@ static void pocket_env_get_runtime (void) {
 }
 
 static unsigned int pocket_env_get_port (void) {
-	
+
 	unsigned int retval = 1;
 
 	char *port_env = getenv ("PORT");
@@ -261,8 +258,6 @@ static void pocket_env_get_enable_users_routes (void) {
 
 }
 
-#pragma GCC diagnostic pop
-
 static unsigned int pocket_init_env (void) {
 
 	unsigned int errors = 0;
@@ -354,9 +349,11 @@ static unsigned int pocket_mongo_init (void) {
 // inits pocket main values
 unsigned int pocket_init (void) {
 
-	unsigned int errors = 0;
+	unsigned int retval = 1;
 
 	if (!pocket_init_env ()) {
+		unsigned int errors = 0;
+
 		errors |= pocket_mongo_init ();
 
 		errors |= pocket_handler_init ();
@@ -370,9 +367,11 @@ unsigned int pocket_init (void) {
 		errors |= pocket_places_init ();
 
 		errors |= pocket_trans_init ();
+
+		retval = errors;
 	}
 
-	return errors;  
+	return retval;
 
 }
 
