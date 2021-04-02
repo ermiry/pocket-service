@@ -115,23 +115,23 @@ static unsigned int pocket_users_init_responses (void) {
 	unsigned int retval = 1;
 
 	users_works = http_response_json_key_value (
-		(http_status) 200, "msg", "Users works!"
+		HTTP_STATUS_OK, "msg", "Users works!"
 	);
 
 	missing_user_values = http_response_json_key_value (
-		(http_status) 400, "error", "Missing user values!"
+		HTTP_STATUS_BAD_REQUEST, "error", "Missing user values!"
 	);
 
 	wrong_password = http_response_json_key_value (
-		(http_status) 400, "error", "Password is incorrect!"
+		HTTP_STATUS_BAD_REQUEST, "error", "Password is incorrect!"
 	);
 
 	user_not_found = http_response_json_key_value (
-		(http_status) 404, "error", "User not found!"
+		HTTP_STATUS_NOT_FOUND, "error", "User not found!"
 	);
 
 	repeated_email = http_response_json_key_value (
-		(http_status) 400, "error", "Email was already registered!"
+		HTTP_STATUS_BAD_REQUEST, "error", "Email was already registered!"
 	);
 
 	if (

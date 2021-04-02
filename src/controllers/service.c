@@ -18,11 +18,11 @@ unsigned int pocket_service_init (void) {
 	unsigned int retval = 1;
 
 	missing_values = http_response_json_key_value (
-		(http_status) 400, "error", "Missing values!"
+		HTTP_STATUS_BAD_REQUEST, "error", "Missing values!"
 	);
 
 	pocket_works = http_response_json_key_value (
-		(http_status) 200, "msg", "Pocket works!"
+		HTTP_STATUS_OK, "msg", "Pocket works!"
 	);
 
 	char *status = c_string_create (
@@ -31,7 +31,7 @@ unsigned int pocket_service_init (void) {
 
 	if (status) {
 		current_version = http_response_json_key_value (
-			(http_status) 200, "version", status
+			HTTP_STATUS_OK, "version", status
 		);
 
 		free (status);

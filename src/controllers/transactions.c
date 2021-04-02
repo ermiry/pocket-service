@@ -80,23 +80,23 @@ static unsigned int pocket_trans_init_responses (void) {
 	unsigned int retval = 1;
 
 	no_user_trans = http_response_json_key_value (
-		(http_status) 404, "msg", "Failed to get user's transaction(s)"
+		HTTP_STATUS_NOT_FOUND, "msg", "Failed to get user's transaction(s)"
 	);
 
 	trans_created_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
+		HTTP_STATUS_OK, "oki", "doki"
 	);
 
 	trans_created_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to create transaction!"
+		HTTP_STATUS_BAD_REQUEST, "error", "Failed to create transaction!"
 	);
 
 	trans_deleted_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
+		HTTP_STATUS_OK, "oki", "doki"
 	);
 
 	trans_deleted_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to delete transaction!"
+		HTTP_STATUS_BAD_REQUEST, "error", "Failed to delete transaction!"
 	);
 
 	if (

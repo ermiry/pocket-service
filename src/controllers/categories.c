@@ -80,27 +80,27 @@ static unsigned int pocket_categories_init_responses (void) {
 	unsigned int retval = 1;
 
 	no_user_categories = http_response_json_key_value (
-		(http_status) 404, "msg", "Failed to get user's categories"
+		HTTP_STATUS_NOT_FOUND, "msg", "Failed to get user's categories"
 	);
 
 	no_user_category = http_response_json_key_value (
-		(http_status) 404, "msg", "User's category was not found"
+		HTTP_STATUS_NOT_FOUND, "msg", "User's category was not found"
 	);
 
 	category_created_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
+		HTTP_STATUS_OK, "oki", "doki"
 	);
 
 	category_created_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to create category!"
+		HTTP_STATUS_BAD_REQUEST, "error", "Failed to create category!"
 	);
 
 	category_deleted_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
+		HTTP_STATUS_OK, "oki", "doki"
 	);
 
 	category_deleted_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to delete category!"
+		HTTP_STATUS_BAD_REQUEST, "error", "Failed to delete category!"
 	);
 
 	if (

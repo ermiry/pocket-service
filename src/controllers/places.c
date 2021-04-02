@@ -79,27 +79,27 @@ static unsigned int pocket_places_init_responses (void) {
 	unsigned int retval = 1;
 
 	no_user_places = http_response_json_key_value (
-		(http_status) 404, "msg", "No user's places"
+		HTTP_STATUS_NOT_FOUND, "msg", "No user's places"
 	);
 
 	no_user_place = http_response_json_key_value (
-		(http_status) 404, "msg", "User's place was not found"
+		HTTP_STATUS_NOT_FOUND, "msg", "User's place was not found"
 	);
 
 	place_created_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
+		HTTP_STATUS_OK, "oki", "doki"
 	);
 
 	place_created_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to create place!"
+		HTTP_STATUS_BAD_REQUEST, "error", "Failed to create place!"
 	);
 
 	place_deleted_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
+		HTTP_STATUS_OK, "oki", "doki"
 	);
 
 	place_deleted_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to delete place!"
+		HTTP_STATUS_BAD_REQUEST, "error", "Failed to delete place!"
 	);
 
 	if (
