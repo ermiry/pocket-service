@@ -35,9 +35,8 @@ DEPEXT      := d
 OBJEXT      := o
 
 # common flags
-# -Wconversion
-COMMON		:= -march=native \
-				-Wall -Wno-unknown-pragmas \
+# -Wconversion -march=native
+COMMON		:=  -Wall -Wno-unknown-pragmas \
 				-Wfloat-equal -Wdouble-promotion -Wint-to-pointer-cast -Wwrite-strings \
 				-Wtype-limits -Wsign-compare -Wmissing-field-initializers \
 				-Wuninitialized -Wmaybe-uninitialized -Wempty-body \
