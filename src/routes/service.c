@@ -58,3 +58,13 @@ void pocket_auth_handler (
 	}
 
 }
+
+// GET *
+void pocket_catch_all_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
+
+	http_response_send (catch_all, http_receive);
+
+}
