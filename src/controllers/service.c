@@ -13,6 +13,8 @@ HttpResponse *missing_values = NULL;
 HttpResponse *pocket_works = NULL;
 HttpResponse *current_version = NULL;
 
+HttpResponse *catch_all = NULL;
+
 unsigned int pocket_service_init (void) {
 
 	unsigned int retval = 1;
@@ -37,9 +39,14 @@ unsigned int pocket_service_init (void) {
 		free (status);
 	}
 
+	catch_all = http_response_json_key_value (
+		HTTP_STATUS_OK, "msg", "Tiny Pocket Service!"
+	);
+
 	if (
 		missing_values
 		&& pocket_works && current_version
+		&& catch_all
 	) retval = 0;
 
 	return retval;
@@ -52,5 +59,7 @@ void pocket_service_end (void) {
 
 	http_response_delete (pocket_works);
 	http_response_delete (current_version);
+
+	http_response_delete (catch_all);
 
 }
