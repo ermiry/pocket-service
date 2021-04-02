@@ -14,7 +14,6 @@
 #include <cerver/utils/log.h>
 #include <cerver/utils/utils.h>
 
-#include "handler.h"
 #include "pocket.h"
 #include "version.h"
 

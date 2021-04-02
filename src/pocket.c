@@ -18,7 +18,6 @@
 
 #include <cmongo/mongo.h>
 
-#include "handler.h"
 #include "pocket.h"
 #include "runtime.h"
 #include "version.h"
@@ -356,8 +355,6 @@ unsigned int pocket_init (void) {
 
 		errors |= pocket_mongo_init ();
 
-		errors |= pocket_handler_init ();
-
 		errors |= pocket_service_init ();
 
 		errors |= pocket_users_init ();
@@ -413,8 +410,6 @@ unsigned int pocket_end (void) {
 	pocket_places_end ();
 
 	pocket_trans_end ();
-
-	pocket_handler_end ();
 
 	pocket_service_end ();
 
