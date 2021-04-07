@@ -101,7 +101,7 @@ static void trans_doc_parse (
 
 			if (!strcmp (key, "_id")) {
 				bson_oid_copy (&value->value.v_oid, &trans->oid);
-				bson_oid_init_from_string (&trans->oid, trans->id);
+				bson_oid_to_string (&trans->oid, trans->id);
 			}
 
 			else if (!strcmp (key, "user"))
