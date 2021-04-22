@@ -62,8 +62,12 @@ static unsigned int pocket_places_init_query_opts (void) {
 	unsigned int retval = 1;
 
 	place_no_user_select = cmongo_select_new ();
-	(void) cmongo_select_insert_field (place_no_user_select, "title");
-	(void) cmongo_select_insert_field (place_no_user_select, "amount");
+	(void) cmongo_select_insert_field (place_no_user_select, "name");
+	(void) cmongo_select_insert_field (place_no_user_select, "description");
+	(void) cmongo_select_insert_field (place_no_user_select, "type");
+	(void) cmongo_select_insert_field (place_no_user_select, "location");
+	(void) cmongo_select_insert_field (place_no_user_select, "site");
+	(void) cmongo_select_insert_field (place_no_user_select, "color");
 	(void) cmongo_select_insert_field (place_no_user_select, "date");
 
 	place_no_user_query_opts = mongo_find_generate_opts (place_no_user_select);
