@@ -260,7 +260,36 @@ u8 place_get_by_oid_and_user_to_json (
 
 }
 
-bson_t *place_to_bson (const Place *place) {
+static void place_location_to_bson (
+	const Location *location, bson_t *place_doc
+) {
+
+	bson_t location_doc = BSON_INITIALIZER;
+	(void) bson_append_document_begin (place_doc, "store", -1, &location_doc);
+
+	(void) bson_append_utf8 (&location_doc, "address", -1, location->address, -1);
+	(void) bson_append_utf8 (&location_doc, "lat", -1, location->lat, -1);
+	(void) bson_append_utf8 (&location_doc, "lon", -1, location->lon, -1);
+
+	(void) bson_append_document_end (place_doc, &location_doc);
+
+}
+
+static void place_site_to_bson (
+	const Site *site, bson_t *place_doc
+) {
+
+	bson_t site_doc = BSON_INITIALIZER;
+	(void) bson_append_document_begin (place_doc, "site", -1, &site_doc);
+
+	(void) bson_append_utf8 (&site_doc, "link", -1, site->link, -1);
+	(void) bson_append_utf8 (&site_doc, "logo", -1, site->logo, -1);
+
+	(void) bson_append_document_end (place_doc, &site_doc);
+
+}
+
+static bson_t *place_to_bson (const Place *place) {
 
     bson_t *doc = NULL;
 
@@ -275,6 +304,22 @@ bson_t *place_to_bson (const Place *place) {
 			(void) bson_append_utf8 (doc, "description", -1, place->description, -1);
 
 			(void) bson_append_int32 (doc, "type", -1, place->type);
+
+			switch (place->type) {
+				case PLACE_TYPE_NONE: break;
+
+				case PLACE_TYPE_LOCATION: {
+					place_location_to_bson (&place->location, doc);
+				} break;
+
+				case PLACE_TYPE_SITE: {
+					place_site_to_bson (&place->site, doc);
+				} break;
+				
+				default: break;
+			}
+
+			(void) bson_append_utf8 (doc, "color", -1, place->color, -1);
 
 			(void) bson_append_date_time (doc, "date", -1, place->date * 1000);
         }
