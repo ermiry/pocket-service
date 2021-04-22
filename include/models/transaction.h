@@ -10,8 +10,8 @@
 
 #define TRANSACTIONS_COLL_NAME         	"transactions"
 
-#define	TRANSACTION_ID_LEN				32
-#define TRANSACTION_TITLE_LEN			1024
+#define	TRANSACTION_ID_SIZE				32
+#define TRANSACTION_TITLE_SIZE			1024
 
 extern unsigned int transactions_model_init (void);
 
@@ -36,7 +36,7 @@ typedef struct Transaction {
 
 	// transaction's unique id
 	bson_oid_t oid;
-	char id[TRANSACTION_ID_LEN];
+	char id[TRANSACTION_ID_SIZE];
 
 	// reference to the owner of this transaction
 	bson_oid_t user_oid;
@@ -56,7 +56,7 @@ typedef struct Transaction {
 
 	// the name of the transaction
 	// is given by the user and displayed in the app
-	char title[TRANSACTION_TITLE_LEN];
+	char title[TRANSACTION_TITLE_SIZE];
 
 	// the actual value of the transaction
 	double amount;

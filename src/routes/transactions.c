@@ -65,6 +65,7 @@ static void pocket_trans_parse_json (
 	const char **title,
 	double *amount,
 	const char **category,
+	const char **place,
 	const char **date
 ) {
 
@@ -94,6 +95,13 @@ static void pocket_trans_parse_json (
 				#endif
 			}
 
+			else if (!strcmp (key, "place")) {
+				*place = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("place: \"%s\"\n", *place);
+				#endif
+			}
+
 			else if (!strcmp (key, "date")) {
 				*date = json_string_value (value);
 				#ifdef POCKET_DEBUG
@@ -116,6 +124,7 @@ static PocketError pocket_transaction_create_handler_internal (
 		const char *title = NULL;
 		double amount = 0;
 		const char *category_id = NULL;
+		const char *place_id = NULL;
 		const char *date = NULL;
 
 		json_error_t json_error =  { 0 };
@@ -124,7 +133,7 @@ static PocketError pocket_transaction_create_handler_internal (
 			pocket_trans_parse_json (
 				json_body,
 				&title, &amount,
-				&category_id, &date
+				&category_id, &place_id, &date
 			);
 
 			if (title && category_id) {
@@ -147,7 +156,7 @@ static PocketError pocket_transaction_create_handler_internal (
 
 		else {
 			cerver_log_error (
-				"json_loads () - json error on line %d: %s\n", 
+				"json_loads () - json error on line %d: %s\n",
 				json_error.line, json_error.text
 			);
 
@@ -203,7 +212,7 @@ void pocket_transaction_create_handler (
 					http_receive
 				);
 			}
-			
+
 			pocket_trans_delete (trans);
 		}
 
@@ -242,7 +251,7 @@ void pocket_transaction_get_handler (
 					(void) http_response_json_custom_reference_send (
 						http_receive, 200, json, json_len
 					);
-					
+
 					free (json);
 				}
 
@@ -273,6 +282,7 @@ static u8 pocket_transaction_update_handler_internal (
 		const char *title = NULL;
 		double amount = 0;
 		const char *category_id = NULL;
+		const char *place_id = NULL;
 		const char *date = NULL;
 
 		json_error_t error =  { 0 };
@@ -281,11 +291,13 @@ static u8 pocket_transaction_update_handler_internal (
 			pocket_trans_parse_json (
 				json_body,
 				&title, &amount,
-				&category_id, &date
+				&category_id, &place_id, &date
 			);
 
-			if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN - 1);
+			if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_SIZE - 1);
 			trans->amount = amount;
+			if (category_id) (void) bson_oid_init_from_string (&trans->category_oid, category_id);
+			if (place_id) (void) bson_oid_init_from_string (&trans->place_oid, place_id);
 
 			json_decref (json_body);
 
@@ -294,7 +306,7 @@ static u8 pocket_transaction_update_handler_internal (
 
 		else {
 			cerver_log_error (
-				"json_loads () - json error on line %d: %s\n", 
+				"json_loads () - json error on line %d: %s\n",
 				error.line, error.text
 			);
 		}

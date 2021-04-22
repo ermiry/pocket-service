@@ -203,7 +203,7 @@ Transaction *pocket_trans_create (
 
 		bson_oid_init_from_string (&trans->user_oid, user_id);
 
-		if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_LEN - 1);
+		if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_SIZE - 1);
 		trans->amount = amount;
 
 		if (category_id) {

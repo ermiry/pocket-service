@@ -123,17 +123,17 @@ static void trans_doc_parse (
 				(void) strncpy (
 					trans->title,
 					value->value.v_utf8.str,
-					TRANSACTION_TITLE_LEN - 1
+					TRANSACTION_TITLE_SIZE - 1
 				);
 			}
 
-			else if (!strcmp (key, "amount")) 
+			else if (!strcmp (key, "amount"))
 				trans->amount = value->value.v_double;
 
-			else if (!strcmp (key, "date")) 
+			else if (!strcmp (key, "date"))
 				trans->date = (time_t) bson_iter_date_time (&iter) / 1000;
 
-			else if (!strcmp (key, "type")) 
+			else if (!strcmp (key, "type"))
 				trans->type = (TransType) value->value.v_int32;
 		}
 	}
@@ -245,26 +245,27 @@ u8 transaction_get_by_oid_and_user_to_json (
 
 bson_t *transaction_to_bson (const Transaction *trans) {
 
-    bson_t *doc = NULL;
+	bson_t *doc = NULL;
 
-    if (trans) {
-        doc = bson_new ();
-        if (doc) {
-            (void) bson_append_oid (doc, "_id", -1, &trans->oid);
+	if (trans) {
+		doc = bson_new ();
+		if (doc) {
+			(void) bson_append_oid (doc, "_id", -1, &trans->oid);
 
 			(void) bson_append_oid (doc, "user", -1, &trans->user_oid);
 
 			(void) bson_append_oid (doc, "category", -1, &trans->category_oid);
+			(void) bson_append_oid (doc, "place", -1, &trans->place_oid);
 
 			(void) bson_append_utf8 (doc, "title", -1, trans->title, -1);
 			(void) bson_append_double (doc, "amount", -1, trans->amount);
 			(void) bson_append_date_time (doc, "date", -1, trans->date * 1000);
 
 			(void) bson_append_int32 (doc, "type", -1, trans->type);
-        }
-    }
+		}
+	}
 
-    return doc;
+	return doc;
 
 }
 
@@ -272,19 +273,24 @@ bson_t *transaction_update_bson (const Transaction *trans) {
 
 	bson_t *doc = NULL;
 
-    if (trans) {
-        doc = bson_new ();
-        if (doc) {
+	if (trans) {
+		doc = bson_new ();
+		if (doc) {
 			bson_t set_doc = BSON_INITIALIZER;
 			(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
 			(void) bson_append_utf8 (&set_doc, "title", -1, trans->title, -1);
 			(void) bson_append_double (&set_doc, "amount", -1, trans->amount);
+
+			(void) bson_append_oid (&set_doc, "category", -1, &trans->category_oid);
+
+			(void) bson_append_oid (&set_doc, "place", -1, &trans->place_oid);
+
 			// (void) bson_append_date_time (&set_doc, "date", -1, trans->date * 1000);
 			(void) bson_append_document_end (doc, &set_doc);
-        }
-    }
+		}
+	}
 
-    return doc;
+	return doc;
 
 }
 
