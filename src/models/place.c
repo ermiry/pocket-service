@@ -40,7 +40,7 @@ void places_model_end (void) {
 
 }
 
-const char *place_type_to_string (PlaceType type) {
+const char *place_type_to_string (const PlaceType type) {
 
 	switch (type) {
 		#define XX(num, name, string) case PLACE_TYPE_##name: return #string;
@@ -49,6 +49,30 @@ const char *place_type_to_string (PlaceType type) {
 	}
 
 	return place_type_to_string (PLACE_TYPE_NONE);
+
+}
+
+PlaceType place_type_from_string (const char *type_string) {
+
+	if (!strcasecmp (place_type_to_string (PLACE_TYPE_LOCATION), type_string)) return PLACE_TYPE_LOCATION;
+	if (!strcasecmp (place_type_to_string (PLACE_TYPE_SITE), type_string)) return PLACE_TYPE_SITE;
+
+	return PLACE_TYPE_NONE;
+
+}
+
+PlaceType place_type_from_value_string (const char *type_value_string) {
+
+	PlaceType type = PLACE_TYPE_NONE;
+
+	if (type_value_string) {
+		int value = atoi (type_value_string);
+		if (value < PLACE_TYPE_INVALID) {
+			type = (PlaceType) value;
+		}
+	}
+
+	return type;
 
 }
 
@@ -69,17 +93,16 @@ void place_delete (void *place_ptr) {
 
 }
 
-void place_print (Place *place) {
+void place_print (const Place *place) {
 
 	if (place) {
-		char buffer[128] = { 0 };
-		bson_oid_to_string (&place->oid, buffer);
-		(void) printf ("id: %s\n", buffer);
+		(void) printf ("id: %s\n", place->id);
 
 		(void) printf ("name: %s\n", place->name);
 		(void) printf ("description: %s\n", place->description);
 		(void) printf ("type: %s\n", place_type_to_string (place->type));
 
+		char buffer[128] = { 0 };
 		(void) strftime (buffer, 128, "%d/%m/%y - %T", gmtime (&place->date));
 		(void) printf ("date: %s GMT\n", buffer);
 	}
@@ -112,7 +135,7 @@ static void place_doc_parse (
 				(void) strncpy (
 					place->name,
 					value->value.v_utf8.str,
-					PLACE_NAME_LEN - 1
+					PLACE_NAME_SIZE - 1
 				);
 			}
 
@@ -120,7 +143,7 @@ static void place_doc_parse (
 				(void) strncpy (
 					place->description,
 					value->value.v_utf8.str,
-					PLACE_DESCRIPTION_LEN - 1
+					PLACE_DESCRIPTION_SIZE - 1
 				);
 			}
 
