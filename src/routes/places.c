@@ -61,7 +61,11 @@ void pocket_places_handler (
 static void pocket_place_parse_json (
 	json_t *json_body,
 	const char **name,
-	const char **description
+	const char **description,
+	const char **type,
+	const char **link,
+	const char **logo,
+	const char **color
 ) {
 
 	// get values from json to create a new place
@@ -82,6 +86,34 @@ static void pocket_place_parse_json (
 				(void) printf ("description: \"%s\"\n", *description);
 				#endif
 			}
+
+			else if (!strcmp (key, "type")) {
+				*type = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("type: \"%s\"\n", *type);
+				#endif
+			}
+
+			else if (!strcmp (key, "link")) {
+				*link = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("link: \"%s\"\n", *link);
+				#endif
+			}
+
+			else if (!strcmp (key, "logo")) {
+				*logo = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("logo: \"%s\"\n", *logo);
+				#endif
+			}
+
+			else if (!strcmp (key, "color")) {
+				*color = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("color: \"%s\"\n", *color);
+				#endif
+			}
 		}
 	}
 
@@ -96,6 +128,10 @@ static Place *pocket_place_create_handler_internal (
 	if (request_body) {
 		const char *name = NULL;
 		const char *description = NULL;
+		const char *type = NULL;
+		const char *link = NULL;
+		const char *logo = NULL;
+		const char *color = NULL;
 
 		json_error_t error =  { 0 };
 		json_t *json_body = json_loads (request_body->str, 0, &error);
@@ -103,12 +139,20 @@ static Place *pocket_place_create_handler_internal (
 			pocket_place_parse_json (
 				json_body,
 				&name,
-				&description
+				&description,
+				&type,
+				&link,
+				&logo,
+				&color
 			);
 
 			place = pocket_place_create (
 				user_id,
-				name, description
+				name, description,
+				type,
+				link,
+				logo,
+				color
 			);
 
 			json_decref (json_body);
@@ -226,20 +270,28 @@ static u8 pocket_place_update_handler_internal (
 	u8 retval = 1;
 
 	if (request_body) {
-		const char *title = NULL;
+		const char *name = NULL;
 		const char *description = NULL;
+		const char *type = NULL;
+		const char *link = NULL;
+		const char *logo = NULL;
+		const char *color = NULL;
 
 		json_error_t error =  { 0 };
 		json_t *json_body = json_loads (request_body->str, 0, &error);
 		if (json_body) {
 			pocket_place_parse_json (
 				json_body,
-				&title,
-				&description
+				&name,
+				&description,
+				&type,
+				&link,
+				&logo,
+				&color
 			);
 
-			if (title) (void) strncpy (place->name, title, PLACE_NAME_LEN - 1);
-			if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_LEN - 1);
+			if (name) (void) strncpy (place->name, name, PLACE_NAME_SIZE - 1);
+			if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_SIZE - 1);
 
 			json_decref (json_body);
 
