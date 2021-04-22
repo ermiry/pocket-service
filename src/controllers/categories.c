@@ -206,10 +206,10 @@ Category *pocket_category_create (
 
 		bson_oid_init_from_string (&category->user_oid, user_id);
 
-		if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_LEN - 1);
-		if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_LEN - 1);
+		if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_SIZE - 1);
+		if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_SIZE - 1);
 
-		if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_LEN - 1);
+		if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_SIZE - 1);
 		
 		category->date = time (NULL);
 	}

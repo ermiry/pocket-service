@@ -10,10 +10,10 @@
 
 #define CATEGORIES_COLL_NAME        "categories"
 
-#define CATEGORY_ID_LEN				32
-#define CATEGORY_TITLE_LEN			1024
-#define CATEGORY_DESCRIPTION_LEN	2048
-#define CATEGORY_COLOR_LEN			128
+#define CATEGORY_ID_SIZE			32
+#define CATEGORY_TITLE_SIZE			1024
+#define CATEGORY_DESCRIPTION_SIZE	2048
+#define CATEGORY_COLOR_SIZE			128
 
 extern unsigned int categories_model_init (void);
 
@@ -23,21 +23,21 @@ typedef struct Category {
 
 	// category's unique id
 	bson_oid_t oid;
-	char id[CATEGORY_ID_LEN];
+	char id[CATEGORY_ID_SIZE];
 
 	// reference to the owner of this category
 	bson_oid_t user_oid;
 
 	// how the user defined this transaction
-	char title[CATEGORY_TITLE_LEN];
+	char title[CATEGORY_TITLE_SIZE];
 
 	// a description added by the user to give extra information
-	char description[CATEGORY_DESCRIPTION_LEN];
+	char description[CATEGORY_DESCRIPTION_SIZE];
 
 	// the user can select a color
 	// that will be used to display all matching transactions
 	// in the mobile app
-	char color[CATEGORY_COLOR_LEN];
+	char color[CATEGORY_COLOR_SIZE];
 
 	// the date when the category was created
 	time_t date;

@@ -101,7 +101,7 @@ static void category_doc_parse (
 				(void) strncpy (
 					category->title,
 					value->value.v_utf8.str,
-					CATEGORY_TITLE_LEN - 1
+					CATEGORY_TITLE_SIZE - 1
 				);
 			}
 
@@ -109,7 +109,7 @@ static void category_doc_parse (
 				(void) strncpy (
 					category->description,
 					value->value.v_utf8.str,
-					CATEGORY_DESCRIPTION_LEN - 1
+					CATEGORY_DESCRIPTION_SIZE - 1
 				);
 			}
 
@@ -117,7 +117,7 @@ static void category_doc_parse (
 				(void) strncpy (
 					category->color,
 					value->value.v_utf8.str,
-					CATEGORY_COLOR_LEN - 1
+					CATEGORY_COLOR_SIZE - 1
 				);
 			}
 
