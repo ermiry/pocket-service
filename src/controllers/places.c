@@ -195,7 +195,11 @@ u8 pocket_place_get_by_id_and_user_to_json (
 
 Place *pocket_place_create (
 	const char *user_id,
-	const char *name, const char *description
+	const char *name, const char *description,
+	const char *type,
+	const char *link,
+	const char *logo,
+	const char *color
 ) {
 
 	Place *place = (Place *) pool_pop (places_pool);
@@ -204,9 +208,26 @@ Place *pocket_place_create (
 
 		bson_oid_init_from_string (&place->user_oid, user_id);
 
-		if (name) (void) strncpy (place->name, name, PLACE_NAME_LEN - 1);
-		if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_LEN - 1);
+		if (name) (void) strncpy (place->name, name, PLACE_NAME_SIZE - 1);
+		if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_SIZE - 1);
 		
+		place->type = place_type_from_value_string (type);
+
+		switch (place->type) {
+			case PLACE_TYPE_NONE: break;
+
+			case PLACE_TYPE_LOCATION: break;
+
+			case PLACE_TYPE_SITE: {
+				if (link) (void) strncpy (place->site.link, link, SITE_LINK_SIZE - 1);
+				if (logo) (void) strncpy (place->site.logo, logo, SITE_LOGO_SIZE - 1);
+			} break;
+			
+			default: break;
+		}
+
+		if (color) (void) strncpy (place->color, color, PLACE_COLOR_SIZE - 1);
+
 		place->date = time (NULL);
 	}
 

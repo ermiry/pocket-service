@@ -41,7 +41,11 @@ extern u8 pocket_place_get_by_id_and_user_to_json (
 
 extern Place *pocket_place_create (
 	const char *user_id,
-	const char *name, const char *description
+	const char *name, const char *description,
+	const char *type,
+	const char *link,
+	const char *logo,
+	const char *color
 );
 
 extern void pocket_place_delete (void *place_ptr);
