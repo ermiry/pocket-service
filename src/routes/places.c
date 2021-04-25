@@ -40,7 +40,7 @@ void pocket_places_handler (
 		if (json) {
 			(void) http_response_json_custom_reference_send (
 				http_receive,
-				200,
+				HTTP_STATUS_OK,
 				json, json_len
 			);
 
@@ -58,122 +58,6 @@ void pocket_places_handler (
 
 }
 
-static void pocket_place_parse_json (
-	json_t *json_body,
-	const char **name,
-	const char **description,
-	const char **type,
-	const char **link,
-	const char **logo,
-	const char **color
-) {
-
-	// get values from json to create a new place
-	const char *key = NULL;
-	json_t *value = NULL;
-	if (json_typeof (json_body) == JSON_OBJECT) {
-		json_object_foreach (json_body, key, value) {
-			if (!strcmp (key, "name")) {
-				*name = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("name: \"%s\"\n", *name);
-				#endif
-			}
-
-			else if (!strcmp (key, "description")) {
-				*description = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("description: \"%s\"\n", *description);
-				#endif
-			}
-
-			else if (!strcmp (key, "type")) {
-				*type = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("type: \"%s\"\n", *type);
-				#endif
-			}
-
-			else if (!strcmp (key, "link")) {
-				*link = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("link: \"%s\"\n", *link);
-				#endif
-			}
-
-			else if (!strcmp (key, "logo")) {
-				*logo = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("logo: \"%s\"\n", *logo);
-				#endif
-			}
-
-			else if (!strcmp (key, "color")) {
-				*color = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("color: \"%s\"\n", *color);
-				#endif
-			}
-		}
-	}
-
-}
-
-static Place *pocket_place_create_handler_internal (
-	const char *user_id, const String *request_body
-) {
-
-	Place *place = NULL;
-
-	if (request_body) {
-		const char *name = NULL;
-		const char *description = NULL;
-		const char *type = NULL;
-		const char *link = NULL;
-		const char *logo = NULL;
-		const char *color = NULL;
-
-		json_error_t error =  { 0 };
-		json_t *json_body = json_loads (request_body->str, 0, &error);
-		if (json_body) {
-			pocket_place_parse_json (
-				json_body,
-				&name,
-				&description,
-				&type,
-				&link,
-				&logo,
-				&color
-			);
-
-			place = pocket_place_create (
-				user_id,
-				name, description,
-				type,
-				link,
-				logo,
-				color
-			);
-
-			json_decref (json_body);
-		}
-
-		else {
-			cerver_log_error (
-				"json_loads () - json error on line %d: %s\n", 
-				error.line, error.text
-			);
-		}
-	}
-
-	else {
-		cerver_log_error ("Missing request body to create place!");
-	}
-
-	return place;
-
-}
-
 // POST /api/pocket/places
 // a user has requested to create a new place
 void pocket_place_create_handler (
@@ -183,32 +67,22 @@ void pocket_place_create_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		Place *place = pocket_place_create_handler_internal (
-			user->id, request->body
+		PocketError error = pocket_place_create (
+			user, request->body
 		);
 
-		if (place) {
-			#ifdef POCKET_DEBUG
-			place_print (place);
-			#endif
-
-			if (!place_insert_one (place)) {
-				// update users values
-				(void) user_add_place (user);
-
+		switch (error) {
+			case POCKET_ERROR_NONE: {
 				// return success to user
 				(void) http_response_send (
 					place_created_success,
 					http_receive
 				);
-			}
-		}
+			} break;
 
-		else {
-			(void) http_response_send (
-				place_created_bad,
-				http_receive
-			);
+			default: {
+				pocket_error_send_response (error, http_receive);
+			} break;
 		}
 	}
 
@@ -240,7 +114,7 @@ void pocket_place_get_handler (
 			)) {
 				if (json) {
 					(void) http_response_json_custom_reference_send (
-						http_receive, 200, json, json_len
+						http_receive, HTTP_STATUS_OK, json, json_len
 					);
 					
 					free (json);
@@ -347,7 +221,7 @@ void pocket_place_update_handler (
 				(void) http_response_send (bad_request_error, http_receive);
 			}
 
-			pocket_place_delete (place);
+			pocket_place_return (place);
 		}
 
 		else {

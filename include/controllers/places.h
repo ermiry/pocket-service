@@ -7,7 +7,10 @@
 
 #include <cerver/collections/pool.h>
 
+#include "errors.h"
+
 #include "models/place.h"
+#include "models/user.h"
 
 #define DEFAULT_PLACES_POOL_INIT			32
 
@@ -39,15 +42,10 @@ extern u8 pocket_place_get_by_id_and_user_to_json (
 	char **json, size_t *json_len
 );
 
-extern Place *pocket_place_create (
-	const char *user_id,
-	const char *name, const char *description,
-	const char *type,
-	const char *link,
-	const char *logo,
-	const char *color
+extern PocketError pocket_place_create (
+	const User *user, const String *request_body
 );
 
-extern void pocket_place_delete (void *place_ptr);
+extern void pocket_place_return (void *place_ptr);
 
 #endif
