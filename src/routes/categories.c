@@ -40,7 +40,7 @@ void pocket_categories_handler (
 		if (json) {
 			(void) http_response_json_custom_reference_send (
 				http_receive,
-				200,
+				HTTP_STATUS_OK,
 				json, json_len
 			);
 
@@ -58,89 +58,6 @@ void pocket_categories_handler (
 
 }
 
-static void pocket_category_parse_json (
-	json_t *json_body,
-	const char **title,
-	const char **description,
-	const char **color
-) {
-
-	// get values from json to create a new category
-	const char *key = NULL;
-	json_t *value = NULL;
-	if (json_typeof (json_body) == JSON_OBJECT) {
-		json_object_foreach (json_body, key, value) {
-			if (!strcmp (key, "title")) {
-				*title = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("title: \"%s\"\n", *title);
-				#endif
-			}
-
-			else if (!strcmp (key, "description")) {
-				*description = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("description: \"%s\"\n", *description);
-				#endif
-			}
-
-			else if (!strcmp (key, "color")) {
-				*color = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("color: \"%s\"\n", *color);
-				#endif
-			}
-		}
-	}
-
-}
-
-static Category *pocket_category_create_handler_internal (
-	const char *user_id, const String *request_body
-) {
-
-	Category *category = NULL;
-
-	if (request_body) {
-		const char *title = NULL;
-		const char *description = NULL;
-		const char *color = NULL;
-
-		json_error_t error =  { 0 };
-		json_t *json_body = json_loads (request_body->str, 0, &error);
-		if (json_body) {
-			pocket_category_parse_json (
-				json_body,
-				&title,
-				&description,
-				&color
-			);
-
-			category = pocket_category_create (
-				user_id,
-				title, description,
-				color
-			);
-
-			json_decref (json_body);
-		}
-
-		else {
-			cerver_log_error (
-				"json_loads () - json error on line %d: %s\n", 
-				error.line, error.text
-			);
-		}
-	}
-
-	else {
-		cerver_log_error ("Missing request body to create category!");
-	}
-
-	return category;
-
-}
-
 // POST /api/pocket/categories
 // a user has requested to create a new category
 void pocket_category_create_handler (
@@ -150,43 +67,22 @@ void pocket_category_create_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		Category *category = pocket_category_create_handler_internal (
-			user->id, request->body
+		PocketError error = pocket_category_create (
+			user, request->body
 		);
 
-		if (category) {
-			#ifdef POCKET_DEBUG
-			category_print (category);
-			#endif
-
-			if (!category_insert_one (
-				category
-			)) {
-				// update users values
-				(void) user_add_category (user);
-
+		switch (error) {
+			case POCKET_ERROR_NONE: {
 				// return success to user
 				(void) http_response_send (
 					category_created_success,
 					http_receive
 				);
-			}
+			} break;
 
-			else {
-				(void) http_response_send (
-					category_created_bad,
-					http_receive
-				);
-			}
-			
-			pocket_category_delete (category);
-		}
-
-		else {
-			(void) http_response_send (
-				category_created_bad,
-				http_receive
-			);
+			default: {
+				pocket_error_send_response (error, http_receive);
+			} break;
 		}
 	}
 
@@ -321,7 +217,7 @@ void pocket_category_update_handler (
 				(void) http_response_send (bad_request_error, http_receive);
 			}
 
-			pocket_category_delete (category);
+			pocket_category_return (category);
 		}
 
 		else {

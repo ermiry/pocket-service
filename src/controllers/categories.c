@@ -5,6 +5,7 @@
 #include <cerver/types/string.h>
 
 #include <cerver/http/response.h>
+#include <cerver/http/json/json.h>
 
 #include <cerver/collections/pool.h>
 
@@ -13,7 +14,10 @@
 #include <cmongo/crud.h>
 #include <cmongo/select.h>
 
+#include "errors.h"
+
 #include "models/category.h"
+#include "models/user.h"
 
 #include "controllers/categories.h"
 
@@ -30,7 +34,7 @@ HttpResponse *category_created_bad = NULL;
 HttpResponse *category_deleted_success = NULL;
 HttpResponse *category_deleted_bad = NULL;
 
-void pocket_category_delete (void *category_ptr);
+void pocket_category_return (void *category_ptr);
 
 static unsigned int pocket_categories_init_pool (void) {
 
@@ -161,7 +165,7 @@ Category *pocket_category_get_by_id_and_user (
 				&category->oid, user_oid,
 				NULL
 			)) {
-				pocket_category_delete (category);
+				pocket_category_return (category);
 				category = NULL;
 			}
 		}
@@ -194,7 +198,7 @@ u8 pocket_category_get_by_id_and_user_to_json (
 
 }
 
-Category *pocket_category_create (
+static Category *pocket_category_create_actual (
 	const char *user_id,
 	const char *title, const char *description,
 	const char *color
@@ -218,7 +222,133 @@ Category *pocket_category_create (
 
 }
 
-void pocket_category_delete (void *category_ptr) {
+static void pocket_category_parse_json (
+	json_t *json_body,
+	const char **title,
+	const char **description,
+	const char **color
+) {
+
+	// get values from json to create a new category
+	const char *key = NULL;
+	json_t *value = NULL;
+	if (json_typeof (json_body) == JSON_OBJECT) {
+		json_object_foreach (json_body, key, value) {
+			if (!strcmp (key, "title")) {
+				*title = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("title: \"%s\"\n", *title);
+				#endif
+			}
+
+			else if (!strcmp (key, "description")) {
+				*description = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("description: \"%s\"\n", *description);
+				#endif
+			}
+
+			else if (!strcmp (key, "color")) {
+				*color = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("color: \"%s\"\n", *color);
+				#endif
+			}
+		}
+	}
+
+}
+
+static PocketError pocket_category_create_parse_json (
+	Category **category,
+	const char *user_id, const String *request_body
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	const char *title = NULL;
+	const char *description = NULL;
+	const char *color = NULL;
+
+	json_error_t json_error =  { 0 };
+	json_t *json_body = json_loads (request_body->str, 0, &json_error);
+	if (json_body) {
+		pocket_category_parse_json (
+			json_body,
+			&title,
+			&description,
+			&color
+		);
+
+		category = pocket_category_create_actual (
+			user_id,
+			title, description,
+			color
+		);
+
+		json_decref (json_body);
+	}
+
+	else {
+		cerver_log_error (
+			"json_loads () - json error on line %d: %s\n", 
+			json_error.line, json_error.text
+		);
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+PocketError pocket_category_create (
+	const User *user, const String *request_body
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	if (request_body) {
+		Category *category = NULL;
+
+		error = pocket_category_create_parse_json (
+			&category,
+			user->id, request_body
+		);
+
+		if (error == POCKET_ERROR_NONE) {
+			#ifdef POCKET_DEBUG
+			category_print (category);
+			#endif
+
+			if (!category_insert_one (
+				category
+			)) {
+				// update users values
+				(void) user_add_category (user);
+			}
+
+			else {
+				error = POCKET_ERROR_SERVER_ERROR;
+			}
+			
+			pocket_category_return (category);
+		}
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error ("Missing request body to create category!");
+		#endif
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+void pocket_category_return (void *category_ptr) {
 
 	(void) memset (category_ptr, 0, sizeof (Category));
 	(void) pool_push (categories_pool, category_ptr);

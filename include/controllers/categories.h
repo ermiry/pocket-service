@@ -5,7 +5,10 @@
 
 #include <cerver/collections/pool.h>
 
+#include "errors.h"
+
 #include "models/category.h"
+#include "models/user.h"
 
 #define DEFAULT_CATEGORIES_POOL_INIT			32
 
@@ -37,12 +40,10 @@ extern u8 pocket_category_get_by_id_and_user_to_json (
 	char **json, size_t *json_len
 );
 
-extern Category *pocket_category_create (
-	const char *user_id,
-	const char *title, const char *description,
-	const char *color
+extern PocketError pocket_category_create (
+	const User *user, const String *request_body
 );
 
-extern void pocket_category_delete (void *category_ptr);
+extern void pocket_category_return (void *category_ptr);
 
 #endif
