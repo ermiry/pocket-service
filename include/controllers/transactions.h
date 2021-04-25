@@ -43,6 +43,11 @@ extern PocketError pocket_trans_create (
 	const User *user, const String *request_body
 );
 
+extern PocketError pocket_trans_update (
+	const User *user, const String *trans_id,
+	const String *request_body
+);
+
 extern void pocket_trans_delete (void *trans_ptr);
 
 #endif

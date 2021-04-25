@@ -378,7 +378,98 @@ PocketError pocket_trans_create (
 
 	else {
 		#ifdef POCKET_DEBUG
-		cerver_log_error ("Missing request body to create item!");
+		cerver_log_error ("Missing request body to create transaction!");
+		#endif
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+static PocketError pocket_trans_update_parse_json (
+	Transaction *trans, const String *request_body
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	const char *title = NULL;
+	double amount = 0;
+	const char *category_id = NULL;
+	const char *place_id = NULL;
+	const char *date = NULL;
+
+	json_error_t json_error =  { 0 };
+	json_t *json_body = json_loads (request_body->str, 0, &json_error);
+	if (json_body) {
+		pocket_trans_parse_json (
+			json_body,
+			&title, &amount,
+			&category_id, &place_id, &date
+		);
+
+		if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_SIZE - 1);
+		trans->amount = amount;
+		if (category_id) (void) bson_oid_init_from_string (&trans->category_oid, category_id);
+		if (place_id) (void) bson_oid_init_from_string (&trans->place_oid, place_id);
+
+		json_decref (json_body);
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error (
+			"json_loads () - json error on line %d: %s\n",
+			json_error.line, json_error.text
+		);
+		#endif
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+PocketError pocket_trans_update (
+	const User *user, const String *trans_id,
+	const String *request_body
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	if (request_body) {
+		Transaction *trans = pocket_trans_get_by_id_and_user (
+			trans_id, &user->oid
+		);
+
+		if (trans) {
+			// get update values
+			if (pocket_trans_update_parse_json (
+				trans, request_body
+			) == POCKET_ERROR_NONE) {
+				// update the transaction in the db
+				if (transaction_update_one (trans)) {
+					error = POCKET_ERROR_SERVER_ERROR;
+				}
+			}
+
+			pocket_trans_delete (trans);
+		}
+
+		else {
+			#ifdef POCKET_DEBUG
+			cerver_log_error ("Failed to get matching transaction!");
+			#endif
+
+			error = POCKET_ERROR_NOT_FOUND;
+		}
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error ("Missing request body to update transaction!");
 		#endif
 
 		error = POCKET_ERROR_BAD_REQUEST;

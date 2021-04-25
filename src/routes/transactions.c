@@ -116,7 +116,7 @@ void pocket_transaction_get_handler (
 			)) {
 				if (json) {
 					(void) http_response_json_custom_reference_send (
-						http_receive, 200, json, json_len
+						http_receive, HTTP_STATUS_OK, json, json_len
 					);
 
 					free (json);
@@ -139,54 +139,6 @@ void pocket_transaction_get_handler (
 
 }
 
-static u8 pocket_transaction_update_handler_internal (
-	Transaction *trans, const String *request_body
-) {
-
-	u8 retval = 1;
-
-	if (request_body) {
-		const char *title = NULL;
-		double amount = 0;
-		const char *category_id = NULL;
-		const char *place_id = NULL;
-		const char *date = NULL;
-
-		json_error_t error =  { 0 };
-		json_t *json_body = json_loads (request_body->str, 0, &error);
-		if (json_body) {
-			pocket_trans_parse_json (
-				json_body,
-				&title, &amount,
-				&category_id, &place_id, &date
-			);
-
-			if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_SIZE - 1);
-			trans->amount = amount;
-			if (category_id) (void) bson_oid_init_from_string (&trans->category_oid, category_id);
-			if (place_id) (void) bson_oid_init_from_string (&trans->place_oid, place_id);
-
-			json_decref (json_body);
-
-			retval = 0;
-		}
-
-		else {
-			cerver_log_error (
-				"json_loads () - json error on line %d: %s\n",
-				error.line, error.text
-			);
-		}
-	}
-
-	else {
-		cerver_log_error ("Missing request body to update trans!");
-	}
-
-	return retval;
-
-}
-
 // POST /api/pocket/transactions/:id
 // a user wants to update an existing transaction
 void pocket_transaction_update_handler (
@@ -196,32 +148,18 @@ void pocket_transaction_update_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		bson_oid_init_from_string (&user->oid, user->id);
-
-		Transaction *trans = pocket_trans_get_by_id_and_user (
-			request->params[0], &user->oid
+		PocketError error = pocket_trans_update (
+			user, request->params[0], request->body
 		);
 
-		if (trans) {
-			// get update values
-			if (!pocket_transaction_update_handler_internal (
-				trans, request->body
-			)) {
-				// update the transaction in the db
-				if (!transaction_update_one (trans)) {
-					(void) http_response_send (oki_doki, http_receive);
-				}
+		switch (error) {
+			case POCKET_ERROR_NONE: {
+				(void) http_response_send (oki_doki, http_receive);
+			} break;
 
-				else {
-					(void) http_response_send (server_error, http_receive);
-				}
-			}
-
-			pocket_trans_delete (trans);
-		}
-
-		else {
-			(void) http_response_send (bad_request_error, http_receive);
+			default: {
+				pocket_error_send_response (error, http_receive);
+			} break;
 		}
 	}
 
