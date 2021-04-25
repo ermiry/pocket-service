@@ -44,6 +44,11 @@ extern PocketError pocket_category_create (
 	const User *user, const String *request_body
 );
 
+extern PocketError pocket_category_update (
+	const User *user, const String *category_id,
+	const String *request_body
+);
+
 extern void pocket_category_return (void *category_ptr);
 
 #endif

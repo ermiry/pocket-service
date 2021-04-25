@@ -114,7 +114,7 @@ void pocket_category_get_handler (
 			)) {
 				if (json) {
 					(void) http_response_json_custom_reference_send (
-						http_receive, 200, json, json_len
+						http_receive, HTTP_STATUS_OK, json, json_len
 					);
 					
 					free (json);
@@ -137,52 +137,6 @@ void pocket_category_get_handler (
 
 }
 
-static u8 pocket_category_update_handler_internal (
-	Category *category, const String *request_body
-) {
-
-	u8 retval = 1;
-
-	if (request_body) {
-		const char *title = NULL;
-		const char *description = NULL;
-		const char *color = NULL;
-
-		json_error_t error =  { 0 };
-		json_t *json_body = json_loads (request_body->str, 0, &error);
-		if (json_body) {
-			pocket_category_parse_json (
-				json_body,
-				&title,
-				&description,
-				&color
-			);
-
-			if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_SIZE - 1);
-			if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_SIZE - 1);
-			if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_SIZE - 1);
-
-			json_decref (json_body);
-
-			retval = 0;
-		}
-
-		else {
-			cerver_log_error (
-				"json_loads () - json error on line %d: %s\n", 
-				error.line, error.text
-			);
-		}
-	}
-
-	else {
-		cerver_log_error ("Missing request body to update category!");
-	}
-
-	return retval;
-
-}
-
 // PUT /api/pocket/categories/:id
 // a user wants to update an existing category
 void pocket_category_update_handler (
@@ -192,36 +146,18 @@ void pocket_category_update_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		bson_oid_init_from_string (&user->oid, user->id);
-
-		Category *category = pocket_category_get_by_id_and_user (
-			request->params[0], &user->oid
+		PocketError error = pocket_category_update (
+			user, request->params[0], request->body
 		);
 
-		if (category) {
-			// get update values
-			if (!pocket_category_update_handler_internal (
-				category, request->body
-			)) {
-				// update the category in the db
-				if (!category_update_one (category)) {
-					(void) http_response_send (oki_doki, http_receive);
-				}
+		switch (error) {
+			case POCKET_ERROR_NONE: {
+				(void) http_response_send (oki_doki, http_receive);
+			} break;
 
-				else {
-					(void) http_response_send (server_error, http_receive);
-				}
-			}
-
-			else {
-				(void) http_response_send (bad_request_error, http_receive);
-			}
-
-			pocket_category_return (category);
-		}
-
-		else {
-			(void) http_response_send (bad_request_error, http_receive);
+			default: {
+				pocket_error_send_response (error, http_receive);
+			} break;
 		}
 	}
 

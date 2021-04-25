@@ -280,7 +280,7 @@ static PocketError pocket_category_create_parse_json (
 			&color
 		);
 
-		category = pocket_category_create_actual (
+		*category = pocket_category_create_actual (
 			user_id,
 			title, description,
 			color
@@ -339,6 +339,95 @@ PocketError pocket_category_create (
 	else {
 		#ifdef POCKET_DEBUG
 		cerver_log_error ("Missing request body to create category!");
+		#endif
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+static PocketError pocket_category_update_parse_json (
+	Category *category, const String *request_body
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	const char *title = NULL;
+	const char *description = NULL;
+	const char *color = NULL;
+
+	json_error_t json_error =  { 0 };
+	json_t *json_body = json_loads (request_body->str, 0, &json_error);
+	if (json_body) {
+		pocket_category_parse_json (
+			json_body,
+			&title,
+			&description,
+			&color
+		);
+
+		if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_SIZE - 1);
+		if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_SIZE - 1);
+		if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_SIZE - 1);
+
+		json_decref (json_body);
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error (
+			"json_loads () - json error on line %d: %s\n", 
+			json_error.line, json_error.text
+		);
+		#endif
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+PocketError pocket_category_update (
+	const User *user, const String *category_id,
+	const String *request_body
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	if (request_body) {
+		Category *category = pocket_category_get_by_id_and_user (
+			category_id, &user->oid
+		);
+
+		if (category) {
+			// get update values
+			if (pocket_category_update_parse_json (
+				category, request_body
+			) == POCKET_ERROR_NONE) {
+				// update the category in the db
+				if (category_update_one (category)) {
+					error = POCKET_ERROR_SERVER_ERROR;
+				}
+			}
+
+			pocket_category_return (category);
+		}
+
+		else {
+			#ifdef POCKET_DEBUG
+			cerver_log_error ("Failed to get matching category!");
+			#endif
+
+			error = POCKET_ERROR_NOT_FOUND;
+		}
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error ("Missing request body to update category!");
 		#endif
 
 		error = POCKET_ERROR_BAD_REQUEST;
