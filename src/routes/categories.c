@@ -167,7 +167,6 @@ void pocket_category_update_handler (
 
 }
 
-// TODO: handle things that reference the requested category
 // DELETE /api/pocket/categories/:id
 // deletes an existing user's category
 void pocket_category_delete_handler (
@@ -179,21 +178,14 @@ void pocket_category_delete_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		bson_oid_t oid = { 0 };
-		bson_oid_init_from_string (&oid, category_id->str);
+		switch (pocket_category_delete (user, category_id)) {
+			case POCKET_ERROR_NONE:
+				(void) http_response_send (category_deleted_success, http_receive);
+				break;
 
-		if (!category_delete_one_by_oid_and_user (
-			&oid, &user->oid
-		)) {
-			#ifdef POCKET_DEBUG
-			cerver_log_debug ("Deleted category %s", category_id->str);
-			#endif
-
-			(void) http_response_send (category_deleted_success, http_receive);
-		}
-
-		else {
-			(void) http_response_send (category_deleted_bad, http_receive);
+			default:
+				(void) http_response_send (category_deleted_bad, http_receive);
+				break;
 		}
 	}
 

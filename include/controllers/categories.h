@@ -49,6 +49,10 @@ extern PocketError pocket_category_update (
 	const String *request_body
 );
 
+extern PocketError pocket_category_delete (
+	const User *user, const String *category_id
+);
+
 extern void pocket_category_return (void *category_ptr);
 
 #endif

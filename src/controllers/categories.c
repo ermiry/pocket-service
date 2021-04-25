@@ -437,6 +437,32 @@ PocketError pocket_category_update (
 
 }
 
+// TODO: handle things that reference the requested category
+PocketError pocket_category_delete (
+	const User *user, const String *category_id
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	bson_oid_t oid = { 0 };
+	bson_oid_init_from_string (&oid, category_id->str);
+
+	if (!category_delete_one_by_oid_and_user (
+		&oid, &user->oid
+	)) {
+		#ifdef POCKET_DEBUG
+		cerver_log_debug ("Deleted category %s", category_id->str);
+		#endif
+	}
+
+	else {
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
 void pocket_category_return (void *category_ptr) {
 
 	(void) memset (category_ptr, 0, sizeof (Category));
