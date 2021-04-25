@@ -33,7 +33,7 @@ HttpResponse *trans_created_bad = NULL;
 HttpResponse *trans_deleted_success = NULL;
 HttpResponse *trans_deleted_bad = NULL;
 
-void pocket_trans_delete (void *trans_ptr);
+void pocket_trans_return (void *trans_ptr);
 
 static unsigned int pocket_trans_init_pool (void) {
 
@@ -159,7 +159,7 @@ Transaction *pocket_trans_get_by_id_and_user (
 				&trans->oid, user_oid,
 				NULL
 			)) {
-				pocket_trans_delete (trans);
+				pocket_trans_return (trans);
 				trans = NULL;
 			}
 		}
@@ -372,7 +372,7 @@ PocketError pocket_trans_create (
 				error = POCKET_ERROR_SERVER_ERROR;
 			}
 
-			pocket_trans_delete (trans);
+			pocket_trans_return (trans);
 		}
 	}
 
@@ -455,7 +455,7 @@ PocketError pocket_trans_update (
 				}
 			}
 
-			pocket_trans_delete (trans);
+			pocket_trans_return (trans);
 		}
 
 		else {
@@ -479,7 +479,32 @@ PocketError pocket_trans_update (
 
 }
 
-void pocket_trans_delete (void *trans_ptr) {
+PocketError pocket_trans_delete (
+	const User *user, const String *trans_id
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	bson_oid_t oid = { 0 };
+	bson_oid_init_from_string (&oid, trans_id->str);
+
+	if (!transaction_delete_one_by_oid_and_user (
+		&oid, &user->oid
+	)) {
+		#ifdef POCKET_DEBUG
+		cerver_log_debug ("Deleted transaction %s", trans_id->str);
+		#endif
+	}
+
+	else {
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+void pocket_trans_return (void *trans_ptr) {
 
 	(void) memset (trans_ptr, 0, sizeof (Transaction));
 	(void) pool_push (trans_pool, trans_ptr);

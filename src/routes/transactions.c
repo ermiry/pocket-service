@@ -180,21 +180,14 @@ void pocket_transaction_delete_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		bson_oid_t oid = { 0 };
-		bson_oid_init_from_string (&oid, trans_id->str);
+		switch (pocket_trans_delete (user, trans_id)) {
+			case POCKET_ERROR_NONE:
+				(void) http_response_send (trans_deleted_success, http_receive);
+				break;
 
-		if (!transaction_delete_one_by_oid_and_user (
-			&oid, &user->oid
-		)) {
-			#ifdef POCKET_DEBUG
-			cerver_log_debug ("Deleted transaction %s", trans_id->str);
-			#endif
-
-			(void) http_response_send (trans_deleted_success, http_receive);
-		}
-
-		else {
-			(void) http_response_send (trans_deleted_bad, http_receive);
+			default:
+				(void) http_response_send (trans_deleted_bad, http_receive);
+				break;
 		}
 	}
 

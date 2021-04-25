@@ -48,6 +48,10 @@ extern PocketError pocket_trans_update (
 	const String *request_body
 );
 
-extern void pocket_trans_delete (void *trans_ptr);
+extern PocketError pocket_trans_delete (
+	const User *user, const String *trans_id
+);
+
+extern void pocket_trans_return (void *trans_ptr);
 
 #endif
