@@ -46,6 +46,11 @@ extern PocketError pocket_place_create (
 	const User *user, const String *request_body
 );
 
+extern PocketError pocket_place_update (
+	const User *user, const String *place_id,
+	const String *request_body
+);
+
 extern void pocket_place_return (void *place_ptr);
 
 #endif

@@ -331,7 +331,7 @@ static PocketError pocket_place_create_parse_json (
 			&color
 		);
 
-		place = pocket_place_create_actual (
+		*place = pocket_place_create_actual (
 			user_id,
 			name, description,
 			type,
@@ -391,6 +391,99 @@ PocketError pocket_place_create (
 	else {
 		#ifdef POCKET_DEBUG
 		cerver_log_error ("Missing request body to create place!");
+		#endif
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+static PocketError pocket_place_update_parse_json (
+	Place *place, const String *request_body
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	const char *name = NULL;
+	const char *description = NULL;
+	const char *type = NULL;
+	const char *link = NULL;
+	const char *logo = NULL;
+	const char *color = NULL;
+
+	json_error_t json_error =  { 0 };
+	json_t *json_body = json_loads (request_body->str, 0, &json_error);
+	if (json_body) {
+		pocket_place_parse_json (
+			json_body,
+			&name,
+			&description,
+			&type,
+			&link,
+			&logo,
+			&color
+		);
+
+		if (name) (void) strncpy (place->name, name, PLACE_NAME_SIZE - 1);
+		if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_SIZE - 1);
+
+		json_decref (json_body);
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error (
+			"json_loads () - json error on line %d: %s\n", 
+			json_error.line, json_error.text
+		);
+		#endif
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+PocketError pocket_place_update (
+	const User *user, const String *place_id,
+	const String *request_body
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	if (request_body) {
+		Place *place = pocket_place_get_by_id_and_user (
+			place_id, &user->oid
+		);
+
+		if (place) {
+			// get update values
+			if (pocket_place_update_parse_json (
+				place, request_body
+			) == POCKET_ERROR_NONE) {
+				if (place_update_one (place)) {
+					error = POCKET_ERROR_SERVER_ERROR;
+				}
+			}
+
+			pocket_place_return (place);
+		}
+
+		else {
+			#ifdef POCKET_DEBUG
+			cerver_log_error ("Failed to get matching place!");
+			#endif
+
+			error = POCKET_ERROR_NOT_FOUND;
+		}
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error ("Missing request body to update place!");
 		#endif
 
 		error = POCKET_ERROR_BAD_REQUEST;

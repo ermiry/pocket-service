@@ -137,57 +137,6 @@ void pocket_place_get_handler (
 
 }
 
-static u8 pocket_place_update_handler_internal (
-	Place *place, const String *request_body
-) {
-
-	u8 retval = 1;
-
-	if (request_body) {
-		const char *name = NULL;
-		const char *description = NULL;
-		const char *type = NULL;
-		const char *link = NULL;
-		const char *logo = NULL;
-		const char *color = NULL;
-
-		json_error_t error =  { 0 };
-		json_t *json_body = json_loads (request_body->str, 0, &error);
-		if (json_body) {
-			pocket_place_parse_json (
-				json_body,
-				&name,
-				&description,
-				&type,
-				&link,
-				&logo,
-				&color
-			);
-
-			if (name) (void) strncpy (place->name, name, PLACE_NAME_SIZE - 1);
-			if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_SIZE - 1);
-
-			json_decref (json_body);
-
-			retval = 0;
-		}
-
-		else {
-			cerver_log_error (
-				"json_loads () - json error on line %d: %s\n", 
-				error.line, error.text
-			);
-		}
-	}
-
-	else {
-		cerver_log_error ("Missing request body to update place!");
-	}
-
-	return retval;
-
-}
-
 // PUT /api/pocket/places/:id
 // a user wants to update an existing place
 void pocket_place_update_handler (
@@ -197,35 +146,18 @@ void pocket_place_update_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		bson_oid_init_from_string (&user->oid, user->id);
-
-		Place *place = pocket_place_get_by_id_and_user (
-			request->params[0], &user->oid
+		PocketError error = pocket_place_update (
+			user, request->params[0], request->body
 		);
 
-		if (place) {
-			// get update values
-			if (!pocket_place_update_handler_internal (
-				place, request->body
-			)) {
-				if (!place_update_one (place)) {
-					(void) http_response_send (oki_doki, http_receive);
-				}
+		switch (error) {
+			case POCKET_ERROR_NONE: {
+				(void) http_response_send (oki_doki, http_receive);
+			} break;
 
-				else {
-					(void) http_response_send (server_error, http_receive);
-				}
-			}
-
-			else {
-				(void) http_response_send (bad_request_error, http_receive);
-			}
-
-			pocket_place_return (place);
-		}
-
-		else {
-			(void) http_response_send (bad_request_error, http_receive);
+			default: {
+				pocket_error_send_response (error, http_receive);
+			} break;
 		}
 	}
 
