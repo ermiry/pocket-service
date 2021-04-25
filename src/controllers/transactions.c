@@ -14,7 +14,10 @@
 #include <cmongo/crud.h>
 #include <cmongo/select.h>
 
+#include "errors.h"
+
 #include "models/transaction.h"
+#include "models/user.h"
 
 #include "controllers/transactions.h"
 
@@ -189,7 +192,7 @@ u8 pocket_trans_get_by_id_and_user_to_json (
 
 }
 
-Transaction *pocket_trans_create (
+static Transaction *pocket_trans_create_actual (
 	const char *user_id,
 	const char *title,
 	const double amount,
@@ -232,6 +235,156 @@ Transaction *pocket_trans_create (
 	}
 
 	return trans;
+
+}
+
+static void pocket_trans_parse_json (
+	json_t *json_body,
+	const char **title,
+	double *amount,
+	const char **category,
+	const char **place,
+	const char **date
+) {
+
+	// get values from json to create a new transaction
+	const char *key = NULL;
+	json_t *value = NULL;
+	if (json_typeof (json_body) == JSON_OBJECT) {
+		json_object_foreach (json_body, key, value) {
+			if (!strcmp (key, "title")) {
+				*title = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("title: \"%s\"\n", *title);
+				#endif
+			}
+
+			else if (!strcmp (key, "amount")) {
+				*amount = json_real_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("amount: %f\n", *amount);
+				#endif
+			}
+
+			else if (!strcmp (key, "category")) {
+				*category = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("category: \"%s\"\n", *category);
+				#endif
+			}
+
+			else if (!strcmp (key, "place")) {
+				*place = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("place: \"%s\"\n", *place);
+				#endif
+			}
+
+			else if (!strcmp (key, "date")) {
+				*date = json_string_value (value);
+				#ifdef POCKET_DEBUG
+				(void) printf ("date: \"%s\"\n", *date);
+				#endif
+			}
+		}
+	}
+
+}
+
+static PocketError pocket_trans_create_parse_json (
+	Transaction **trans,
+	const char *user_id, const String *request_body
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	const char *title = NULL;
+	double amount = 0;
+	const char *category_id = NULL;
+	const char *place_id = NULL;
+	const char *date = NULL;
+
+	json_error_t json_error =  { 0 };
+	json_t *json_body = json_loads (request_body->str, 0, &json_error);
+	if (json_body) {
+		pocket_trans_parse_json (
+			json_body,
+			&title, &amount,
+			&category_id, &place_id, &date
+		);
+
+		if (title && category_id) {
+			*trans = pocket_trans_create_actual (
+				user_id,
+				title, amount,
+				category_id,
+				date
+			);
+
+			if (*trans == NULL) error = POCKET_ERROR_SERVER_ERROR;
+		}
+
+		else {
+			error = POCKET_ERROR_MISSING_VALUES;
+		}
+
+		json_decref (json_body);
+	}
+
+	else {
+		cerver_log_error (
+			"json_loads () - json error on line %d: %s\n",
+			json_error.line, json_error.text
+		);
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+PocketError pocket_trans_create (
+	const User *user, const String *request_body
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	if (request_body) {
+		Transaction *trans = NULL;
+
+		error = pocket_trans_create_parse_json (
+			&trans,
+			user->id, request_body
+		);
+
+		if (error == POCKET_ERROR_NONE) {
+			#ifdef POCKET_DEBUG
+			transaction_print (trans);
+			#endif
+
+			if (!transaction_insert_one (trans)) {
+				// update users values
+				(void) user_add_transactions (user);
+			}
+
+			else {
+				error = POCKET_ERROR_SERVER_ERROR;
+			}
+
+			pocket_trans_delete (trans);
+		}
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error ("Missing request body to create item!");
+		#endif
+
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
 
 }
 

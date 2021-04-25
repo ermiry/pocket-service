@@ -3,10 +3,12 @@
 
 #include <bson/bson.h>
 
-#include <cerver/collections/dlist.h>
 #include <cerver/collections/pool.h>
 
+#include "errors.h"
+
 #include "models/transaction.h"
+#include "models/user.h"
 
 #define DEFAULT_TRANS_POOL_INIT			32
 
@@ -37,12 +39,8 @@ extern u8 pocket_trans_get_by_id_and_user_to_json (
 	char **json, size_t *json_len
 );
 
-extern Transaction *pocket_trans_create (
-	const char *user_id,
-	const char *title,
-	const double amount,
-	const char *category_id,
-	const char *date
+extern PocketError pocket_trans_create (
+	const User *user, const String *request_body
 );
 
 extern void pocket_trans_delete (void *trans_ptr);

@@ -42,7 +42,7 @@ void pocket_transactions_handler (
 		if (json) {
 			(void) http_response_json_custom_reference_send (
 				http_receive,
-				200,
+				HTTP_STATUS_OK,
 				json, json_len
 			);
 
@@ -60,120 +60,6 @@ void pocket_transactions_handler (
 
 }
 
-static void pocket_trans_parse_json (
-	json_t *json_body,
-	const char **title,
-	double *amount,
-	const char **category,
-	const char **place,
-	const char **date
-) {
-
-	// get values from json to create a new transaction
-	const char *key = NULL;
-	json_t *value = NULL;
-	if (json_typeof (json_body) == JSON_OBJECT) {
-		json_object_foreach (json_body, key, value) {
-			if (!strcmp (key, "title")) {
-				*title = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("title: \"%s\"\n", *title);
-				#endif
-			}
-
-			else if (!strcmp (key, "amount")) {
-				*amount = json_real_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("amount: %f\n", *amount);
-				#endif
-			}
-
-			else if (!strcmp (key, "category")) {
-				*category = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("category: \"%s\"\n", *category);
-				#endif
-			}
-
-			else if (!strcmp (key, "place")) {
-				*place = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("place: \"%s\"\n", *place);
-				#endif
-			}
-
-			else if (!strcmp (key, "date")) {
-				*date = json_string_value (value);
-				#ifdef POCKET_DEBUG
-				(void) printf ("date: \"%s\"\n", *date);
-				#endif
-			}
-		}
-	}
-
-}
-
-static PocketError pocket_transaction_create_handler_internal (
-	Transaction **trans,
-	const char *user_id, const String *request_body
-) {
-
-	PocketError error = POCKET_ERROR_NONE;
-
-	if (request_body) {
-		const char *title = NULL;
-		double amount = 0;
-		const char *category_id = NULL;
-		const char *place_id = NULL;
-		const char *date = NULL;
-
-		json_error_t json_error =  { 0 };
-		json_t *json_body = json_loads (request_body->str, 0, &json_error);
-		if (json_body) {
-			pocket_trans_parse_json (
-				json_body,
-				&title, &amount,
-				&category_id, &place_id, &date
-			);
-
-			if (title && category_id) {
-				*trans = pocket_trans_create (
-					user_id,
-					title, amount,
-					category_id,
-					date
-				);
-
-				if (*trans == NULL) error = POCKET_ERROR_SERVER_ERROR;
-			}
-
-			else {
-				error = POCKET_ERROR_MISSING_VALUES;
-			}
-
-			json_decref (json_body);
-		}
-
-		else {
-			cerver_log_error (
-				"json_loads () - json error on line %d: %s\n",
-				json_error.line, json_error.text
-			);
-
-			error = POCKET_ERROR_BAD_REQUEST;
-		}
-	}
-
-	else {
-		cerver_log_error ("Missing request body to create trans!");
-
-		error = POCKET_ERROR_BAD_REQUEST;
-	}
-
-	return error;
-
-}
-
 // POST /api/pocket/transactions
 // a user has requested to create a new transaction
 void pocket_transaction_create_handler (
@@ -183,41 +69,22 @@ void pocket_transaction_create_handler (
 
 	User *user = (User *) request->decoded_data;
 	if (user) {
-		Transaction *trans = NULL;
-
-		PocketError error = pocket_transaction_create_handler_internal (
-			&trans,
-			user->id, request->body
+		PocketError error = pocket_trans_create (
+			user, request->body
 		);
 
-		if (error == POCKET_ERROR_NONE) {
-			#ifdef POCKET_DEBUG
-			transaction_print (trans);
-			#endif
-
-			if (!transaction_insert_one (trans)) {
-				// update users values
-				(void) user_add_transactions (user);
-
+		switch (error) {
+			case POCKET_ERROR_NONE: {
 				// return success to user
 				(void) http_response_send (
 					trans_created_success,
 					http_receive
 				);
-			}
+			} break;
 
-			else {
-				(void) http_response_send (
-					trans_created_bad,
-					http_receive
-				);
-			}
-
-			pocket_trans_delete (trans);
-		}
-
-		else {
-			pocket_error_send_response (error, http_receive);
+			default: {
+				pocket_error_send_response (error, http_receive);
+			} break;
 		}
 	}
 
