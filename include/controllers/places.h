@@ -51,6 +51,10 @@ extern PocketError pocket_place_update (
 	const String *request_body
 );
 
+extern PocketError pocket_place_delete (
+	const User *user, const String *place_id
+);
+
 extern void pocket_place_return (void *place_ptr);
 
 #endif

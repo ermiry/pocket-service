@@ -493,6 +493,32 @@ PocketError pocket_place_update (
 
 }
 
+// TODO: handle things that reference the requested place
+PocketError pocket_place_delete (
+	const User *user, const String *place_id
+) {
+
+	PocketError error = POCKET_ERROR_NONE;
+
+	bson_oid_t oid = { 0 };
+	bson_oid_init_from_string (&oid, place_id->str);
+
+	if (!place_delete_one_by_oid_and_user (
+		&oid, &user->oid
+	)) {
+		#ifdef POCKET_DEBUG
+		cerver_log_debug ("Deleted place %s", place_id->str);
+		#endif
+	}
+
+	else {
+		error = POCKET_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
 void pocket_place_return (void *place_ptr) {
 
 	(void) memset (place_ptr, 0, sizeof (Place));
