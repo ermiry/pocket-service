@@ -40,6 +40,10 @@ void pocket_error_send_response (
 			(void) http_response_send (bad_user_error, http_receive);
 			break;
 
+		case POCKET_ERROR_NOT_FOUND:
+			(void) http_response_send (not_found_error, http_receive);
+			break;
+
 		case POCKET_ERROR_SERVER_ERROR:
 			(void) http_response_send (server_error, http_receive);
 			break;
