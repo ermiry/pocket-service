@@ -232,7 +232,7 @@ u8 category_get_by_oid_and_user_to_json (
 
 }
 
-bson_t *category_to_bson (const Category *category) {
+static bson_t *category_to_bson (const Category *category) {
 
     bson_t *doc = NULL;
 
@@ -255,7 +255,7 @@ bson_t *category_to_bson (const Category *category) {
 
 }
 
-bson_t *category_update_bson (const Category *category) {
+static bson_t *category_update_bson (const Category *category) {
 
 	bson_t *doc = NULL;
 
@@ -298,27 +298,28 @@ mongoc_cursor_t *categories_get_all_by_user (
 
 }
 
-char *categories_get_all_by_user_to_json (
+unsigned int categories_get_all_by_user_to_json (
 	const bson_oid_t *user_oid, const bson_t *opts,
-	size_t *json_len
+	char **json, size_t *json_len
 ) {
 
-	char *json = NULL;
+	unsigned int retval = 1;
 
 	if (user_oid) {
 		bson_t *query = bson_new ();
 		if (query) {
 			(void) bson_append_oid (query, "user", -1, user_oid);
 
-			json = mongo_find_all_cursor_with_opts_to_json (
+			retval = mongo_find_all_to_json (
 				categories_model,
 				query, opts,
-				"categories", json_len
+				"categories",
+				json, json_len
 			);
 		}
 	}
 
-	return json;
+	return retval;
 
 }
 

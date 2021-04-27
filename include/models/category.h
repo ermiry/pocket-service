@@ -72,18 +72,14 @@ extern u8 category_get_by_oid_and_user_to_json (
 	char **json, size_t *json_len
 );
 
-extern bson_t *category_to_bson (const Category *category);
-
-extern bson_t *category_update_bson (const Category *category);
-
 // get all the categories that are related to a user
 extern mongoc_cursor_t *categories_get_all_by_user (
 	const bson_oid_t *user_oid, const bson_t *opts
 );
 
-extern char *categories_get_all_by_user_to_json (
+extern unsigned int categories_get_all_by_user_to_json (
 	const bson_oid_t *user_oid, const bson_t *opts,
-	size_t *json_len
+	char **json, size_t *json_len
 );
 
 extern unsigned int category_insert_one (const Category *category);
