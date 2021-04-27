@@ -143,6 +143,18 @@ void pocket_trans_end (void) {
 
 }
 
+unsigned int pocket_trans_get_all_by_user (
+	const bson_oid_t *user_oid,
+	char **json, size_t *json_len
+) {
+
+	return transactions_get_all_by_user_to_json (
+		user_oid, trans_no_user_query_opts,
+		json, json_len
+	);
+
+}
+
 Transaction *pocket_trans_get_by_id_and_user (
 	const String *trans_id, const bson_oid_t *user_oid
 ) {
