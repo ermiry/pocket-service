@@ -12,6 +12,34 @@
 struct _HttpReceive;
 struct _HttpResponse;
 
+typedef enum PocketUserInput {
+
+	POCKET_USER_INPUT_NONE			= 0,
+	POCKET_USER_INPUT_NAME			= 1,
+	POCKET_USER_INPUT_USERNAME		= 2,
+	POCKET_USER_INPUT_EMAIL			= 4,
+	POCKET_USER_INPUT_PASSWORD		= 8,
+	POCKET_USER_INPUT_CONFIRM		= 16
+
+} PocketUserInput;
+
+#define POCKET_USER_ERROR_MAP(XX)					\
+	XX(0,	NONE, 				None)				\
+	XX(1,	BAD_REQUEST, 		Bad Request)		\
+	XX(2,	MISSING_VALUES, 	Missing Values)		\
+	XX(3,	REPEATED, 			Existing Email)		\
+	XX(4,	NOT_FOUND, 			Not found)			\
+	XX(4,	WRONG_PSWD, 		Wrong password)		\
+	XX(5,	SERVER_ERROR, 		Server Error)
+
+typedef enum PocketUserError {
+
+	#define XX(num, name, string) POCKET_USER_ERROR_##name = num,
+	POCKET_USER_ERROR_MAP (XX)
+	#undef XX
+
+} PocketUserError;
+
 extern const bson_t *user_login_query_opts;
 extern const bson_t *user_transactions_query_opts;
 extern const bson_t *user_categories_query_opts;
