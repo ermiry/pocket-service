@@ -152,6 +152,18 @@ void pocket_places_end (void) {
 
 }
 
+unsigned int pocket_places_get_all_by_user (
+	const bson_oid_t *user_oid,
+	char **json, size_t *json_len
+) {
+
+	return places_get_all_by_user_to_json (
+		user_oid, place_no_user_query_opts,
+		json, json_len
+	);
+
+}
+
 Place *pocket_place_get_by_id_and_user (
 	const String *place_id, const bson_oid_t *user_oid
 ) {

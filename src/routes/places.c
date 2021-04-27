@@ -19,9 +19,6 @@
 #include "controllers/places.h"
 #include "controllers/users.h"
 
-#include "models/place.h"
-#include "models/user.h"
-
 // GET /api/pocket/places
 // get all the authenticated user's places
 void pocket_places_handler (
@@ -32,24 +29,30 @@ void pocket_places_handler (
 	User *user = (User *) request->decoded_data;
 	if (user) {
 		size_t json_len = 0;
-		char *json = places_get_all_by_user_to_json (
-			&user->oid, place_no_user_query_opts,
-			&json_len
-		);
+		char *json = NULL;
 
-		if (json) {
-			(void) http_response_json_custom_reference_send (
-				http_receive,
-				HTTP_STATUS_OK,
-				json, json_len
-			);
+		if (!pocket_places_get_all_by_user (
+			&user->oid,
+			&json, &json_len
+		)) {
+			if (json) {
+				(void) http_response_json_custom_reference_send (
+					http_receive,
+					HTTP_STATUS_OK,
+					json, json_len
+				);
 
-			free (json);
+				free (json);
+			}
+
+			else {
+				(void) http_response_send (no_user_places, http_receive);
+			}
 		}
 
 		else {
 			(void) http_response_send (no_user_places, http_receive);
-		}
+		}		
 	}
 
 	else {
