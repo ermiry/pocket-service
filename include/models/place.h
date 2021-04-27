@@ -129,16 +129,14 @@ extern u8 place_get_by_oid_and_user_to_json (
 	char **json, size_t *json_len
 );
 
-extern bson_t *place_update_bson (const Place *place);
-
 // get all the places that are related to a user
 extern mongoc_cursor_t *places_get_all_by_user (
 	const bson_oid_t *user_oid, const bson_t *opts
 );
 
-extern char *places_get_all_by_user_to_json (
+extern unsigned int places_get_all_by_user_to_json (
 	const bson_oid_t *user_oid, const bson_t *opts,
-	size_t *json_len
+	char **json, size_t *json_len
 );
 
 extern unsigned int place_insert_one (const Place *place);
