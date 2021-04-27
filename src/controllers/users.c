@@ -13,8 +13,8 @@
 #include <cerver/http/response.h>
 #include <cerver/http/json/json.h>
 
-#include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
+#include <cerver/utils/utils.h>
 
 #include <cmongo/crud.h>
 #include <cmongo/select.h>
@@ -289,6 +289,222 @@ void *pocket_user_parse_from_json (void *user_json_ptr) {
 	}
 
 	return user;
+
+}
+
+static void users_input_parse_json (
+	json_t *json_body,
+	const char **name,
+	const char **username,
+	const char **email,
+	const char **password,
+	const char **confirm
+) {
+
+	// get values from json to create a new transaction
+	char *string = NULL;
+	const char *key = NULL;
+	json_t *value = NULL;
+	if (json_typeof (json_body) == JSON_OBJECT) {
+		json_object_foreach (json_body, key, value) {
+			if (!strcmp (key, "name")) {
+				string = (char *) json_string_value (value);
+				if (strlen (string)) {
+					*name = string;
+					#ifdef POCKET_DEBUG
+					(void) printf ("name: \"%s\"\n", *name);
+					#endif
+				}
+			}
+
+			else if (!strcmp (key, "username")) {
+				string = (char *) json_string_value (value);
+				if (strlen (string)) {
+					*username = string;
+					#ifdef POCKET_DEBUG
+					(void) printf ("username: \"%s\"\n", *username);
+					#endif
+				}
+			}
+
+			else if (!strcmp (key, "email")) {
+				string = (char *) json_string_value (value);
+				if (strlen (string)) {
+					*email = string;
+					#ifdef POCKET_DEBUG
+					(void) printf ("email: \"%s\"\n", *email);
+					#endif
+				}
+			}
+
+			else if (!strcmp (key, "password")) {
+				string = (char *) json_string_value (value);
+				if (strlen (string)) {
+					*password = string;
+					#ifdef POCKET_DEBUG
+					(void) printf ("password: \"%s\"\n", *password);
+					#endif
+				}
+			}
+
+			else if (!strcmp (key, "confirm")) {
+				string = (char *) json_string_value (value);
+				if (strlen (string)) {
+					*confirm = string;
+					#ifdef POCKET_DEBUG
+					(void) printf ("confirm: \"%s\"\n", *confirm);
+					#endif
+				}
+			}
+		}
+	}
+
+}
+
+static PocketUserInput pocket_user_register_validate_input_internal (
+	const char *name,
+	const char *username,
+	const char *email,
+	const char *password,
+	const char *confirm
+) {
+
+	PocketUserInput user_input = POCKET_USER_INPUT_NONE;
+
+	if (!name) user_input |= POCKET_USER_INPUT_NAME;
+
+	return user_input;
+
+}
+
+static PocketUserError pocket_user_register_validate_input (
+	User *user_values, PocketUserInput *input,
+	const char *name,
+	const char *username,
+	const char *email,
+	const char *password,
+	const char *confirm
+) {
+
+	PocketUserError error = POCKET_USER_ERROR_NONE;
+
+	*input = pocket_user_register_validate_input_internal (
+		name, username, email, password, confirm
+	);
+
+	if (*input == POCKET_USER_ERROR_NONE) {
+		if (strcmp (password, confirm)) {
+			error = POCKET_USER_ERROR_WRONG_PSWD;
+		}
+	}
+
+	else {
+		error = POCKET_USER_ERROR_MISSING_VALUES;
+	}
+
+	return error;
+
+}
+
+static PocketUserError pocket_user_register_parse_json (
+	User *user_values,
+	const String *request_body, PocketUserInput *input
+) {
+
+	PocketUserError error = POCKET_USER_ERROR_NONE;
+
+	const char *name = NULL;
+	const char *username = NULL;
+	const char *email = NULL;
+	const char *password = NULL;
+	const char *confirm = NULL;
+
+	json_error_t json_error =  { 0 };
+	json_t *json_body = json_loads (request_body->str, 0, &json_error);
+	if (json_body) {
+		users_input_parse_json (
+			json_body,
+			&name,
+			&username,
+			&email,
+			&password,
+			&confirm
+		);
+
+		error = pocket_user_register_validate_input (
+			user_values, input,
+			name,
+			username,
+			email,
+			password,
+			confirm
+		);
+
+		json_decref (json_body);
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error (
+			"json_loads () - json error on line %d: %s\n", 
+			json_error.line, json_error.text
+		);
+		#endif
+
+		error = POCKET_USER_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+User *pocket_user_register (
+	const String *request_body, 
+	PocketUserError *error, PocketUserInput *input
+) {
+
+	User *retval = NULL;
+
+	if (request_body) {
+		User user_values = { 0 };
+		*error = pocket_user_register_parse_json (
+			&user_values, request_body, input
+		);
+
+		if (*error = POCKET_USER_ERROR_NONE) {
+			User *user = pocket_user_create (
+				user_values.name,
+				user_values.username,
+				user_values.email,
+				user_values.password,
+				&common_role->oid
+			);
+
+			if (user) {
+				if (!user_insert_one (user)) {
+					retval = user;
+				}
+
+				else {
+					*error = POCKET_USER_ERROR_SERVER_ERROR;
+				}
+			}
+
+			else {
+				*error = POCKET_USER_ERROR_SERVER_ERROR;
+			}
+		}
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error ("Missing request body to register user!");
+		#endif
+
+		*error = POCKET_USER_ERROR_BAD_REQUEST;
+	}
+
+	return retval;
 
 }
 

@@ -81,6 +81,11 @@ extern u8 pocket_user_check_by_email (
 // }
 extern void *pocket_user_parse_from_json (void *user_json_ptr);
 
+extern User *pocket_user_register (
+	const String *request_body, 
+	PocketUserError *error, PocketUserInput *input
+);
+
 extern void pocket_user_delete (void *user_ptr);
 
 #endif
