@@ -19,9 +19,6 @@
 #include "controllers/categories.h"
 #include "controllers/users.h"
 
-#include "models/category.h"
-#include "models/user.h"
-
 // GET /api/pocket/categories
 // get all the authenticated user's categories
 void pocket_categories_handler (
@@ -32,19 +29,25 @@ void pocket_categories_handler (
 	User *user = (User *) request->decoded_data;
 	if (user) {
 		size_t json_len = 0;
-		char *json = categories_get_all_by_user_to_json (
-			&user->oid, category_no_user_query_opts,
-			&json_len
-		);
+		char *json = NULL;
 
-		if (json) {
-			(void) http_response_json_custom_reference_send (
-				http_receive,
-				HTTP_STATUS_OK,
-				json, json_len
-			);
+		if (!pocket_categories_get_all_by_user (
+			&user->oid,
+			&json, &json_len
+		)) {
+			if (json) {
+				(void) http_response_json_custom_reference_send (
+					http_receive,
+					HTTP_STATUS_OK,
+					json, json_len
+				);
 
-			free (json);
+				free (json);
+			}
+
+			else {
+				(void) http_response_send (no_user_categories, http_receive);
+			}
 		}
 
 		else {

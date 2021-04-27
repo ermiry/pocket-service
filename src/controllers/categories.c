@@ -149,6 +149,18 @@ void pocket_categories_end (void) {
 
 }
 
+unsigned int pocket_categories_get_all_by_user (
+	const bson_oid_t *user_oid,
+	char **json, size_t *json_len
+) {
+
+	return categories_get_all_by_user_to_json (
+		user_oid, category_no_user_query_opts,
+		json, json_len
+	);
+
+}
+
 Category *pocket_category_get_by_id_and_user (
 	const String *category_id, const bson_oid_t *user_oid
 ) {
