@@ -60,7 +60,7 @@ Role *role_create (const char *name) {
 	Role *role = role_new ();
 	if (role) {
 		if (name) {
-			(void) strncpy (role->name, name, ROLE_NAME_LEN - 1);
+			(void) strncpy (role->name, name, ROLE_NAME_SIZE - 1);
 		}
 	}
 
@@ -141,7 +141,7 @@ static void role_doc_parse_actions (
 				(void) strncpy (
 					role->actions[role->n_actions],
 					value->value.v_utf8.str,
-					ROLE_ACTION_LEN - 1
+					ROLE_ACTION_SIZE - 1
 				);
 
 				role->n_actions += 1;
@@ -171,7 +171,7 @@ void role_doc_parse (
 
 			else if (!strcmp (key, "name") && value->value.v_utf8.str)
 				(void) strncpy (
-					role->name, value->value.v_utf8.str, ROLE_NAME_LEN - 1
+					role->name, value->value.v_utf8.str, ROLE_NAME_SIZE - 1
 				);
 
 			else if (!strcmp (key, "actions")) {

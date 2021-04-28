@@ -6,8 +6,8 @@
 
 #define ACTIONS_COLL_NAME  			"actions"
 
-#define ACTION_NAME_LEN				128
-#define ACTION_DESCRIPTION_LEN		256
+#define ACTION_NAME_SIZE				128
+#define ACTION_DESCRIPTION_SIZE		256
 
 extern unsigned int actions_model_init (void);
 
@@ -17,8 +17,8 @@ struct _RoleAction {
 
 	bson_oid_t oid;
 
-	char name[ACTION_NAME_LEN];
-	char description[ACTION_DESCRIPTION_LEN];
+	char name[ACTION_NAME_SIZE];
+	char description[ACTION_DESCRIPTION_SIZE];
 
 };
 
