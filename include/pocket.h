@@ -7,7 +7,10 @@
 
 #define DEFAULT_PORT					"5001"
 
+struct _HttpCerver;
 struct _HttpResponse;
+
+extern struct _HttpCerver *http_cerver;
 
 extern RuntimeType RUNTIME;
 
