@@ -98,7 +98,7 @@ static void user_doc_parse (
 				(void) strncpy (
 					user->name,
 					value->value.v_utf8.str,
-					USER_NAME_LEN - 1
+					USER_NAME_SIZE - 1
 				);
 			}
 
@@ -106,7 +106,7 @@ static void user_doc_parse (
 				(void) strncpy (
 					user->email,
 					value->value.v_utf8.str,
-					USER_EMAIL_LEN - 1
+					USER_EMAIL_SIZE - 1
 				);
 			}
 
@@ -114,7 +114,7 @@ static void user_doc_parse (
 				(void) strncpy (
 					user->username,
 					value->value.v_utf8.str,
-					USER_USERNAME_LEN - 1
+					USER_USERNAME_SIZE - 1
 				);
 			}
 
@@ -122,7 +122,7 @@ static void user_doc_parse (
 				(void) strncpy (
 					user->password,
 					value->value.v_utf8.str,
-					USER_PASSWORD_LEN - 1
+					USER_PASSWORD_SIZE - 1
 				);
 			}
 

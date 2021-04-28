@@ -11,12 +11,12 @@
 
 #define USERS_COLL_NAME			"users"
 
-#define USER_ID_LEN				32
-#define USER_EMAIL_LEN			128
-#define USER_NAME_LEN			128
-#define USER_USERNAME_LEN		128
-#define USER_PASSWORD_LEN		128
-#define USER_ROLE_LEN			64
+#define USER_ID_SIZE				32
+#define USER_EMAIL_SIZE			128
+#define USER_NAME_SIZE			128
+#define USER_USERNAME_SIZE		128
+#define USER_PASSWORD_SIZE		128
+#define USER_ROLE_SIZE			64
 
 extern unsigned int users_model_init (void);
 
@@ -25,18 +25,18 @@ extern void users_model_end (void);
 typedef struct User {
 
 	// user's unique id
-	char id[USER_ID_LEN];
+	char id[USER_ID_SIZE];
 	bson_oid_t oid;
 
 	// main user values
-	char email[USER_EMAIL_LEN];
-	char name[USER_NAME_LEN];
-	char username[USER_USERNAME_LEN];
-	char password[USER_PASSWORD_LEN];
+	char email[USER_EMAIL_SIZE];
+	char name[USER_NAME_SIZE];
+	char username[USER_USERNAME_SIZE];
+	char password[USER_PASSWORD_SIZE];
 
 	// the role this user belongs to
 	// based on its role, a user can perform different operations
-	char role[USER_ROLE_LEN];
+	char role[USER_ROLE_SIZE];
 	bson_oid_t role_oid;
 
 	// used to validate JWT expiration
