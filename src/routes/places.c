@@ -95,7 +95,7 @@ void pocket_place_create_handler (
 
 }
 
-// GET /api/pocket/places/:id
+// GET /api/pocket/places/:id/info
 // returns information about an existing place that belongs to a user
 void pocket_place_get_handler (
 	const HttpReceive *http_receive,
@@ -140,7 +140,7 @@ void pocket_place_get_handler (
 
 }
 
-// PUT /api/pocket/places/:id
+// PUT /api/pocket/places/:id/update
 // a user wants to update an existing place
 void pocket_place_update_handler (
 	const HttpReceive *http_receive,
@@ -170,7 +170,7 @@ void pocket_place_update_handler (
 
 }
 
-// DELETE /api/pocket/places/:id
+// DELETE /api/pocket/places/:id/remove
 // deletes an existing user's place
 void pocket_place_delete_handler (
 	const HttpReceive *http_receive,

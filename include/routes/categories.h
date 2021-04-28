@@ -18,21 +18,21 @@ extern void pocket_category_create_handler (
 	const struct _HttpRequest *request
 );
 
-// GET /api/pocket/categories/:id
+// GET /api/pocket/categories/:id/info
 // returns information about an existing category that belongs to a user
 extern void pocket_category_get_handler (
 	const struct _HttpReceive *http_receive,
 	const struct _HttpRequest *request
 );
 
-// PUT /api/pocket/categories/:id
+// PUT /api/pocket/categories/:id/update
 // a user wants to update an existing category
 extern void pocket_category_update_handler (
 	const struct _HttpReceive *http_receive,
 	const struct _HttpRequest *request
 );
 
-// DELETE /api/pocket/categories/:id
+// DELETE /api/pocket/categories/:id/remove
 // deletes an existing user's category
 extern void pocket_category_delete_handler (
 	const struct _HttpReceive *http_receive,

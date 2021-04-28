@@ -95,7 +95,7 @@ void pocket_category_create_handler (
 
 }
 
-// GET /api/pocket/categories/:id
+// GET /api/pocket/categories/:id/info
 // returns information about an existing category that belongs to a user
 void pocket_category_get_handler (
 	const HttpReceive *http_receive,
@@ -140,7 +140,7 @@ void pocket_category_get_handler (
 
 }
 
-// PUT /api/pocket/categories/:id
+// PUT /api/pocket/categories/:id/update
 // a user wants to update an existing category
 void pocket_category_update_handler (
 	const HttpReceive *http_receive,
@@ -170,7 +170,7 @@ void pocket_category_update_handler (
 
 }
 
-// DELETE /api/pocket/categories/:id
+// DELETE /api/pocket/categories/:id/remove
 // deletes an existing user's category
 void pocket_category_delete_handler (
 	const HttpReceive *http_receive,

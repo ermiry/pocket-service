@@ -18,21 +18,21 @@ extern void pocket_place_create_handler (
 	const struct _HttpRequest *request
 );
 
-// GET /api/pocket/places/:id
+// GET /api/pocket/places/:id/info
 // returns information about an existing place that belongs to a user
 extern void pocket_place_get_handler (
 	const struct _HttpReceive *http_receive,
 	const struct _HttpRequest *request
 );
 
-// PUT /api/pocket/places/:id
+// PUT /api/pocket/places/:id/update
 // a user wants to update an existing place
 extern void pocket_place_update_handler (
 	const struct _HttpReceive *http_receive,
 	const struct _HttpRequest *request
 );
 
-// DELETE /api/pocket/places/:id
+// DELETE /api/pocket/places/:id/remove
 // deletes an existing user's place
 extern void pocket_place_delete_handler (
 	const struct _HttpReceive *http_receive,
