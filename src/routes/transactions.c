@@ -100,7 +100,7 @@ void pocket_transaction_create_handler (
 
 }
 
-// GET /api/pocket/transactions/:id
+// GET /api/pocket/transactions/:id/info
 // returns information about an existing transaction that belongs to a user
 void pocket_transaction_get_handler (
 	const HttpReceive *http_receive,
@@ -145,7 +145,7 @@ void pocket_transaction_get_handler (
 
 }
 
-// POST /api/pocket/transactions/:id
+// PUT /api/pocket/transactions/:id/update
 // a user wants to update an existing transaction
 void pocket_transaction_update_handler (
 	const HttpReceive *http_receive,
@@ -175,7 +175,7 @@ void pocket_transaction_update_handler (
 
 }
 
-// DELETE /api/pocket/transactions/:id
+// DELETE /api/pocket/transactions/:id/remove
 // deletes an existing user's transaction
 void pocket_transaction_delete_handler (
 	const HttpReceive *http_receive,
