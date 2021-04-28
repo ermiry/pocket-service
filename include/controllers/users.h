@@ -19,7 +19,8 @@ typedef enum PocketUserInput {
 	POCKET_USER_INPUT_USERNAME		= 2,
 	POCKET_USER_INPUT_EMAIL			= 4,
 	POCKET_USER_INPUT_PASSWORD		= 8,
-	POCKET_USER_INPUT_CONFIRM		= 16
+	POCKET_USER_INPUT_CONFIRM		= 16,
+	POCKET_USER_INPUT_MATCH			= 32,
 
 } PocketUserInput;
 
@@ -29,8 +30,8 @@ typedef enum PocketUserInput {
 	XX(2,	MISSING_VALUES, 	Missing Values)		\
 	XX(3,	REPEATED, 			Existing Email)		\
 	XX(4,	NOT_FOUND, 			Not found)			\
-	XX(4,	WRONG_PSWD, 		Wrong password)		\
-	XX(5,	SERVER_ERROR, 		Server Error)
+	XX(5,	WRONG_PSWD, 		Wrong password)		\
+	XX(6,	SERVER_ERROR, 		Server Error)
 
 typedef enum PocketUserError {
 
@@ -81,7 +82,16 @@ extern u8 pocket_user_check_by_email (
 // }
 extern void *pocket_user_parse_from_json (void *user_json_ptr);
 
+extern unsigned int pocket_user_generate_token (
+	const User *user, char *json_token, size_t *json_len
+);
+
 extern User *pocket_user_register (
+	const String *request_body, 
+	PocketUserError *error, PocketUserInput *input
+);
+
+extern User *pocket_user_login (
 	const String *request_body, 
 	PocketUserError *error, PocketUserInput *input
 );

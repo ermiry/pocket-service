@@ -193,11 +193,12 @@ User *pocket_user_create (
 	User *user = (User *) pool_pop (users_pool);
 	if (user) {
 		bson_oid_init (&user->oid, NULL);
+		bson_oid_to_string (&user->oid, user->id);
 
-		(void) strncpy (user->name, name, USER_NAME_LEN - 1);
-		(void) strncpy (user->username, username, USER_USERNAME_LEN - 1);
-		(void) strncpy (user->email, email, USER_EMAIL_LEN - 1);
-		(void) strncpy (user->password, password, USER_PASSWORD_LEN - 1);
+		(void) strncpy (user->name, name, USER_NAME_SIZE - 1);
+		(void) strncpy (user->username, username, USER_USERNAME_SIZE - 1);
+		(void) strncpy (user->email, email, USER_EMAIL_SIZE - 1);
+		(void) strncpy (user->password, password, USER_PASSWORD_SIZE - 1);
 
 		bson_oid_copy (role_oid, &user->role_oid);
 	}
@@ -267,11 +268,11 @@ void *pocket_user_parse_from_json (void *user_json_ptr) {
 			"role", &role,
 			"username", &username
 		)) {
-			(void) strncpy (user->email, email, USER_EMAIL_LEN - 1);
-			(void) strncpy (user->id, id, USER_ID_LEN - 1);
-			(void) strncpy (user->name, name, USER_NAME_LEN - 1);
-			(void) strncpy (user->role, role, USER_ROLE_LEN - 1);
-			(void) strncpy (user->username, username, USER_USERNAME_LEN - 1);
+			(void) strncpy (user->email, email, USER_EMAIL_SIZE - 1);
+			(void) strncpy (user->id, id, USER_ID_SIZE - 1);
+			(void) strncpy (user->name, name, USER_NAME_SIZE - 1);
+			(void) strncpy (user->role, role, USER_ROLE_SIZE - 1);
+			(void) strncpy (user->username, username, USER_USERNAME_SIZE - 1);
 
 			bson_oid_init_from_string (&user->oid, user->id);
 
@@ -289,6 +290,36 @@ void *pocket_user_parse_from_json (void *user_json_ptr) {
 	}
 
 	return user;
+
+}
+
+unsigned int pocket_user_generate_token (
+	const User *user, char *json_token, size_t *json_len
+) {
+
+	unsigned int retval = 1;
+
+	HttpJwt *http_jwt = http_cerver_auth_jwt_new ();
+	if (http_jwt) {
+		http_cerver_auth_jwt_add_value_int (http_jwt, "iat", time (NULL));
+		http_cerver_auth_jwt_add_value (http_jwt, "id", user->id);
+		http_cerver_auth_jwt_add_value (http_jwt, "email", user->email);
+		http_cerver_auth_jwt_add_value (http_jwt, "name", user->name);
+		http_cerver_auth_jwt_add_value (http_jwt, "role", pocket_role_name_get_by_oid (&user->role_oid));
+		http_cerver_auth_jwt_add_value (http_jwt, "username", user->username);
+
+		// generate & send back auth token
+		if (!http_cerver_auth_generate_bearer_jwt_json (
+			http_cerver, http_jwt
+		)) {
+			(void) strncpy (json_token, http_jwt->json, HTTP_JWT_TOKEN_SIZE - 1);
+			*json_len = strlen (http_jwt->json);
+		}
+
+		http_cerver_auth_jwt_delete (http_jwt);
+	}
+
+	return retval;
 
 }
 
@@ -372,13 +403,17 @@ static PocketUserInput pocket_user_register_validate_input_internal (
 	PocketUserInput user_input = POCKET_USER_INPUT_NONE;
 
 	if (!name) user_input |= POCKET_USER_INPUT_NAME;
+	if (!username) user_input |= POCKET_USER_INPUT_USERNAME;
+	if (!email) user_input |= POCKET_USER_INPUT_EMAIL;
+	if (!password) user_input |= POCKET_USER_INPUT_PASSWORD;
+	if (!confirm) user_input |= POCKET_USER_INPUT_CONFIRM;
 
 	return user_input;
 
 }
 
 static PocketUserError pocket_user_register_validate_input (
-	User *user_values, PocketUserInput *input,
+	PocketUserInput *input,
 	const char *name,
 	const char *username,
 	const char *email,
@@ -392,9 +427,10 @@ static PocketUserError pocket_user_register_validate_input (
 		name, username, email, password, confirm
 	);
 
-	if (*input == POCKET_USER_ERROR_NONE) {
+	if (*input == POCKET_USER_INPUT_NONE) {
 		if (strcmp (password, confirm)) {
-			error = POCKET_USER_ERROR_WRONG_PSWD;
+			*input |= POCKET_USER_INPUT_MATCH;
+			error = POCKET_USER_ERROR_BAD_REQUEST;
 		}
 	}
 
@@ -407,8 +443,8 @@ static PocketUserError pocket_user_register_validate_input (
 }
 
 static PocketUserError pocket_user_register_parse_json (
-	User *user_values,
-	const String *request_body, PocketUserInput *input
+	const String *request_body, PocketUserInput *input,
+	User **user
 ) {
 
 	PocketUserError error = POCKET_USER_ERROR_NONE;
@@ -432,13 +468,23 @@ static PocketUserError pocket_user_register_parse_json (
 		);
 
 		error = pocket_user_register_validate_input (
-			user_values, input,
+			input,
 			name,
 			username,
 			email,
 			password,
 			confirm
 		);
+
+		if (error == POCKET_USER_ERROR_NONE) {
+			*user = pocket_user_create (
+				name,
+				username,
+				email,
+				password,
+				&common_role->oid
+			);
+		}
 
 		json_decref (json_body);
 	}
@@ -466,20 +512,12 @@ User *pocket_user_register (
 	User *retval = NULL;
 
 	if (request_body) {
-		User user_values = { 0 };
+		User *user = NULL;
 		*error = pocket_user_register_parse_json (
-			&user_values, request_body, input
+			request_body, input, &user
 		);
 
-		if (*error = POCKET_USER_ERROR_NONE) {
-			User *user = pocket_user_create (
-				user_values.name,
-				user_values.username,
-				user_values.email,
-				user_values.password,
-				&common_role->oid
-			);
-
+		if (*error == POCKET_USER_ERROR_NONE) {
 			if (user) {
 				if (!user_insert_one (user)) {
 					retval = user;
@@ -499,6 +537,135 @@ User *pocket_user_register (
 	else {
 		#ifdef POCKET_DEBUG
 		cerver_log_error ("Missing request body to register user!");
+		#endif
+
+		*error = POCKET_USER_ERROR_BAD_REQUEST;
+	}
+
+	return retval;
+
+}
+
+static PocketUserInput pocket_user_login_validate_input_internal (
+	const char *email,
+	const char *password
+) {
+
+	PocketUserInput user_input = POCKET_USER_INPUT_NONE;
+
+	if (!email) user_input |= POCKET_USER_INPUT_EMAIL;
+	if (!password) user_input |= POCKET_USER_INPUT_PASSWORD;
+
+	return user_input;
+
+}
+
+static PocketUserError pocket_user_login_parse_json (
+	const String *request_body, PocketUserInput *input,
+	User *user_values
+) {
+
+	PocketUserError error = POCKET_USER_ERROR_NONE;
+
+	const char *name = NULL;
+	const char *username = NULL;
+	const char *email = NULL;
+	const char *password = NULL;
+	const char *confirm = NULL;
+
+	json_error_t json_error =  { 0 };
+	json_t *json_body = json_loads (request_body->str, 0, &json_error);
+	if (json_body) {
+		users_input_parse_json (
+			json_body,
+			&name,
+			&username,
+			&email,
+			&password,
+			&confirm
+		);
+
+		*input = pocket_user_login_validate_input_internal (
+			email, password
+		);
+
+		if (*input == POCKET_USER_INPUT_NONE) {
+			(void) strncpy (user_values->email, email, USER_EMAIL_SIZE - 1);
+			(void) strncpy (user_values->password, password, USER_PASSWORD_SIZE - 1);
+		}
+
+		else {
+			error = POCKET_USER_ERROR_MISSING_VALUES;
+		}
+
+		json_decref (json_body);
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error (
+			"json_loads () - json error on line %d: %s\n", 
+			json_error.line, json_error.text
+		);
+		#endif
+
+		error = POCKET_USER_ERROR_BAD_REQUEST;
+	}
+
+	return error;
+
+}
+
+User *pocket_user_login (
+	const String *request_body, 
+	PocketUserError *error, PocketUserInput *input
+) {
+
+	User *retval = NULL;
+
+	if (request_body) {
+		User user_values = { 0 };
+		*error = pocket_user_login_parse_json (
+			request_body, input, &user_values
+		);
+
+		if (*error == POCKET_USER_ERROR_NONE) {
+			User *user = pocket_user_get_by_email (user_values.email);
+			if (user) {
+				if (!strcmp (user->password, user_values.password)) {
+					#ifdef POCKET_DEBUG
+					cerver_log_success ("User %s login -> success", user->id);
+					#endif
+
+					retval = user;
+				}
+
+				else {
+					#ifdef POCKET_DEBUG
+					cerver_log_error ("User %s login -> wrong password", user->id);
+					#endif
+
+					*error = POCKET_USER_ERROR_WRONG_PSWD;
+
+					pocket_user_delete (user);
+				}
+			}
+
+			else {
+				#ifdef POCKET_DEBUG
+				cerver_log_error ("Failed to get %s user!", user_values.email);
+				#endif
+
+				*error = POCKET_USER_ERROR_NOT_FOUND;
+
+				pocket_user_delete (user);
+			}
+		}
+	}
+
+	else {
+		#ifdef POCKET_DEBUG
+		cerver_log_error ("Missing request body to login user!");
 		#endif
 
 		*error = POCKET_USER_ERROR_BAD_REQUEST;
