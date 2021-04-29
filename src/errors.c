@@ -6,7 +6,9 @@
 #include "pocket.h"
 #include "errors.h"
 
-const char *pocket_error_to_string (PocketError type) {
+#include "controllers/service.h"
+
+const char *pocket_error_to_string (const PocketError type) {
 
 	switch (type) {
 		#define XX(num, name, string) case POCKET_ERROR_##name: return #string;
@@ -19,7 +21,7 @@ const char *pocket_error_to_string (PocketError type) {
 }
 
 void pocket_error_send_response (
-	PocketError error,
+	const PocketError error,
 	const HttpReceive *http_receive
 ) {
 
@@ -27,7 +29,7 @@ void pocket_error_send_response (
 		case POCKET_ERROR_NONE: break;
 
 		case POCKET_ERROR_BAD_REQUEST:
-			(void) http_response_send (bad_request, http_receive);
+			(void) http_response_send (bad_request_error, http_receive);
 			break;
 
 		case POCKET_ERROR_MISSING_VALUES:
@@ -35,7 +37,11 @@ void pocket_error_send_response (
 			break;
 
 		case POCKET_ERROR_BAD_USER:
-			(void) http_response_send (bad_user, http_receive);
+			(void) http_response_send (bad_user_error, http_receive);
+			break;
+
+		case POCKET_ERROR_NOT_FOUND:
+			(void) http_response_send (not_found_error, http_receive);
 			break;
 
 		case POCKET_ERROR_SERVER_ERROR:

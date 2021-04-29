@@ -3,40 +3,41 @@
 
 #include <time.h>
 
-#include <mongoc/mongoc.h>
 #include <bson/bson.h>
+#include <mongoc/mongoc.h>
 
 #include <cerver/types/types.h>
 
-#define CATEGORY_TITLE_LEN			1024
-#define CATEGORY_DESCRIPTION_LEN	2048
-#define CATEGORY_COLOR_LEN			128
+#define CATEGORIES_COLL_NAME        "categories"
 
-extern mongoc_collection_t *categories_collection;
+#define CATEGORY_ID_SIZE			32
+#define CATEGORY_TITLE_SIZE			1024
+#define CATEGORY_DESCRIPTION_SIZE	2048
+#define CATEGORY_COLOR_SIZE			128
 
-// opens handle to category collection
-extern unsigned int categories_collection_get (void);
+extern unsigned int categories_model_init (void);
 
-extern void categories_collection_close (void);
+extern void categories_model_end (void);
 
 typedef struct Category {
 
 	// category's unique id
 	bson_oid_t oid;
+	char id[CATEGORY_ID_SIZE];
 
 	// reference to the owner of this category
 	bson_oid_t user_oid;
 
 	// how the user defined this transaction
-	char title[CATEGORY_TITLE_LEN];
+	char title[CATEGORY_TITLE_SIZE];
 
 	// a description added by the user to give extra information
-	char description[CATEGORY_DESCRIPTION_LEN];
+	char description[CATEGORY_DESCRIPTION_SIZE];
 
 	// the user can select a color
 	// that will be used to display all matching transactions
 	// in the mobile app
-	char color[CATEGORY_COLOR_LEN];
+	char color[CATEGORY_COLOR_SIZE];
 
 	// the date when the category was created
 	time_t date;
@@ -51,17 +52,12 @@ extern void category_print (Category *category);
 
 extern bson_t *category_query_oid (const bson_oid_t *oid);
 
-extern const bson_t *category_find_by_oid (
-	const bson_oid_t *oid, const bson_t *query_opts
+extern bson_t *category_query_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
 );
 
 extern u8 category_get_by_oid (
 	Category *category, const bson_oid_t *oid, const bson_t *query_opts
-);
-
-extern const bson_t *category_find_by_oid_and_user (
-	const bson_oid_t *oid, const bson_oid_t *user_oid,
-	const bson_t *query_opts
 );
 
 extern u8 category_get_by_oid_and_user (
@@ -70,13 +66,28 @@ extern u8 category_get_by_oid_and_user (
 	const bson_t *query_opts
 );
 
-extern bson_t *category_to_bson (Category *category);
-
-extern bson_t *category_update_bson (Category *category);
+extern u8 category_get_by_oid_and_user_to_json (
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts,
+	char **json, size_t *json_len
+);
 
 // get all the categories that are related to a user
 extern mongoc_cursor_t *categories_get_all_by_user (
 	const bson_oid_t *user_oid, const bson_t *opts
+);
+
+extern unsigned int categories_get_all_by_user_to_json (
+	const bson_oid_t *user_oid, const bson_t *opts,
+	char **json, size_t *json_len
+);
+
+extern unsigned int category_insert_one (const Category *category);
+
+extern unsigned int category_update_one (const Category *category);
+
+extern unsigned int category_delete_one_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
 );
 
 #endif

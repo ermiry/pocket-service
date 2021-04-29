@@ -20,7 +20,7 @@ const RuntimeType runtime_from_string (const char *string) {
 
 	if (string) {
 		if (!strcasecmp ("development", string)) return RUNTIME_TYPE_DEVELOPMENT;
-		if (!strcasecmp ("testing", string)) return RUNTIME_TYPE_TESTING;
+		if (!strcasecmp ("test", string)) return RUNTIME_TYPE_TEST;
 		if (!strcasecmp ("production", string)) return RUNTIME_TYPE_PRODUCTION;
 	}
 

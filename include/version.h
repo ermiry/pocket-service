@@ -1,10 +1,10 @@
 #ifndef _POCKET_VERSION_H_
 #define _POCKET_VERSION_H_
 
-#define POCKET_VERSION                    	"0.4"
-#define POCKET_VERSION_NAME               	"Version 0.4"
-#define POCKET_VERSION_DATE			    	"16/12/2020"
-#define POCKET_VERSION_TIME			    	"11:51 CST"
+#define POCKET_VERSION                    	"0.5"
+#define POCKET_VERSION_NAME               	"Version 0.5"
+#define POCKET_VERSION_DATE			    	"29/04/2021"
+#define POCKET_VERSION_TIME			    	"09:53 CST"
 #define POCKET_VERSION_AUTHOR			    "Erick Salas"
 
 // print full pocket version information

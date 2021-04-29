@@ -6,7 +6,8 @@
 	XX(1,	BAD_REQUEST, 		Bad Request)		\
 	XX(2,	MISSING_VALUES, 	Missing Values)		\
 	XX(3,	BAD_USER, 			Bad User)			\
-	XX(4,	SERVER_ERROR, 		Server Error)
+	XX(4,	NOT_FOUND, 			Not found)			\
+	XX(5,	SERVER_ERROR, 		Server Error)
 
 typedef enum PocketError {
 
@@ -16,10 +17,12 @@ typedef enum PocketError {
 
 } PocketError;
 
-extern const char *pocket_error_to_string (PocketError type);
+extern const char *pocket_error_to_string (
+	const PocketError type
+);
 
 extern void pocket_error_send_response (
-	PocketError error,
+	const PocketError error,
 	const struct _HttpReceive *http_receive
 );
 

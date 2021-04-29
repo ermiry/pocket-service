@@ -15,6 +15,8 @@
 
 #include "models/user.h"
 
+#include "controllers/service.h"
+
 // GET /api/pocket
 void pocket_handler (
 	const HttpReceive *http_receive,
@@ -52,7 +54,17 @@ void pocket_auth_handler (
 	}
 
 	else {
-		(void) http_response_send (bad_user, http_receive);
+		(void) http_response_send (bad_user_error, http_receive);
 	}
+
+}
+
+// GET *
+void pocket_catch_all_handler (
+	const HttpReceive *http_receive,
+	const HttpRequest *request
+) {
+
+	http_response_send (catch_all, http_receive);
 
 }

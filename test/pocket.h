@@ -1,0 +1,20 @@
+#ifndef _POCKET_H_
+#define _POCKET_H_
+
+static const char *token = {
+	"Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6IiIsImlhdCI6MTY"
+	"xOTU3NTQ1NSwiaWQiOiI2MDg4YzI5ZjlmYTU5Yjc2MmY0YWNjYTIiLCJuYW1lIjoiIiwicm"
+	"9sZSI6ImNvbW1vbiIsInVzZXJuYW1lIjoiIn0.gMf1pXx6rzQkZqpwZ_aVs_mmc63RsC8A2"
+	"DOwgf-C9LQ-6oKeizhYJ3bymWQaGcGoiNhBraN-YSIoPuj8NK4VJWUVn4eBv2iA6xD9xTEi"
+	"Mr0NYLaNk8IqkKic-6trhKizS7tONocDYvlJoNqk2Ja3nxuoB-_cfkk92yNt6VwKUBO0R0l"
+	"tPAkbnNqv7gyxdxlVT5EeuDkpDPtt_6q_VMAsVwFg1tJ2qk9kFMtDg4UZC1IOwXOq6NWCe-"
+	"xdkP1vpCFZHq6_iMuU0HaCHd2gwetwz_LHRslD635ea_YlGTWftT0UYd7Wp40yYpD9JKMk0"
+	"2rJDMHDOAZC73uP6JH3GBKc-waO6WAA_xKR_a0_d0-qd0xdXE67v9W8O7RH2L7ja0JLAB62"
+	"P2US8snn64MmTqmGJoZ37mYpHG1JcJDUqwBc38UzcbW9YiCDp3Rbm0eK1NmCAj6PThfp9EB"
+	"LNo4EabFD1gMynCyYXTC56s5Q5FUSXoaAubUUyNuMht9xG6awl8fDzqYUD9YcvL2FhYaWvs"
+	"YcXGShTshH3i3m69qyGiBOvUvC8GtMtTxwL5XnKxra_rZZBHpENM-jlXViTK3ZluE3impGl"
+	"brVhZS-QNNwb-dWC9nN4qGIw55yQL8LKwPh3jigtApR9qSNbZ-H8Ns-JFHjff_yjrWo2uhr"
+	"1IQ1XxV8iEQ"
+};
+
+#endif

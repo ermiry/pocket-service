@@ -16,23 +16,24 @@
 #include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
 
-#include "handler.h"
-#include "mongo.h"
+#include <cmongo/mongo.h>
+
 #include "pocket.h"
 #include "runtime.h"
 #include "version.h"
-
-#include "controllers/categories.h"
-#include "controllers/places.h"
-#include "controllers/roles.h"
-#include "controllers/transactions.h"
-#include "controllers/users.h"
 
 #include "models/action.h"
 #include "models/category.h"
 #include "models/place.h"
 #include "models/role.h"
 #include "models/user.h"
+
+#include "controllers/categories.h"
+#include "controllers/places.h"
+#include "controllers/roles.h"
+#include "controllers/service.h"
+#include "controllers/transactions.h"
+#include "controllers/users.h"
 
 RuntimeType RUNTIME = RUNTIME_TYPE_NONE;
 
@@ -51,48 +52,13 @@ const String *PUB_KEY = NULL;
 
 bool ENABLE_USERS_ROUTES = false;
 
-HttpResponse *oki_doki = NULL;
-HttpResponse *bad_request = NULL;
-HttpResponse *server_error = NULL;
-HttpResponse *bad_user = NULL;
-HttpResponse *missing_values = NULL;
-
-HttpResponse *pocket_works = NULL;
-HttpResponse *current_version = NULL;
-
-HttpResponse *no_user_trans = NULL;
-
-HttpResponse *trans_created_success = NULL;
-HttpResponse *trans_created_bad = NULL;
-HttpResponse *trans_deleted_success = NULL;
-HttpResponse *trans_deleted_bad = NULL;
-
-HttpResponse *no_user_categories = NULL;
-HttpResponse *no_user_category = NULL;
-
-HttpResponse *category_created_success = NULL;
-HttpResponse *category_created_bad = NULL;
-HttpResponse *category_deleted_success = NULL;
-HttpResponse *category_deleted_bad = NULL;
-
-HttpResponse *no_user_places = NULL;
-HttpResponse *no_user_place = NULL;
-
-HttpResponse *place_created_success = NULL;
-HttpResponse *place_created_bad = NULL;
-HttpResponse *place_deleted_success = NULL;
-HttpResponse *place_deleted_bad = NULL;
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-
 static void pocket_env_get_runtime (void) {
-	
+
 	char *runtime_env = getenv ("RUNTIME");
 	if (runtime_env) {
 		RUNTIME = runtime_from_string (runtime_env);
 		cerver_log_success (
-			"RUNTIME -> %d\n", runtime_to_string (RUNTIME)
+			"RUNTIME -> %s", runtime_to_string (RUNTIME)
 		);
 	}
 
@@ -103,7 +69,7 @@ static void pocket_env_get_runtime (void) {
 }
 
 static unsigned int pocket_env_get_port (void) {
-	
+
 	unsigned int retval = 1;
 
 	char *port_env = getenv ("PORT");
@@ -127,7 +93,7 @@ static void pocket_env_get_cerver_receive_buffer_size (void) {
 	if (buffer_size) {
 		CERVER_RECEIVE_BUFFER_SIZE = (unsigned int) atoi (buffer_size);
 		cerver_log_success (
-			"CERVER_RECEIVE_BUFFER_SIZE -> %d\n", CERVER_RECEIVE_BUFFER_SIZE
+			"CERVER_RECEIVE_BUFFER_SIZE -> %d", CERVER_RECEIVE_BUFFER_SIZE
 		);
 	}
 
@@ -144,7 +110,7 @@ static void pocket_env_get_cerver_th_threads (void) {
 	char *th_threads = getenv ("CERVER_TH_THREADS");
 	if (th_threads) {
 		CERVER_TH_THREADS = (unsigned int) atoi (th_threads);
-		cerver_log_success ("CERVER_TH_THREADS -> %d\n", CERVER_TH_THREADS);
+		cerver_log_success ("CERVER_TH_THREADS -> %d", CERVER_TH_THREADS);
 	}
 
 	else {
@@ -161,7 +127,7 @@ static void pocket_env_get_cerver_connection_queue (void) {
 	char *connection_queue = getenv ("CERVER_CONNECTION_QUEUE");
 	if (connection_queue) {
 		CERVER_CONNECTION_QUEUE = (unsigned int) atoi (connection_queue);
-		cerver_log_success ("CERVER_CONNECTION_QUEUE -> %d\n", CERVER_CONNECTION_QUEUE);
+		cerver_log_success ("CERVER_CONNECTION_QUEUE -> %d", CERVER_CONNECTION_QUEUE);
 	}
 
 	else {
@@ -291,8 +257,6 @@ static void pocket_env_get_enable_users_routes (void) {
 
 }
 
-#pragma GCC diagnostic pop
-
 static unsigned int pocket_init_env (void) {
 
 	unsigned int errors = 0;
@@ -338,23 +302,17 @@ static unsigned int pocket_mongo_connect (void) {
 		if (!mongo_ping_db ()) {
 			cerver_log_success ("Connected to Mongo DB!");
 
-			// open handle to actions collection
-			errors |= actions_collection_get ();
+			errors |= actions_model_init ();
 
-			// open handle to categories collection
-			errors |= categories_collection_get ();
+			errors |= categories_model_init ();
 
-			// open handle to places collection
-			errors |= places_collection_get ();
+			errors |= places_model_init ();
 
-			// open handle to roles collection
-			errors |= roles_collection_get ();
+			errors |= roles_model_init ();
 
-			// open handle to transactions collection
-			errors |= transactions_collection_get ();
+			errors |= transactions_model_init ();
 
-			// open handle to user collection
-			errors |= users_collection_get ();
+			errors |= users_model_init ();
 
 			connected_to_mongo = true;
 		}
@@ -387,143 +345,17 @@ static unsigned int pocket_mongo_init (void) {
 
 }
 
-static unsigned int pocket_init_responses (void) {
-
-	unsigned int retval = 1;
-
-	oki_doki = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	bad_request = http_response_json_key_value (
-		(http_status) 400, "error", "Bad request!"
-	);
-
-	server_error = http_response_json_key_value (
-		(http_status) 500, "error", "Internal server error!"
-	);
-
-	bad_user = http_response_json_key_value (
-		(http_status) 400, "error", "Bad user!"
-	);
-
-	missing_values = http_response_json_key_value (
-		(http_status) 400, "error", "Missing values!"
-	);
-
-	pocket_works = http_response_json_key_value (
-		(http_status) 200, "msg", "Pocket works!"
-	);
-
-	char *status = c_string_create ("%s - %s", POCKET_VERSION_NAME, POCKET_VERSION_DATE);
-	if (status) {
-		current_version = http_response_json_key_value (
-			(http_status) 200, "version", status
-		);
-
-		free (status);
-	}
-
-	/*** transactions ***/
-	no_user_trans = http_response_json_key_value (
-		(http_status) 404, "msg", "Failed to get user's transaction(s)"
-	);
-
-	trans_created_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	trans_created_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to create transaction!"
-	);
-
-	trans_deleted_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	trans_deleted_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to delete transaction!"
-	);
-
-	/*** categories ****/
-
-	no_user_categories = http_response_json_key_value (
-		(http_status) 404, "msg", "Failed to get user's categories"
-	);
-
-	no_user_category = http_response_json_key_value (
-		(http_status) 404, "msg", "User's category was not found"
-	);
-
-	category_created_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	category_created_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to create category!"
-	);
-
-	category_deleted_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	category_deleted_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to delete category!"
-	);
-
-	/*** places ****/
-
-	no_user_places = http_response_json_key_value (
-		(http_status) 404, "msg", "No user's places"
-	);
-
-	no_user_place = http_response_json_key_value (
-		(http_status) 404, "msg", "User's place was not found"
-	);
-
-	place_created_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	place_created_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to create place!"
-	);
-
-	place_deleted_success = http_response_json_key_value (
-		(http_status) 200, "oki", "doki"
-	);
-
-	place_deleted_bad = http_response_json_key_value (
-		(http_status) 400, "error", "Failed to delete place!"
-	);
-
-	if (
-		oki_doki && bad_request && server_error && bad_user && missing_values
-		&& pocket_works && current_version
-		&& no_user_trans
-		&& trans_created_success && trans_created_bad
-		&& trans_deleted_success && trans_deleted_bad
-		&& no_user_categories && no_user_category
-		&& category_created_success && category_created_bad
-		&& category_deleted_success && category_deleted_bad
-		&& no_user_places && no_user_place
-		&& place_created_success && place_created_bad
-		&& place_deleted_success && place_deleted_bad
-	) retval = 0;
-
-	return retval;
-
-}
-
 // inits pocket main values
 unsigned int pocket_init (void) {
 
-	unsigned int errors = 0;
+	unsigned int retval = 1;
 
 	if (!pocket_init_env ()) {
+		unsigned int errors = 0;
+
 		errors |= pocket_mongo_init ();
 
-		errors |= pocket_handler_init ();
+		errors |= pocket_service_init ();
 
 		errors |= pocket_users_init ();
 
@@ -533,27 +365,27 @@ unsigned int pocket_init (void) {
 
 		errors |= pocket_trans_init ();
 
-		errors |= pocket_init_responses ();
+		retval = errors;
 	}
 
-	return errors;  
+	return retval;
 
 }
 
 static unsigned int pocket_mongo_end (void) {
 
 	if (mongo_get_status () == MONGO_STATUS_CONNECTED) {
-		actions_collection_close ();
+		actions_model_end ();
 
-		categories_collection_close ();
+		categories_model_end ();
 
-		places_collection_close ();
+		places_model_end ();
 
-		roles_collection_close ();
+		roles_model_end ();
 
-		transactions_collection_close ();
+		transactions_model_end ();
 
-		users_collection_close ();
+		users_model_end ();
 
 		mongo_disconnect ();
 	}
@@ -579,39 +411,7 @@ unsigned int pocket_end (void) {
 
 	pocket_trans_end ();
 
-	pocket_handler_end ();
-
-	http_respponse_delete (oki_doki);
-	http_respponse_delete (bad_request);
-	http_respponse_delete (server_error);
-	http_respponse_delete (bad_user);
-	http_respponse_delete (missing_values);
-
-	http_respponse_delete (pocket_works);
-	http_respponse_delete (current_version);
-
-	http_respponse_delete (no_user_trans);
-
-	http_respponse_delete (trans_created_success);
-	http_respponse_delete (trans_created_bad);
-	http_respponse_delete (trans_deleted_success);
-	http_respponse_delete (trans_deleted_bad);
-
-	http_respponse_delete (no_user_categories);
-	http_respponse_delete (no_user_category);
-
-	http_respponse_delete (category_created_success);
-	http_respponse_delete (category_created_bad);
-	http_respponse_delete (category_deleted_success);
-	http_respponse_delete (category_deleted_bad);
-
-	http_respponse_delete (no_user_places);
-	http_respponse_delete (no_user_place);
-
-	http_respponse_delete (place_created_success);
-	http_respponse_delete (place_created_bad);
-	http_respponse_delete (place_deleted_success);
-	http_respponse_delete (place_deleted_bad);
+	pocket_service_end ();
 
 	str_delete ((String *) MONGO_URI);
 	str_delete ((String *) MONGO_APP_NAME);

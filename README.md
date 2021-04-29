@@ -11,8 +11,8 @@ sudo docker run \
   -e PORT=5000 \
   -e CERVER_RECEIVE_BUFFER_SIZE=4096 -e CERVER_TH_THREADS=4 \
   -e CERVER_CONNECTION_QUEUE=4 \
-  -e MONGO_APP_NAME=api -e MONGO_DB=pocket \
-  -e MONGO_URI=mongodb://api:password@192.168.100.39:27017/pocket \
+  -e MONGO_APP_NAME=pocket -e MONGO_DB=ermiry \
+  -e MONGO_URI=mongodb://handler:handlerpassword@192.168.100.39:27017/ermiry \
   -e PRIV_KEY=/home/pocket/keys/key.key -e PUB_KEY=/home/pocket/keys/key.pub \
   -e ENABLE_USERS_ROUTES=TRUE \
   ermiry/tiny-pocket-api:development /bin/bash
@@ -77,7 +77,7 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### GET api/pocket/transactions/:id
+#### GET api/pocket/transactions/:id/info
 **Access:** Private \
 **Description:** Returns information about an existing transaction that belongs to a user \
 **Returns:**
@@ -85,7 +85,7 @@ sudo docker run \
   - 401 on failed auth
   - 404 on transaction not found
 
-#### PUT api/pocket/transactions/:id
+#### PUT api/pocket/transactions/:id/update
 **Access:** Private \
 **Description:** A user wants to update an existing transaction \
 **Returns:**
@@ -94,7 +94,7 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### DELETE api/pocket/transactions/:id
+#### DELETE api/pocket/transactions/:id/remove
 **Access:** Private \
 **Description:** Deletes an existing user's transaction \
 **Returns:**
@@ -121,7 +121,7 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### GET api/pocket/categories/:id
+#### GET api/pocket/categories/:id/info
 **Access:** Private \
 **Description:** Returns information about an existing category that belongs to a user \
 **Returns:**
@@ -129,7 +129,7 @@ sudo docker run \
   - 401 on failed auth
   - 404 on category not found
 
-#### PUT api/pocket/categories/:id
+#### PUT api/pocket/categories/:id/update
 **Access:** Private \
 **Description:** A user wants to update an existing category \
 **Returns:**
@@ -138,7 +138,7 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### DELETE api/pocket/categories/:id
+#### DELETE api/pocket/categories/:id/remove
 **Access:** Private \
 **Description:** Deletes an existing user's category \
 **Returns:**
@@ -165,7 +165,7 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### GET api/pocket/places/:id
+#### GET api/pocket/places/:id/info
 **Access:** Private \
 **Description:** Returns information about an existing place that belongs to a user \
 **Returns:**
@@ -173,7 +173,7 @@ sudo docker run \
   - 401 on failed auth
   - 404 on place not found
 
-#### PUT api/pocket/places/:id
+#### PUT api/pocket/places/:id/update
 **Access:** Private \
 **Description:** A user wants to update an existing place \
 **Returns:**
@@ -182,7 +182,7 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### DELETE api/pocket/places/:id
+#### DELETE api/pocket/places/:id/remove
 **Access:** Private \
 **Description:** Deletes an existing user's place \
 **Returns:**

@@ -8,15 +8,14 @@
 
 #include <cerver/types/types.h>
 
-#define	TRANSACTION_ID_LEN				32
-#define TRANSACTION_TITLE_LEN			1024
+#define TRANSACTIONS_COLL_NAME         	"transactions"
 
-extern mongoc_collection_t *transactions_collection;
+#define	TRANSACTION_ID_SIZE				32
+#define TRANSACTION_TITLE_SIZE			1024
 
-// opens handle to transaction collection
-extern unsigned int transactions_collection_get (void);
+extern unsigned int transactions_model_init (void);
 
-extern void transactions_collection_close (void);
+extern void transactions_model_end (void);
 
 #define TRANS_TYPE_MAP(XX)					\
 	XX(0,	NONE, 		None)				\
@@ -37,7 +36,7 @@ typedef struct Transaction {
 
 	// transaction's unique id
 	bson_oid_t oid;
-	char id[TRANSACTION_ID_LEN];
+	char id[TRANSACTION_ID_SIZE];
 
 	// reference to the owner of this transaction
 	bson_oid_t user_oid;
@@ -57,7 +56,7 @@ typedef struct Transaction {
 
 	// the name of the transaction
 	// is given by the user and displayed in the app
-	char title[TRANSACTION_TITLE_LEN];
+	char title[TRANSACTION_TITLE_SIZE];
 
 	// the actual value of the transaction
 	double amount;
@@ -80,17 +79,12 @@ extern void transaction_print (Transaction *transaction);
 
 extern bson_t *transaction_query_oid (const bson_oid_t *oid);
 
-extern const bson_t *transaction_find_by_oid (
-	const bson_oid_t *oid, const bson_t *query_opts
+extern bson_t *transaction_query_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
 );
 
 extern u8 transaction_get_by_oid (
 	Transaction *trans, const bson_oid_t *oid, const bson_t *query_opts
-);
-
-extern const bson_t *transaction_find_by_oid_and_user (
-	const bson_oid_t *oid, const bson_oid_t *user_oid,
-	const bson_t *query_opts
 );
 
 extern u8 transaction_get_by_oid_and_user (
@@ -99,13 +93,32 @@ extern u8 transaction_get_by_oid_and_user (
 	const bson_t *query_opts
 );
 
-extern bson_t *transaction_to_bson (Transaction *trans);
-
-extern bson_t *transaction_update_bson (Transaction *trans);
+extern u8 transaction_get_by_oid_and_user_to_json (
+	const bson_oid_t *oid, const bson_oid_t *user_oid,
+	const bson_t *query_opts,
+	char **json, size_t *json_len
+);
 
 // get all the transactions that are related to a user
 extern mongoc_cursor_t *transactions_get_all_by_user (
 	const bson_oid_t *user_oid, const bson_t *opts
+);
+
+extern unsigned int transactions_get_all_by_user_to_json (
+	const bson_oid_t *user_oid, const bson_t *opts,
+	char **json, size_t *json_len
+);
+
+extern unsigned int transaction_insert_one (
+	const Transaction *transaction
+);
+
+extern unsigned int transaction_update_one (
+	const Transaction *transaction
+);
+
+extern unsigned int transaction_delete_one_by_oid_and_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
 );
 
 #endif
