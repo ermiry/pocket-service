@@ -111,8 +111,9 @@ void users_register_handler (
 
 			// return token back to the user
 			(void) http_response_render_json (
-				http_receive, token, token_size
-			),
+				http_receive, HTTP_STATUS_OK,
+				token, token_size
+			);
 
 			pocket_user_delete (user);
 		} break;
@@ -160,8 +161,9 @@ void users_login_handler (
 
 			// return token back to the user
 			(void) http_response_render_json (
-				http_receive, token, token_size
-			),
+				http_receive, HTTP_STATUS_OK,
+				token, token_size
+			);
 
 			pocket_user_delete (user);
 		} break;
