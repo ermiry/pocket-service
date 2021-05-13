@@ -4,15 +4,16 @@
 ```
 sudo docker run \
   -it \
-  --name pocket --rm \
-  -p 5000:5000 \
+  --name pocket-api --rm \
+  -p 5002 --net ermiry \
   -v /home/ermiry/Documents/ermiry/website/tiny-pocket-api:/home/pocket \
+  -v /home/ermiry/Documents/ermiry/website/ermiry-website/jwt:/home/pocket/keys \
   -e RUNTIME=development \
-  -e PORT=5000 \
+  -e PORT=5002 \
   -e CERVER_RECEIVE_BUFFER_SIZE=4096 -e CERVER_TH_THREADS=4 \
   -e CERVER_CONNECTION_QUEUE=4 \
   -e MONGO_APP_NAME=pocket -e MONGO_DB=ermiry \
-  -e MONGO_URI=mongodb://handler:handlerpassword@192.168.100.39:27017/ermiry \
+  -e MONGO_URI=mongodb://pocket:password@192.168.100.39:27017/ermiry \
   -e PRIV_KEY=/home/pocket/keys/key.key -e PUB_KEY=/home/pocket/keys/key.pub \
   -e ENABLE_USERS_ROUTES=TRUE \
   ermiry/tiny-pocket-api:development /bin/bash
