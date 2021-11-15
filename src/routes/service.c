@@ -65,6 +65,6 @@ void pocket_catch_all_handler (
 	const HttpRequest *request
 ) {
 
-	http_response_send (catch_all, http_receive);
+	http_response_send (not_found_error, http_receive);
 
 }
