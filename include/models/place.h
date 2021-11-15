@@ -11,7 +11,7 @@
 
 #include <cerver/cerver.h>
 
-#define PLACES_COLL_NAME         	"places"
+#define PLACES_COLL_NAME         	"pocket.places"
 
 #define PLACE_ID_SIZE				32
 #define PLACE_NAME_SIZE			    512
@@ -107,23 +107,17 @@ extern void place_delete (void *place_ptr);
 
 extern void place_print (const Place *place);
 
-extern bson_t *place_query_oid (const bson_oid_t *oid);
-
-extern bson_t *place_query_by_oid_and_user (
-	const bson_oid_t *oid, const bson_oid_t *user_oid
-);
-
-extern u8 place_get_by_oid (
+extern unsigned int place_get_by_oid (
 	Place *place, const bson_oid_t *oid, const bson_t *query_opts
 );
 
-extern u8 place_get_by_oid_and_user (
+extern unsigned int place_get_by_oid_and_user (
 	Place *place,
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts
 );
 
-extern u8 place_get_by_oid_and_user_to_json (
+extern unsigned int place_get_by_oid_and_user_to_json (
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts,
 	char **json, size_t *json_len
