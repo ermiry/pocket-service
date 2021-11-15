@@ -287,7 +287,7 @@ unsigned int category_delete_one_by_oid_and_user (
 	const bson_oid_t *oid, const bson_oid_t *user_oid
 ) {
 
-	mongo_delete_one (
+	return mongo_delete_one (
 		categories_model, category_query_by_oid_and_user (
 			oid, user_oid
 		)
