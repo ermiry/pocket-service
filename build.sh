@@ -1,3 +1,3 @@
 #!/bin/bash
 
-sudo docker build -t ermiry/tiny-pocket-api:latest .
+sudo docker build -t ermiry/pocket-service:latest .
