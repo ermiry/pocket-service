@@ -221,19 +221,6 @@ static void role_doc_parse (
 
 }
 
-static bson_t *role_query_by_oid (
-	const bson_oid_t *oid
-) {
-
-	bson_t *role_query = bson_new ();
-	if (role_query) {
-		(void) bson_append_oid (role_query, "_id", -1, oid);
-	}
-
-	return role_query;
-
-}
-
 static bson_t *role_query_by_name (
 	const char *name
 ) {
