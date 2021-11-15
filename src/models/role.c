@@ -4,16 +4,19 @@
 #include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
+#include <cerver/collections/dlist.h>
+
 #include <cmongo/collections.h>
 #include <cmongo/crud.h>
 #include <cmongo/model.h>
 #include <cmongo/select.h>
+#include <cmongo/types.h>
 
 #include "models/role.h"
 
 static CMongoModel *roles_model = NULL;
 
-void role_doc_parse (
+static void role_doc_parse (
 	void *role_ptr, const bson_t *role_doc
 );
 
@@ -55,20 +58,90 @@ void role_delete (void *role_ptr) {
 
 }
 
+void role_set_name (Role *role, const char *name) {
+
+	(void) strncpy (role->name, name, ROLE_NAME_SIZE - 1);
+
+}
+
+void role_add_action (Role *role, const char *action_name) {
+
+	if (role) {
+		(void) strncpy (
+			role->actions[role->n_actions],
+			action_name,
+			ROLE_ACTION_SIZE - 1
+		);
+
+		role->n_actions += 1;
+	}
+
+}
+
+void role_remove_action (Role *role, const char *action_name) {
+
+	if (role) {
+		if (role->n_actions > 1) {
+			unsigned int idx = 0;
+			for (; idx < role->n_actions; idx++) {
+				if (!strcmp (role->actions[idx], action_name)) {
+					break;
+				}
+			}
+
+			unsigned int stop = role->n_actions - 1;
+			for (unsigned int i = idx; i < stop; i++) {
+				(void) strncpy (
+					role->actions[i],
+					role->actions[i + 1],
+					ROLE_ACTION_SIZE - 1
+				);
+			}
+		}
+
+		role->n_actions -= 1;
+	}
+
+}
+
 Role *role_create (const char *name) {
 
 	Role *role = role_new ();
 	if (role) {
-		if (name) {
-			(void) strncpy (role->name, name, ROLE_NAME_SIZE - 1);
-		}
+		bson_oid_init (&role->oid, NULL);
+		bson_oid_to_string (&role->oid, role->id);
+
+		role_set_name (role, name);
 	}
 
 	return role;
 
 }
 
-void role_print (Role *role) {
+int role_comparator_by_name (
+	const void *a, const void *b
+) {
+
+	return strcmp (((Role *) a)->name, ((Role *) b)->name);
+
+}
+
+bool role_check_action (const Role *role, const char *action) {
+
+	bool retval = false;
+
+	for (unsigned int i = 0; i < role->n_actions; i++) {
+		if (!strcmp (role->actions[i], action)) {
+			retval = true;
+			break;
+		}
+	}
+
+	return retval;
+
+}
+
+void role_print (const Role *role) {
 
 	if (role) {
 		(void) printf ("Name: %s\n", role->name);
@@ -83,41 +156,6 @@ void role_print (Role *role) {
 			(void) printf ("No actions!\n");
 		}
 	}
-
-}
-
-// creates a role bson with all role parameters
-bson_t *role_bson_create (Role *role) {
-
-	bson_t *doc = NULL;
-
-	if (role) {
-		doc = bson_new ();
-		if (doc) {
-			bson_oid_init (&role->oid, NULL);
-			(void) bson_append_oid (doc, "_id", -1, &role->oid);
-
-			(void) bson_append_utf8 (doc, "name", -1, role->name, -1);
-
-			bson_t actions_array = { 0 };
-			(void) bson_append_array_begin (doc, "actions", -1, &actions_array);
-			if (role->n_actions) {
-				char buf[16] = { 0 };
-				const char *key = NULL;
-				size_t keylen = 0;
-
-				for (unsigned int i = 0; i < role->n_actions; i++) {
-					keylen = bson_uint32_to_string (i, &key, buf, sizeof (buf));
-					(void) bson_append_utf8 (
-						&actions_array, key, (int) keylen, role->actions[i], -1
-					);
-				}
-			}
-			(void) bson_append_array_end (doc, &actions_array);
-		}
-	}
-
-	return doc;
 
 }
 
@@ -153,7 +191,7 @@ static void role_doc_parse_actions (
 
 }
 
-void role_doc_parse (
+static void role_doc_parse (
 	void *role_ptr, const bson_t *role_doc
 ) {
 
@@ -167,6 +205,7 @@ void role_doc_parse (
 
 			if (!strcmp (key, "_id")) {
 				bson_oid_copy (&value->value.v_oid, &role->oid);
+				bson_oid_to_string (&role->oid, role->id);
 			}
 
 			else if (!strcmp (key, "name") && value->value.v_utf8.str)
@@ -182,123 +221,84 @@ void role_doc_parse (
 
 }
 
-unsigned int role_get_by_oid (
-	Role *role, const bson_oid_t *oid, const bson_t *query_opts
+static bson_t *role_query_by_oid (
+	const bson_oid_t *oid
 ) {
 
-	unsigned int retval = 1;
-
-	if (role && oid) {
-		bson_t *role_query = bson_new ();
-		if (role_query) {
-			(void) bson_append_oid (role_query, "_id", -1, oid);
-			retval = mongo_find_one_with_opts (
-				roles_model,
-				role_query, query_opts,
-				role
-			);
-		}
-	}
-
-	return retval;
-
-}
-
-unsigned int role_get_by_cuc (
-	Role *role,
-	const char *cuc, const bson_t *query_opts
-) {
-
-	unsigned int retval = 1;
-
-	if (role && cuc) {
-		bson_t *role_query = bson_new ();
-		if (role_query) {
-			(void) bson_append_utf8 (role_query, "cuc", -1, cuc, -1);
-			retval = mongo_find_one_with_opts (
-				roles_model,
-				role_query, query_opts,
-				role
-			);
-		}
-	}
-
-	return retval;
-
-}
-
-bson_t *role_bson_create_oid_query (const bson_oid_t *oid) {
-
-	bson_t *role_query = NULL;
-
-	if (oid) {
-		role_query = bson_new ();
-		if (role_query) {
-			(void) bson_append_oid (role_query, "_id", -1, oid);
-		}
+	bson_t *role_query = bson_new ();
+	if (role_query) {
+		(void) bson_append_oid (role_query, "_id", -1, oid);
 	}
 
 	return role_query;
 
 }
 
-bson_t *role_bson_create_name_query (const char *name) {
+static bson_t *role_query_by_name (
+	const char *name
+) {
 
-	bson_t *role_query = NULL;
-
-	if (name) {
-		role_query = bson_new ();
-		if (role_query) {
-			(void) bson_append_utf8 (role_query, "name", -1, name, -1);
-		}
+	bson_t *role_query = bson_new ();
+	if (role_query) {
+		(void) bson_append_utf8 (role_query, "name", -1, name, -1);
 	}
 
 	return role_query;
 
 }
 
-bson_t *role_bson_create_update (Role *role) {
+DoubleList *roles_get_all (void) {
 
-	bson_t *doc = NULL;
+	DoubleList *roles = NULL;
 
-	if (role) {
-		doc = bson_new ();
-		if (doc) {
-			bson_t set_doc = BSON_INITIALIZER;
-			(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
-
-			(void) bson_append_utf8 (&set_doc, "name", -1, role->name, -1);
-
-			bson_t actions_array = BSON_INITIALIZER;
-			(void) bson_append_array_begin (&set_doc, "actions", -1, &actions_array);
-			if (role->n_actions) {
-				char buf[16] = { 0 };
-				const char *key = NULL;
-				size_t keylen = 0;
-
-				for (unsigned int i = 0; i < role->n_actions; i++) {
-					keylen = bson_uint32_to_string (i, &key, buf, sizeof (buf));
-					(void) bson_append_utf8 (
-						&actions_array, key, (int) keylen, role->actions[i], -1
-					);
-				}
-			}
-			(void) bson_append_array_end (&set_doc, &actions_array);
-
-			(void) bson_append_document_end (doc, &set_doc);
-		}
-	}
-
-	return doc;
-
-}
-
-mongoc_cursor_t *role_find_all (
-	const CMongoSelect *select, uint64_t *n_docs
-) {
-
-	return mongo_find_all_cursor (
-		roles_model, bson_new (), select, n_docs
+	uint64_t n_docs = 0;
+	mongoc_cursor_t *roles_cursor = mongo_find_all_cursor (
+		roles_model, bson_new (), NULL, &n_docs
 	);
+
+	if (roles_cursor) {
+		roles = dlist_init (role_delete, role_comparator_by_name);
+
+		Role *role = NULL;
+		const bson_t *role_doc = NULL;
+		while (mongoc_cursor_next (roles_cursor, &role_doc)) {
+			role = role_new ();
+			if (role) {
+				role_doc_parse (role, role_doc);
+
+				(void) dlist_insert_after (
+					roles,
+					dlist_end (roles),
+					role
+				);
+			}
+		}
+
+		mongoc_cursor_destroy (roles_cursor);
+	}
+
+	return roles;
+
+}
+
+unsigned int role_get_by_name (
+	Role *role,
+	const char *name
+) {
+
+	unsigned int retval = 1;
+
+	if (role && name) {
+		bson_t *role_query = role_query_by_name (name);
+		if (role_query) {
+			retval = mongo_find_one_with_opts (
+				roles_model,
+				role_query, NULL,
+				role
+			);
+		}
+	}
+
+	return retval;
 
 }
