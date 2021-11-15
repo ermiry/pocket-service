@@ -7,7 +7,7 @@ make clean
 sudo docker kill $(sudo docker ps -q)
 
 # compile docker
-sudo docker build -t ermiry/tiny-pocket-api:test -f Dockerfile.test .
+sudo docker build -t ermiry/pocket-service:test -f Dockerfile.test .
 
 # compile tests
 make TYPE=test -j4 test || { exit 1; }
@@ -17,7 +17,7 @@ sudo docker run \
   -d \
   --name pocket --rm \
   -p 5000:5000 --net ermiry \
-  -v /home/ermiry/Documents/ermiry/website/tiny-pocket-api/keys:/home/pocket/keys \
+  -v /home/ermiry/Documents/ermiry/website/pocket-service/keys:/home/pocket/keys \
   -e RUNTIME=test \
   -e PORT=5000 \
   -e CERVER_RECEIVE_BUFFER_SIZE=4096 -e CERVER_TH_THREADS=4 \
@@ -26,7 +26,7 @@ sudo docker run \
   -e MONGO_URI=mongodb://handler:handlerpassword@192.168.100.39:27017/ermiry \
   -e PRIV_KEY=/home/pocket/keys/key.key -e PUB_KEY=/home/pocket/keys/key.pub \
   -e ENABLE_USERS_ROUTES=TRUE \
-  ermiry/tiny-pocket-api:test
+  ermiry/pocket-service:test
 
 sleep 2
 
