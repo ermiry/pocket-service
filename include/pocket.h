@@ -5,12 +5,13 @@
 
 #include "runtime.h"
 
-#define DEFAULT_PORT					"5001"
+#define MONGO_URI_SIZE					256
+#define MONGO_APP_NAME_SIZE				32
+#define MONGO_DB_SIZE					32
 
-struct _HttpCerver;
-struct _HttpResponse;
+#define PUB_KEY_SIZE					128
 
-extern struct _HttpCerver *http_cerver;
+#define REDIS_HOSTNAME_SIZE				128
 
 extern RuntimeType RUNTIME;
 
@@ -20,10 +21,10 @@ extern unsigned int CERVER_RECEIVE_BUFFER_SIZE;
 extern unsigned int CERVER_TH_THREADS;
 extern unsigned int CERVER_CONNECTION_QUEUE;
 
-extern const String *PRIV_KEY;
-extern const String *PUB_KEY;
+extern const char *PUB_KEY;
 
-extern bool ENABLE_USERS_ROUTES;
+extern bool CONNECT_TO_REDIS;
+extern const char *REDIS_HOSTNAME;
 
 // inits pocket main values
 extern unsigned int pocket_init (void);

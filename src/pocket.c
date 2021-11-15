@@ -1,22 +1,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <cerver/types/types.h>
 #include <cerver/types/string.h>
 
 #include <cerver/handler.h>
 
-#include <cerver/http/http.h>
-#include <cerver/http/route.h>
-#include <cerver/http/request.h>
-#include <cerver/http/response.h>
-#include <cerver/http/json/json.h>
-
-#include <cerver/utils/utils.h>
 #include <cerver/utils/log.h>
+#include <cerver/utils/utils.h>
 
 #include <cmongo/mongo.h>
+
+#include <credis/redis.h>
 
 #include "pocket.h"
 #include "runtime.h"
@@ -43,14 +40,16 @@ unsigned int CERVER_RECEIVE_BUFFER_SIZE = CERVER_DEFAULT_RECEIVE_BUFFER_SIZE;
 unsigned int CERVER_TH_THREADS = CERVER_DEFAULT_POOL_THREADS;
 unsigned int CERVER_CONNECTION_QUEUE = CERVER_DEFAULT_CONNECTION_QUEUE;
 
-static const String *MONGO_URI = NULL;
-static const String *MONGO_APP_NAME = NULL;
-static const String *MONGO_DB = NULL;
+static char MONGO_URI[MONGO_URI_SIZE] = { 0 };
+static char MONGO_APP_NAME[MONGO_APP_NAME_SIZE] = { 0 };
+static char MONGO_DB[MONGO_DB_SIZE] = { 0 };
 
-const String *PRIV_KEY = NULL;
-const String *PUB_KEY = NULL;
+static char REAL_PUB_KEY[PUB_KEY_SIZE] = { 0 };
+const char *PUB_KEY = REAL_PUB_KEY;
 
-bool ENABLE_USERS_ROUTES = false;
+bool CONNECT_TO_REDIS = false;
+static char REAL_REDIS_HOSTNAME[REDIS_HOSTNAME_SIZE] = { 0 };
+const char *REDIS_HOSTNAME = REAL_REDIS_HOSTNAME;
 
 static void pocket_env_get_runtime (void) {
 
@@ -75,6 +74,9 @@ static unsigned int pocket_env_get_port (void) {
 	char *port_env = getenv ("PORT");
 	if (port_env) {
 		PORT = (unsigned int) atoi (port_env);
+		cerver_log_success (
+			"PORT -> %u", PORT
+		);
 
 		retval = 0;
 	}
@@ -93,13 +95,13 @@ static void pocket_env_get_cerver_receive_buffer_size (void) {
 	if (buffer_size) {
 		CERVER_RECEIVE_BUFFER_SIZE = (unsigned int) atoi (buffer_size);
 		cerver_log_success (
-			"CERVER_RECEIVE_BUFFER_SIZE -> %d", CERVER_RECEIVE_BUFFER_SIZE
+			"CERVER_RECEIVE_BUFFER_SIZE -> %u", CERVER_RECEIVE_BUFFER_SIZE
 		);
 	}
 
 	else {
 		cerver_log_warning (
-			"Failed to get CERVER_RECEIVE_BUFFER_SIZE from env - using default %d!",
+			"Failed to get CERVER_RECEIVE_BUFFER_SIZE from env - using default %u!",
 			CERVER_RECEIVE_BUFFER_SIZE
 		);
 	}
@@ -110,12 +112,12 @@ static void pocket_env_get_cerver_th_threads (void) {
 	char *th_threads = getenv ("CERVER_TH_THREADS");
 	if (th_threads) {
 		CERVER_TH_THREADS = (unsigned int) atoi (th_threads);
-		cerver_log_success ("CERVER_TH_THREADS -> %d", CERVER_TH_THREADS);
+		cerver_log_success ("CERVER_TH_THREADS -> %u", CERVER_TH_THREADS);
 	}
 
 	else {
 		cerver_log_warning (
-			"Failed to get CERVER_TH_THREADS from env - using default %d!",
+			"Failed to get CERVER_TH_THREADS from env - using default %u!",
 			CERVER_TH_THREADS
 		);
 	}
@@ -127,12 +129,12 @@ static void pocket_env_get_cerver_connection_queue (void) {
 	char *connection_queue = getenv ("CERVER_CONNECTION_QUEUE");
 	if (connection_queue) {
 		CERVER_CONNECTION_QUEUE = (unsigned int) atoi (connection_queue);
-		cerver_log_success ("CERVER_CONNECTION_QUEUE -> %d", CERVER_CONNECTION_QUEUE);
+		cerver_log_success ("CERVER_CONNECTION_QUEUE -> %u", CERVER_CONNECTION_QUEUE);
 	}
 
 	else {
 		cerver_log_warning (
-			"Failed to get CERVER_CONNECTION_QUEUE from env - using default %d!",
+			"Failed to get CERVER_CONNECTION_QUEUE from env - using default %u!",
 			CERVER_CONNECTION_QUEUE
 		);
 	}
@@ -145,7 +147,11 @@ static unsigned int pocket_env_get_mongo_app_name (void) {
 
 	char *mongo_app_name_env = getenv ("MONGO_APP_NAME");
 	if (mongo_app_name_env) {
-		MONGO_APP_NAME = str_new (mongo_app_name_env);
+		(void) strncpy (
+			MONGO_APP_NAME,
+			mongo_app_name_env,
+			MONGO_APP_NAME_SIZE - 1
+		);
 
 		retval = 0;
 	}
@@ -164,7 +170,11 @@ static unsigned int pocket_env_get_mongo_db (void) {
 
 	char *mongo_db_env = getenv ("MONGO_DB");
 	if (mongo_db_env) {
-		MONGO_DB = str_new (mongo_db_env);
+		(void) strncpy (
+			MONGO_DB,
+			mongo_db_env,
+			MONGO_DB_SIZE - 1
+		);
 
 		retval = 0;
 	}
@@ -183,7 +193,11 @@ static unsigned int pocket_env_get_mongo_uri (void) {
 
 	char *mongo_uri_env = getenv ("MONGO_URI");
 	if (mongo_uri_env) {
-		MONGO_URI = str_new (mongo_uri_env);
+		(void) strncpy (
+			MONGO_URI,
+			mongo_uri_env,
+			MONGO_URI_SIZE - 1
+		);
 
 		retval = 0;
 	}
@@ -196,32 +210,17 @@ static unsigned int pocket_env_get_mongo_uri (void) {
 
 }
 
-static unsigned int pocket_env_get_private_key (void) {
-
-	unsigned int retval = 1;
-
-	char *priv_key_env = getenv ("PRIV_KEY");
-	if (priv_key_env) {
-		PRIV_KEY = str_new (priv_key_env);
-
-		retval = 0;
-	}
-
-	else {
-		cerver_log_error ("Failed to get PRIV_KEY from env!");
-	}
-
-	return retval;
-
-}
-
 static unsigned int pocket_env_get_public_key (void) {
 
 	unsigned int retval = 1;
 
 	char *pub_key_env = getenv ("PUB_KEY");
 	if (pub_key_env) {
-		PUB_KEY = str_new (pub_key_env);
+		(void) strncpy (
+			REAL_PUB_KEY,
+			pub_key_env,
+			PUB_KEY_SIZE - 1
+		);
 
 		retval = 0;
 	}
@@ -234,26 +233,49 @@ static unsigned int pocket_env_get_public_key (void) {
 
 }
 
-static void pocket_env_get_enable_users_routes (void) {
+static void pocket_env_get_connect_to_redis (void) {
 
-	char *enable_users = getenv ("ENABLE_USERS_ROUTES");
-	if (enable_users) {
-		if (!strcmp (enable_users, "TRUE")) {
-			ENABLE_USERS_ROUTES = true;
-			cerver_log_success ("ENABLE_USERS_ROUTES -> TRUE\n");
+	char *connect_to_redis = getenv ("CONNECT_TO_REDIS");
+	if (connect_to_redis) {
+		if (!strcasecmp (connect_to_redis, "TRUE")) {
+			CONNECT_TO_REDIS = true;
+			cerver_log_success ("CONNECT_TO_REDIS -> TRUE");
 		}
 
 		else {
-			ENABLE_USERS_ROUTES = false;
-			cerver_log_success ("ENABLE_USERS_ROUTES -> FALSE\n");
+			CONNECT_TO_REDIS = false;
+			cerver_log_success ("CONNECT_TO_REDIS -> FALSE");
 		}
 	}
 
 	else {
 		cerver_log_warning (
-			"Failed to get ENABLE_USERS_ROUTES from env - using default FALSE!"
+			"Failed to get CONNECT_TO_REDIS from env - using default FALSE!"
 		);
 	}
+
+}
+
+static unsigned int pocket_env_get_redis_hostname (void) {
+
+	unsigned int retval = 1;
+
+	char *pocket_REDIS_HOSTNAME_env = getenv ("REDIS_HOSTNAME");
+	if (pocket_REDIS_HOSTNAME_env) {
+		(void) strncpy (
+			REAL_REDIS_HOSTNAME,
+			pocket_REDIS_HOSTNAME_env,
+			REDIS_HOSTNAME_SIZE - 1
+		);
+
+		retval = 0;
+	}
+
+	else {
+		cerver_log_error ("Failed to get REDIS_HOSTNAME from env!");
+	}
+
+	return retval;
 
 }
 
@@ -277,11 +299,13 @@ static unsigned int pocket_init_env (void) {
 
 	errors |= pocket_env_get_mongo_uri ();
 
-	errors |= pocket_env_get_private_key ();
-
 	errors |= pocket_env_get_public_key ();
 
-	pocket_env_get_enable_users_routes ();
+	pocket_env_get_connect_to_redis ();
+
+	if (CONNECT_TO_REDIS) {
+		errors |= pocket_env_get_redis_hostname ();
+	}
 
 	return errors;
 
@@ -293,9 +317,9 @@ static unsigned int pocket_mongo_connect (void) {
 
 	bool connected_to_mongo = false;
 
-	mongo_set_uri (MONGO_URI->str);
-	mongo_set_app_name (MONGO_APP_NAME->str);
-	mongo_set_db_name (MONGO_DB->str);
+	mongo_set_uri (MONGO_URI);
+	mongo_set_app_name (MONGO_APP_NAME);
+	mongo_set_db_name (MONGO_DB);
 
 	if (!mongo_connect ()) {
 		// test mongo connection
@@ -345,27 +369,66 @@ static unsigned int pocket_mongo_init (void) {
 
 }
 
+static unsigned int pocket_redis_init (void) {
+
+	unsigned int errors = 0;
+
+	if (CONNECT_TO_REDIS) {
+		unsigned int result = 1;
+
+		char *hostname = network_hostname_to_ip (REDIS_HOSTNAME);
+		if (hostname) {
+			credis_set_hostname (hostname);
+
+			if (!credis_init ()) {
+				result = credis_ping_db ();
+			}
+
+			free (hostname);
+		}
+
+		else {
+			cerver_log_error ("Failed to get REDIS_HOSTNAME ip address!");
+		}
+
+		errors = result;
+	}
+
+	return errors;
+
+}
+
+static unsigned int pocket_init_internal (void) {
+
+	unsigned int errors = 0;
+
+	errors |= pocket_mongo_init ();
+
+	errors |= pocket_service_init ();
+
+	errors |= pocket_users_init ();
+
+	errors |= pocket_categories_init ();
+
+	errors |= pocket_places_init ();
+
+	errors |= pocket_trans_init ();
+
+	return errors;
+
+}
+
 // inits pocket main values
 unsigned int pocket_init (void) {
 
 	unsigned int retval = 1;
 
 	if (!pocket_init_env ()) {
-		unsigned int errors = 0;
-
-		errors |= pocket_mongo_init ();
-
-		errors |= pocket_service_init ();
-
-		errors |= pocket_users_init ();
-
-		errors |= pocket_categories_init ();
-
-		errors |= pocket_places_init ();
-
-		errors |= pocket_trans_init ();
-
-		retval = errors;
+		if (!pocket_mongo_init ()) {
+			if (!pocket_redis_init ()) {
+				retval = pocket_init_internal ();
+			}
+		}
 	}
 
 	return retval;
@@ -401,6 +464,10 @@ unsigned int pocket_end (void) {
 
 	errors |= pocket_mongo_end ();
 
+	if (CONNECT_TO_REDIS) {
+		(void) credis_end ();
+	}
+
 	pocket_roles_end ();
 
 	pocket_users_end ();
@@ -412,13 +479,6 @@ unsigned int pocket_end (void) {
 	pocket_trans_end ();
 
 	pocket_service_end ();
-
-	str_delete ((String *) MONGO_URI);
-	str_delete ((String *) MONGO_APP_NAME);
-	str_delete ((String *) MONGO_DB);
-
-	str_delete ((String *) PRIV_KEY);
-	str_delete ((String *) PUB_KEY);
 
 	return errors;
 
