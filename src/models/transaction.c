@@ -40,7 +40,7 @@ void transactions_model_end (void) {
 
 }
 
-const char *trans_type_to_string (TransType type) {
+const char *trans_type_to_string (const TransType type) {
 
 	switch (type) {
 		#define XX(num, name, string) case TRANS_TYPE_##name: return #string;
@@ -69,17 +69,20 @@ void transaction_delete (void *transaction_ptr) {
 
 }
 
-void transaction_print (Transaction *transaction) {
+void transaction_print (const Transaction *transaction) {
 
 	if (transaction) {
-		char buffer[128] = { 0 };
-		bson_oid_to_string (&transaction->oid, buffer);
-		(void) printf ("id: %s\n", buffer);
+		char buffer[TRANSACTION_BUFFER_SIZE] = { 0 };
+		(void) printf ("id: %s\n", transaction->id);
 
 		(void) printf ("title: %s\n", transaction->title);
 		(void) printf ("amount: %.4f\n", transaction->amount);
 
-		(void) strftime (buffer, 128, "%d/%m/%y - %T", gmtime (&transaction->date));
+		(void) strftime (
+			buffer, TRANSACTION_BUFFER_SIZE,
+			"%d/%m/%y - %T", gmtime (&transaction->date)
+		);
+
 		(void) printf ("date: %s GMT\n", buffer);
 	}
 
@@ -104,20 +107,25 @@ static void trans_doc_parse (
 				bson_oid_to_string (&trans->oid, trans->id);
 			}
 
-			else if (!strcmp (key, "user"))
+			else if (!strcmp (key, "user")) {
 				bson_oid_copy (&value->value.v_oid, &trans->user_oid);
+			}
 
-			else if (!strcmp (key, "category"))
+			else if (!strcmp (key, "category")) {
 				bson_oid_copy (&value->value.v_oid, &trans->category_oid);
+			}
 
-			else if (!strcmp (key, "place"))
+			else if (!strcmp (key, "place")) {
 				bson_oid_copy (&value->value.v_oid, &trans->place_oid);
+			}
 
-			else if (!strcmp (key, "payment"))
+			else if (!strcmp (key, "payment")) {
 				bson_oid_copy (&value->value.v_oid, &trans->payment_oid);
+			}
 
-			else if (!strcmp (key, "currency"))
+			else if (!strcmp (key, "currency")) {
 				bson_oid_copy (&value->value.v_oid, &trans->currency_oid);
+			}
 
 			else if (!strcmp (key, "title") && value->value.v_utf8.str) {
 				(void) strncpy (
@@ -127,35 +135,35 @@ static void trans_doc_parse (
 				);
 			}
 
-			else if (!strcmp (key, "amount"))
+			else if (!strcmp (key, "amount")) {
 				trans->amount = value->value.v_double;
+			}
 
-			else if (!strcmp (key, "date"))
+			else if (!strcmp (key, "date")) {
 				trans->date = (time_t) bson_iter_date_time (&iter) / 1000;
+			}
 
-			else if (!strcmp (key, "type"))
+			else if (!strcmp (key, "type")) {
 				trans->type = (TransType) value->value.v_int32;
+			}
 		}
 	}
 
 }
 
-bson_t *transaction_query_oid (const bson_oid_t *oid) {
+static bson_t *transaction_query_oid (const bson_oid_t *oid) {
 
-	bson_t *query = NULL;
+	bson_t *query = bson_new ();
 
-	if (oid) {
-		query = bson_new ();
-		if (query) {
-			(void) bson_append_oid (query, "_id", -1, oid);
-		}
+	if (query) {
+		(void) bson_append_oid (query, "_id", -1, oid);
 	}
 
 	return query;
 
 }
 
-bson_t *transaction_query_by_oid_and_user (
+static bson_t *transaction_query_by_oid_and_user (
 	const bson_oid_t *oid, const bson_oid_t *user_oid
 ) {
 
@@ -169,100 +177,75 @@ bson_t *transaction_query_by_oid_and_user (
 
 }
 
-u8 transaction_get_by_oid (
-	Transaction *trans, const bson_oid_t *oid, const bson_t *query_opts
-) {
+static bson_t *transaction_query_user (const bson_oid_t *user_oid) {
 
-	u8 retval = 1;
+	bson_t *query = bson_new ();
 
-	if (trans && oid) {
-		bson_t *trans_query = bson_new ();
-		if (trans_query) {
-			(void) bson_append_oid (trans_query, "_id", -1, oid);
-			retval = mongo_find_one_with_opts (
-				transactions_model,
-				trans_query, query_opts,
-				trans
-			);
-		}
+	if (query) {
+		(void) bson_append_oid (query, "user", -1, user_oid);
 	}
 
-	return retval;
+	return query;
 
 }
 
-u8 transaction_get_by_oid_and_user (
+unsigned int transaction_get_by_oid (
+	Transaction *trans, const bson_oid_t *oid, const bson_t *query_opts
+) {
+
+	return mongo_find_one_with_opts (
+		transactions_model,
+		transaction_query_oid (oid), query_opts,
+		trans
+	);
+
+}
+
+unsigned int transaction_get_by_oid_and_user (
 	Transaction *trans,
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts
 ) {
 
-	u8 retval = 1;
-
-	if (trans && oid && user_oid) {
-		bson_t *trans_query = transaction_query_by_oid_and_user (
-			oid, user_oid
-		);
-
-		if (trans_query) {
-			retval = mongo_find_one_with_opts (
-				transactions_model,
-				trans_query, query_opts,
-				trans
-			);
-		}
-	}
-
-	return retval;
+	return mongo_find_one_with_opts (
+		transactions_model,
+		transaction_query_by_oid_and_user (oid, user_oid), query_opts,
+		trans
+	);
 
 }
 
-u8 transaction_get_by_oid_and_user_to_json (
+unsigned int transaction_get_by_oid_and_user_to_json (
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts,
 	char **json, size_t *json_len
 ) {
 
-	u8 retval = 1;
-
-	if (oid && user_oid) {
-		bson_t *trans_query = transaction_query_by_oid_and_user (
-			oid, user_oid
-		);
-
-		if (trans_query) {
-			retval = mongo_find_one_with_opts_to_json (
-				transactions_model,
-				trans_query, query_opts,
-				json, json_len
-			);
-		}
-	}
-
-	return retval;
+	return mongo_find_one_with_opts_to_json (
+		transactions_model,
+		transaction_query_by_oid_and_user (oid, user_oid), query_opts,
+		json, json_len
+	);
 
 }
 
 static bson_t *transaction_to_bson (const Transaction *trans) {
 
-	bson_t *doc = NULL;
+	bson_t *doc = bson_new ();
 
-	if (trans) {
-		doc = bson_new ();
-		if (doc) {
-			(void) bson_append_oid (doc, "_id", -1, &trans->oid);
+	if (doc) {
+		(void) bson_append_oid (doc, "_id", -1, &trans->oid);
 
-			(void) bson_append_oid (doc, "user", -1, &trans->user_oid);
+		(void) bson_append_oid (doc, "user", -1, &trans->user_oid);
 
-			(void) bson_append_oid (doc, "category", -1, &trans->category_oid);
-			(void) bson_append_oid (doc, "place", -1, &trans->place_oid);
+		(void) bson_append_oid (doc, "category", -1, &trans->category_oid);
+		(void) bson_append_oid (doc, "place", -1, &trans->place_oid);
 
-			(void) bson_append_utf8 (doc, "title", -1, trans->title, -1);
-			(void) bson_append_double (doc, "amount", -1, trans->amount);
-			(void) bson_append_date_time (doc, "date", -1, trans->date * 1000);
+		(void) bson_append_utf8 (doc, "title", -1, trans->title, -1);
+		(void) bson_append_double (doc, "amount", -1, trans->amount);
+		(void) bson_append_date_time (doc, "date", -1, trans->date * 1000);
 
-			(void) bson_append_int32 (doc, "type", -1, trans->type);
-		}
+		(void) bson_append_int32 (doc, "type", -1, trans->type);
 	}
 
 	return doc;
@@ -271,23 +254,20 @@ static bson_t *transaction_to_bson (const Transaction *trans) {
 
 static bson_t *transaction_update_bson (const Transaction *trans) {
 
-	bson_t *doc = NULL;
+	bson_t *doc = bson_new ();
 
-	if (trans) {
-		doc = bson_new ();
-		if (doc) {
-			bson_t set_doc = BSON_INITIALIZER;
-			(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
-			(void) bson_append_utf8 (&set_doc, "title", -1, trans->title, -1);
-			(void) bson_append_double (&set_doc, "amount", -1, trans->amount);
+	if (doc) {
+		bson_t set_doc = BSON_INITIALIZER;
+		(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
+		(void) bson_append_utf8 (&set_doc, "title", -1, trans->title, -1);
+		(void) bson_append_double (&set_doc, "amount", -1, trans->amount);
 
-			(void) bson_append_oid (&set_doc, "category", -1, &trans->category_oid);
+		(void) bson_append_oid (&set_doc, "category", -1, &trans->category_oid);
 
-			(void) bson_append_oid (&set_doc, "place", -1, &trans->place_oid);
+		(void) bson_append_oid (&set_doc, "place", -1, &trans->place_oid);
 
-			// (void) bson_append_date_time (&set_doc, "date", -1, trans->date * 1000);
-			(void) bson_append_document_end (doc, &set_doc);
-		}
+		// (void) bson_append_date_time (&set_doc, "date", -1, trans->date * 1000);
+		(void) bson_append_document_end (doc, &set_doc);
 	}
 
 	return doc;
@@ -299,21 +279,10 @@ mongoc_cursor_t *transactions_get_all_by_user (
 	const bson_oid_t *user_oid, const bson_t *opts
 ) {
 
-	mongoc_cursor_t *retval = NULL;
-
-	if (user_oid && opts) {
-		bson_t *query = bson_new ();
-		if (query) {
-			(void) bson_append_oid (query, "user", -1, user_oid);
-
-			retval = mongo_find_all_cursor_with_opts (
-				transactions_model,
-				query, opts
-			);
-		}
-	}
-
-	return retval;
+	return mongo_find_all_cursor_with_opts (
+		transactions_model,
+		transaction_query_user (user_oid), opts
+	);
 
 }
 
@@ -322,23 +291,12 @@ unsigned int transactions_get_all_by_user_to_json (
 	char **json, size_t *json_len
 ) {
 
-	unsigned int retval = 1;
-
-	if (user_oid) {
-		bson_t *query = bson_new ();
-		if (query) {
-			(void) bson_append_oid (query, "user", -1, user_oid);
-
-			retval = mongo_find_all_to_json (
-				transactions_model,
-				query, opts,
-				"transactions",
-				json, json_len
-			);
-		}
-	}
-
-	return retval;
+	return mongo_find_all_to_json (
+		transactions_model,
+		transaction_query_user (user_oid), opts,
+		"transactions",
+		json, json_len
+	);
 
 }
 
@@ -364,20 +322,10 @@ unsigned int transaction_delete_one_by_oid_and_user (
 	const bson_oid_t *oid, const bson_oid_t *user_oid
 ) {
 
-	unsigned int retval = 1;
-
-	if (oid && user_oid) {
-		bson_t *transaction_query = transaction_query_by_oid_and_user (
+	mongo_delete_one (
+		transactions_model, transaction_query_by_oid_and_user (
 			oid, user_oid
-		);
-
-		if (transaction_query) {
-			retval = mongo_delete_one (
-				transactions_model, transaction_query
-			);
-		}
-	}
-
-	return retval;
+		)
+	);
 
 }
