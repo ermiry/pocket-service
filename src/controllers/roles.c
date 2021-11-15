@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <cmongo/crud.h>
 #include <cmongo/select.h>
@@ -13,67 +14,23 @@
 
 static DoubleList *roles = NULL;
 
-const Role *common_role = NULL;
-
 const Role *pocket_role_get_by_name (
 	const char *role_name
 );
-
-static unsigned int pocket_roles_init_get_roles (void) {
-
-	unsigned int retval = 1;
-
-	CMongoSelect *select = cmongo_select_new ();
-	cmongo_select_insert_field (select, "name");
-
-	uint64_t n_docs = 0;
-	mongoc_cursor_t *roles_cursor = role_find_all (select, &n_docs);
-	if (roles_cursor) {
-		Role *role = NULL;
-		const bson_t *role_doc = NULL;
-		unsigned int errors = 0;
-		while (mongoc_cursor_next (roles_cursor, &role_doc)) {
-			role = role_new ();
-			if (role) {
-				role_doc_parse (role, role_doc);
-
-				errors |= dlist_insert_after (
-					roles,
-					dlist_end (roles),
-					role
-				);
-			}
-
-			else {
-				errors |= 1;
-			}
-		}
-
-		mongoc_cursor_destroy (roles_cursor);
-
-		retval = errors;
-	}
-
-	else {
-		(void) fprintf (stderr, "Failed to get roles cursor!");
-	}
-
-	cmongo_select_delete (select);
-
-	return retval;
-
-}
 
 unsigned int pocket_roles_init (void) {
 
 	unsigned int retval = 1;
 
-	roles = dlist_init (role_delete, NULL);
-	if (!pocket_roles_init_get_roles ()) {
-		common_role = pocket_role_get_by_name ("common");
-		if (common_role) {
-			retval = 0;
-		}
+	roles = roles_get_all ();
+	if (roles) {
+		cerver_log_success ("Got roles from db!");
+
+		retval = 0;
+	}
+
+	else {
+		cerver_log_error ("Failed to get roles from db!");
 	}
 
 	return retval;
@@ -86,7 +43,9 @@ void pocket_roles_end (void) {
 
 }
 
-const Role *pocket_role_get_by_oid (const bson_oid_t *role_oid) {
+const Role *pocket_roles_get_by_oid (
+	const bson_oid_t *role_oid
+) {
 
 	const Role *retval = NULL;
 
@@ -103,7 +62,7 @@ const Role *pocket_role_get_by_oid (const bson_oid_t *role_oid) {
 
 }
 
-const Role *pocket_role_get_by_name (
+const Role *pocket_roles_get_by_name (
 	const char *role_name
 ) {
 
@@ -122,15 +81,43 @@ const Role *pocket_role_get_by_name (
 
 }
 
-const char *pocket_role_name_get_by_oid (
+const char *pocket_roles_name_get_by_oid (
 	const bson_oid_t *role_oid
 ) {
 
 	const char *retval = NULL;
 
-	const Role *role = pocket_role_get_by_oid (role_oid);
+	const Role *role = pocket_roles_get_by_oid (role_oid);
 	if (role) {
 		retval = role->name;
+	}
+
+	return retval;
+
+}
+
+bool pocket_role_search_and_check_action (
+	const char *role_name, const char *action_name
+) {
+
+	bool retval = false;
+
+	if (role_name && action_name) {
+		Role *role = NULL;
+		for (ListElement *le = dlist_start (roles); le; le = le->next) {
+			role = (Role *) le->data;
+			if (!strcmp (role->name, role_name)) {
+				// search action in role
+				for (unsigned int idx = 0; idx < role->n_actions; idx++) {
+					if (!strcmp (role->actions[idx], action_name)) {
+						retval = true;
+						break;
+					}
+				}
+
+				break;
+			}
+		}
 	}
 
 	return retval;
