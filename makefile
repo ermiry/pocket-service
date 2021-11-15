@@ -1,6 +1,6 @@
 TYPE		:= development
 
-TARGET      := tiny-pocket-api
+TARGET      := pocket-service
 
 all: directories $(TARGET)
 
@@ -11,9 +11,9 @@ directories:
 PTHREAD 	:= -l pthread
 MATH 		:= -lm
 
-CURL		:= -l curl
-
 OPENSSL		:= -l ssl -l crypto
+
+CURL		:= -l curl
 
 # MONGOC 		:= `pkg-config --libs --cflags libmongoc-1.0`
 MONGOC 		:= -l mongoc-1.0 -l bson-1.0
@@ -21,6 +21,11 @@ MONGOC_INC	:= -I /usr/local/include/libbson-1.0 -I /usr/local/include/libmongoc-
 
 CMONGO		:= -l cmongo
 CMONGO_INC	:= -I /usr/local/include/cmongo
+
+HIREDIS		:= -l hiredis
+
+CREDIS		:= -l credis
+CREDIS_INC	:= -I /usr/local/include/credis
 
 CERVER		:= -l cerver
 CERVER_INC	:= -I /usr/local/include/cerver
@@ -55,7 +60,7 @@ COMMON		:=  -Wall -Wno-unknown-pragmas \
 CFLAGS      := $(DEFINES)
 
 ifeq ($(TYPE), development)
-	CFLAGS += -g -fasynchronous-unwind-tables $(DEVELOPMENT)
+	CFLAGS += -g -fasynchronous-unwind-tables -D_FORTIFY_SOURCE=2 -fstack-protector $(DEVELOPMENT)
 else ifeq ($(TYPE), test)
 	CFLAGS += -g -fasynchronous-unwind-tables -D_FORTIFY_SOURCE=2 -fstack-protector -O2 $(DEVELOPMENT)
 else
@@ -72,8 +77,8 @@ endif
 
 CFLAGS += $(COMMON)
 
-LIB         := -L /usr/local/lib $(PTHREAD) $(MATH) $(OPENSSL) $(MONGOC) $(CERVER) $(CMONGO)
-INC         := -I $(INCDIR) -I /usr/local/include $(MONGOC_INC) $(CERVER_INC) $(CMONGO_INC)
+LIB         := -L /usr/local/lib $(PTHREAD) $(MATH) $(OPENSSL) $(CURL) $(MONGOC) $(CERVER) $(CMONGO) $(HIREDIS) $(CREDIS)
+INC         := -I $(INCDIR) -I /usr/local/include $(MONGOC_INC) $(CERVER_INC) $(CMONGO_INC) $(CREDIS_INC)
 INCDEP      := -I $(INCDIR)
 
 SOURCES     := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
