@@ -8,7 +8,7 @@
 
 #include <cerver/types/types.h>
 
-#define CATEGORIES_COLL_NAME        "categories"
+#define CATEGORIES_COLL_NAME        "pocket.categories"
 
 #define CATEGORY_ID_SIZE			32
 #define CATEGORY_TITLE_SIZE			1024
@@ -48,25 +48,19 @@ extern void *category_new (void);
 
 extern void category_delete (void *category_ptr);
 
-extern void category_print (Category *category);
+extern void category_print (const Category *category);
 
-extern bson_t *category_query_oid (const bson_oid_t *oid);
-
-extern bson_t *category_query_by_oid_and_user (
-	const bson_oid_t *oid, const bson_oid_t *user_oid
-);
-
-extern u8 category_get_by_oid (
+extern unsigned int category_get_by_oid (
 	Category *category, const bson_oid_t *oid, const bson_t *query_opts
 );
 
-extern u8 category_get_by_oid_and_user (
+extern unsigned int category_get_by_oid_and_user (
 	Category *category,
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts
 );
 
-extern u8 category_get_by_oid_and_user_to_json (
+extern unsigned int category_get_by_oid_and_user_to_json (
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts,
 	char **json, size_t *json_len
