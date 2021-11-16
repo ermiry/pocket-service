@@ -1,15 +1,8 @@
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-#include <cerver/types/types.h>
 
 #include <cerver/http/http.h>
 #include <cerver/http/request.h>
 #include <cerver/http/response.h>
-
-#include <cerver/utils/utils.h>
-#include <cerver/utils/log.h>
 
 #include "pocket.h"
 
