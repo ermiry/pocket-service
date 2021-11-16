@@ -77,7 +77,7 @@ endif
 
 CFLAGS += $(COMMON)
 
-LIB         := -L /usr/local/lib $(PTHREAD) $(MATH) $(OPENSSL) $(CURL) $(MONGOC) $(CERVER) $(CMONGO) $(HIREDIS) $(CREDIS)
+LIB         := -L /usr/local/lib $(PTHREAD) $(MATH) $(OPENSSL) $(MONGOC) $(CERVER) $(CMONGO) $(HIREDIS) $(CREDIS)
 INC         := -I $(INCDIR) -I /usr/local/include $(MONGOC_INC) $(CERVER_INC) $(CMONGO_INC) $(CREDIS_INC)
 INCDEP      := -I $(INCDIR)
 
