@@ -162,6 +162,23 @@ static bson_t *category_query_by_user (
 
 }
 
+bool category_exists (const bson_oid_t *oid) {
+
+	return mongo_check (categories_model, category_query_oid (oid));
+
+}
+
+bool category_exists_with_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
+) {
+
+	return mongo_check (
+		categories_model,
+		category_query_by_oid_and_user (oid, user_oid)
+	);
+
+}
+
 unsigned int category_get_by_oid (
 	Category *category, const bson_oid_t *oid, const bson_t *query_opts
 ) {

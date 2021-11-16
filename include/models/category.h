@@ -50,6 +50,12 @@ extern void category_delete (void *category_ptr);
 
 extern void category_print (const Category *category);
 
+extern bool category_exists (const bson_oid_t *oid);
+
+extern bool category_exists_with_user (
+	const bson_oid_t *oid, const bson_oid_t *user_oid
+);
+
 extern unsigned int category_get_by_oid (
 	Category *category, const bson_oid_t *oid, const bson_t *query_opts
 );
