@@ -11,6 +11,7 @@
 #define TRANSACTIONS_COLL_NAME         	"pocket.transactions"
 
 #define	TRANSACTION_ID_SIZE				32
+#define	TRANSACTION_CATEGORY_SIZE		32
 #define TRANSACTION_TITLE_SIZE			1024
 
 #define TRANSACTION_BUFFER_SIZE			128
@@ -45,6 +46,7 @@ typedef struct Transaction {
 
 	// reference to the owener's defined category
 	bson_oid_t category_oid;
+	char category_id[TRANSACTION_CATEGORY_SIZE];
 
 	// reference to the place where this transaction was made
 	bson_oid_t place_oid;

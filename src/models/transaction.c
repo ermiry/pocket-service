@@ -113,6 +113,7 @@ static void trans_doc_parse (
 
 			else if (!strcmp (key, "category")) {
 				bson_oid_copy (&value->value.v_oid, &trans->category_oid);
+				bson_oid_to_string (&trans->category_oid, trans->category_id);
 			}
 
 			else if (!strcmp (key, "place")) {
