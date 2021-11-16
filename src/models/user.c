@@ -1,9 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-#include <cerver/types/types.h>
-#include <cerver/types/string.h>
+#include <stdbool.h>
 
 #include <cerver/utils/log.h>
 
@@ -57,7 +55,7 @@ void user_delete (void *user_ptr) {
 
 }
 
-void user_print (User *user) {
+void user_print (const User *user) {
 
 	if (user) {
 		(void) printf ("email: %s\n", user->email);
@@ -117,242 +115,62 @@ static void user_doc_parse (
 					USER_USERNAME_SIZE - 1
 				);
 			}
-
-			else if (!strcmp (key, "password") && value->value.v_utf8.str) {
-				(void) strncpy (
-					user->password,
-					value->value.v_utf8.str,
-					USER_PASSWORD_SIZE - 1
-				);
-			}
-
-			else if (!strcmp (key, "transCount")) {
-				user->trans_count = value->value.v_int32;
-			}
-
-			else if (!strcmp (key, "categoriesCount")) {
-				user->categories_count = value->value.v_int32;
-			}
-
-			else if (!strcmp (key, "placesCount")) {
-				user->places_count = value->value.v_int32;
-			}
 		}
 	}
 
 }
 
-bson_t *user_query_id (const char *id) {
+static bson_t *user_query_by_oid (const bson_oid_t *oid) {
 
-	bson_t *query = NULL;
+	bson_t *query = bson_new ();
 
-	if (id) {
-		query = bson_new ();
-		if (query) {
-			bson_oid_t oid = { 0 };
-			bson_oid_init_from_string (&oid, id);
-			(void) bson_append_oid (query, "_id", -1, &oid);
-		}
+	if (query) {
+		(void) bson_append_oid (query, "_id", -1, oid);
 	}
 
 	return query;
 
 }
 
-bson_t *user_query_email (const char *email) {
+static bson_t *user_query_by_email (const char *email) {
 
-	bson_t *query = NULL;
+	bson_t *query = bson_new ();
 
-	if (email) {
-		query = bson_new ();
-		if (query) {
-			(void) bson_append_utf8 (query, "email", -1, email, -1);
-		}
+	if (query) {
+		(void) bson_append_utf8 (query, "email", -1, email, -1);
 	}
 
 	return query;
 
 }
 
-u8 user_get_by_id (
-	User *user, const char *id, const bson_t *query_opts
+unsigned int user_get_by_oid (
+	User *user, const bson_oid_t *oid, const bson_t *query_opts
 ) {
 
-	u8 retval = 1;
-
-	if (user && id) {
-		bson_oid_t oid = { 0 };
-		bson_oid_init_from_string (&oid, id);
-
-		bson_t *user_query = bson_new ();
-		if (user_query) {
-			(void) bson_append_oid (user_query, "_id", -1, &oid);
-			retval = mongo_find_one_with_opts (
-				users_model,
-				user_query, query_opts,
-				user
-			);
-		}
-	}
-
-	return retval;
+	return mongo_find_one_with_opts (
+		users_model,
+		user_query_by_oid (oid), query_opts,
+		user
+	);
 
 }
 
-u8 user_check_by_email (const char *email) {
+bool user_check_by_email (const char *email) {
 
-	return mongo_check (users_model, user_query_email (email));
+	return mongo_check (users_model, user_query_by_email (email));
 
 }
 
 // gets a user from the db by its email
-u8 user_get_by_email (
+unsigned int user_get_by_email (
 	User *user, const char *email, const bson_t *query_opts
 ) {
 
-	u8 retval = 1;
-
-	if (user && email) {
-		bson_t *user_query = bson_new ();
-		if (user_query) {
-			(void) bson_append_utf8 (user_query, "email", -1, email, -1);
-			retval = mongo_find_one_with_opts (
-				users_model,
-				user_query, query_opts,
-				user
-			);
-		}
-	}
-
-	return retval;
-
-}
-
-// gets a user from the db by its username
-u8 user_get_by_username (
-	User *user, const String *username, const bson_t *query_opts
-) {
-
-	u8 retval = 1;
-
-	if (user && username) {
-		bson_t *user_query = bson_new ();
-		if (user_query) {
-			(void) bson_append_utf8 (user_query, "username", -1, username->str, username->len);
-			retval = mongo_find_one_with_opts (
-				users_model,
-				user_query, query_opts,
-				user
-			);
-		}
-	}
-
-	return retval;
-
-}
-
-bson_t *user_bson_create (const User *user) {
-
-	bson_t *doc = NULL;
-
-	if (user) {
-		doc = bson_new ();
-		if (doc) {
-			(void) bson_append_oid (doc, "_id", -1, &user->oid);
-
-			if (user->name) (void) bson_append_utf8 (doc, "name", -1, user->name, -1);
-			if (user->username) (void) bson_append_utf8 (doc, "username", -1, user->username, -1);
-			if (user->email) (void) bson_append_utf8 (doc, "email", -1, user->email, -1);
-			if (user->password) (void) bson_append_utf8 (doc, "password", -1, user->password, -1);
-
-			(void) bson_append_oid (doc, "role", -1, &user->role_oid);
-		}
-	}
-
-	return doc;
-
-}
-
-// adds one to user's transactions count
-bson_t *user_create_update_pocket_transactions (void) {
-
-	bson_t *doc = bson_new ();
-	if (doc) {
-		bson_t inc_doc = BSON_INITIALIZER;
-		(void) bson_append_document_begin (doc, "$inc", -1, &inc_doc);
-		(void) bson_append_int32 (&inc_doc, "transCount", -1, 1);
-		(void) bson_append_document_end (doc, &inc_doc);
-	}
-
-	return doc;
-
-}
-
-// adds one to user's categories count
-bson_t *user_create_update_pocket_categories (void) {
-
-	bson_t *doc = bson_new ();
-	if (doc) {
-		bson_t inc_doc = BSON_INITIALIZER;
-		(void) bson_append_document_begin (doc, "$inc", -1, &inc_doc);
-		(void) bson_append_int32 (&inc_doc, "categoriesCount", -1, 1);
-		(void) bson_append_document_end (doc, &inc_doc);
-	}
-
-	return doc;
-
-}
-
-// adds one to user's places count
-bson_t *user_create_update_pocket_places (void) {
-
-	bson_t *doc = bson_new ();
-	if (doc) {
-		bson_t inc_doc = BSON_INITIALIZER;
-		(void) bson_append_document_begin (doc, "$inc", -1, &inc_doc);
-		(void) bson_append_int32 (&inc_doc, "placesCount", -1, 1);
-		(void) bson_append_document_end (doc, &inc_doc);
-	}
-
-	return doc;
-
-}
-
-unsigned int user_insert_one (const User *user) {
-
-	return mongo_insert_one (
+	return mongo_find_one_with_opts (
 		users_model,
-		user_bson_create (user)
-	);
-
-}
-
-unsigned int user_add_transactions (const User *user) {
-
-	return mongo_update_one (
-		users_model,
-		user_query_id (user->id),
-		user_create_update_pocket_transactions ()
-	);
-
-}
-
-unsigned int user_add_category (const User *user) {
-
-	return mongo_update_one (
-		users_model,
-		user_query_id (user->id),
-		user_create_update_pocket_categories ()
-	);
-
-}
-
-unsigned int user_add_place (const User *user) {
-
-	return mongo_update_one (
-		users_model,
-		user_query_id (user->id),
-		user_create_update_pocket_places ()
+		user_query_by_email (email), query_opts,
+		user
 	);
 
 }
