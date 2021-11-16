@@ -12,7 +12,7 @@
 #include "models/place.h"
 #include "models/user.h"
 
-#define DEFAULT_PLACES_POOL_INIT			32
+#define PLACES_POOL_INIT			32
 
 struct _HttpResponse;
 

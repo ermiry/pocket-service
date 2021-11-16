@@ -14,6 +14,7 @@
 #include <cmongo/crud.h>
 #include <cmongo/select.h>
 
+#include "cache.h"
 #include "errors.h"
 
 #include "models/category.h"
@@ -44,7 +45,7 @@ static unsigned int pocket_categories_init_pool (void) {
 	if (categories_pool) {
 		pool_set_create (categories_pool, category_new);
 		pool_set_produce_if_empty (categories_pool, true);
-		if (!pool_init (categories_pool, category_new, DEFAULT_CATEGORIES_POOL_INIT)) {
+		if (!pool_init (categories_pool, category_new, CATEGORIES_POOL_INIT)) {
 			retval = 0;
 		}
 
@@ -161,6 +162,14 @@ unsigned int pocket_categories_get_all_by_user (
 
 }
 
+bool pocket_category_belongs_to_user (
+	const bson_oid_t *category_oid, const bson_oid_t *user_oid
+) {
+
+	return category_exists_with_user (category_oid, user_oid);
+
+}
+
 Category *pocket_category_get_by_id_and_user (
 	const String *category_id, const bson_oid_t *user_oid
 ) {
@@ -187,13 +196,13 @@ Category *pocket_category_get_by_id_and_user (
 
 }
 
-u8 pocket_category_get_by_id_and_user_to_json (
+unsigned int pocket_category_get_by_id_and_user_to_json (
 	const char *category_id, const bson_oid_t *user_oid,
 	const bson_t *query_opts,
 	char **json, size_t *json_len
 ) {
 
-	u8 retval = 1;
+	unsigned int retval = 1;
 
 	if (category_id) {
 		bson_oid_t category_oid = { 0 };
@@ -222,10 +231,21 @@ static Category *pocket_category_create_actual (
 
 		bson_oid_init_from_string (&category->user_oid, user_id);
 
-		if (title) (void) strncpy (category->title, title, CATEGORY_TITLE_SIZE - 1);
-		if (description) (void) strncpy (category->description, description, CATEGORY_DESCRIPTION_SIZE - 1);
+		if (title) {
+			(void) strncpy (category->title, title, CATEGORY_TITLE_SIZE - 1);
+		}
 
-		if (color) (void) strncpy (category->color, color, CATEGORY_COLOR_SIZE - 1);
+		if (description) {
+			(void) strncpy (
+				category->description,
+				description,
+				CATEGORY_DESCRIPTION_SIZE - 1
+			);
+		}
+
+		if (color) {
+			(void) strncpy (category->color, color, CATEGORY_COLOR_SIZE - 1);
+		}
 		
 		category->date = time (NULL);
 	}
@@ -336,8 +356,10 @@ PocketError pocket_category_create (
 			if (!category_insert_one (
 				category
 			)) {
-				// update users values
-				(void) user_add_category (user);
+				// update stats in cache
+				pocket_cache_user_increment_categories (
+					user->id
+				);
 			}
 
 			else {
@@ -477,7 +499,9 @@ PocketError pocket_category_delete (
 
 void pocket_category_return (void *category_ptr) {
 
-	(void) memset (category_ptr, 0, sizeof (Category));
-	(void) pool_push (categories_pool, category_ptr);
+	if (category_ptr) {
+		(void) memset (category_ptr, 0, sizeof (Category));
+		(void) pool_push (categories_pool, category_ptr);
+	}
 
 }

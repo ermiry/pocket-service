@@ -33,3 +33,39 @@ void pocket_cache_init (void) {
 	);
 
 }
+
+void pocket_cache_user_increment_transactions (
+	const char *user_id
+) {
+
+	// pocket:user:user_id:stats
+	credis_command (
+		"HINCRBY pocket:user:%s:stats transactions 1",
+		user_id
+	);
+
+}
+
+void pocket_cache_user_increment_categories (
+	const char *user_id
+) {
+
+	// pocket:user:user_id:stats
+	credis_command (
+		"HINCRBY pocket:user:%s:stats categories 1",
+		user_id
+	);
+
+}
+
+void pocket_cache_user_increment_places (
+	const char *user_id
+) {
+
+	// pocket:user:user_id:stats
+	credis_command (
+		"HINCRBY pocket:user:%s:stats places 1",
+		user_id
+	);
+
+}
