@@ -101,10 +101,6 @@ void place_print (const Place *place) {
 		(void) printf ("name: %s\n", place->name);
 		(void) printf ("description: %s\n", place->description);
 		(void) printf ("type: %s\n", place_type_to_string (place->type));
-
-		char buffer[128] = { 0 };
-		(void) strftime (buffer, 128, "%d/%m/%y - %T", gmtime (&place->date));
-		(void) printf ("date: %s GMT\n", buffer);
 	}
 
 }
@@ -128,8 +124,9 @@ static void place_doc_parse (
 				bson_oid_to_string (&place->oid, place->id);
 			}
 
-			else if (!strcmp (key, "user"))
+			else if (!strcmp (key, "user")) {
 				bson_oid_copy (&value->value.v_oid, &place->user_oid);
+			}
 
 			else if (!strcmp (key, "name") && value->value.v_utf8.str) {
 				(void) strncpy (
@@ -147,32 +144,31 @@ static void place_doc_parse (
 				);
 			}
 
-			else if (!strcmp (key, "type"))
+			else if (!strcmp (key, "type")) {
 				place->type = value->value.v_int32;
+			}
 
-			else if (!strcmp (key, "date")) 
+			else if (!strcmp (key, "date"))  {
 				place->date = (time_t) bson_iter_date_time (&iter) / 1000;
+			}
 		}
 	}
 
 }
 
-bson_t *place_query_oid (const bson_oid_t *oid) {
+static bson_t *place_query_oid (const bson_oid_t *oid) {
 
-	bson_t *query = NULL;
+	bson_t *query = bson_new ();
 
-	if (oid) {
-		query = bson_new ();
-		if (query) {
-			(void) bson_append_oid (query, "_id", -1, oid);
-		}
+	if (query) {
+		(void) bson_append_oid (query, "_id", -1, oid);
 	}
 
 	return query;
 
 }
 
-bson_t *place_query_by_oid_and_user (
+static bson_t *place_query_by_oid_and_user (
 	const bson_oid_t *oid, const bson_oid_t *user_oid
 ) {
 
@@ -186,77 +182,57 @@ bson_t *place_query_by_oid_and_user (
 
 }
 
-u8 place_get_by_oid (
-	Place *place, const bson_oid_t *oid, const bson_t *query_opts
+static bson_t *place_query_by_user (
+	const bson_oid_t *user_oid
 ) {
 
-	u8 retval = 1;
+	bson_t *query = bson_new ();
 
-	if (place) {
-		bson_t *place_query = bson_new ();
-		if (place_query) {
-			(void) bson_append_oid (place_query, "_id", -1, oid);
-			retval = mongo_find_one_with_opts (
-				places_model,
-				place_query, query_opts,
-				place
-			);
-		}
+	if (query) {
+		(void) bson_append_oid (query, "user", -1, user_oid);
 	}
 
-	return retval;
+	return query;
 
 }
 
-u8 place_get_by_oid_and_user (
+unsigned int place_get_by_oid (
+	Place *place, const bson_oid_t *oid, const bson_t *query_opts
+) {
+
+	return mongo_find_one_with_opts (
+		places_model,
+		place_query_oid (oid), query_opts,
+		place
+	);
+
+}
+
+unsigned int place_get_by_oid_and_user (
 	Place *place,
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts
 ) {
 
-	u8 retval = 1;
-
-	if (place) {
-		bson_t *place_query = place_query_by_oid_and_user (
-			oid, user_oid
-		);
-
-		if (place_query) {
-			retval = mongo_find_one_with_opts (
-				places_model,
-				place_query, query_opts,
-				place
-			);
-		}
-	}
-
-	return retval;
+	return mongo_find_one_with_opts (
+		places_model,
+		place_query_by_oid_and_user (oid, user_oid), query_opts,
+		place
+	);
 
 }
 
-u8 place_get_by_oid_and_user_to_json (
+unsigned int place_get_by_oid_and_user_to_json (
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts,
 	char **json, size_t *json_len
 ) {
 
-	u8 retval = 1;
-
-	if (oid && user_oid) {
-		bson_t *place_query = place_query_by_oid_and_user (
-			oid, user_oid
-		);
-
-		if (place_query) {
-			retval = mongo_find_one_with_opts_to_json (
-				places_model,
-				place_query, query_opts,
-				json, json_len
-			);
-		}
-	}
-
-	return retval;
+	return mongo_find_one_with_opts_to_json (
+		places_model,
+		place_query_by_oid_and_user (oid, user_oid), query_opts,
+		json, json_len
+	);
 
 }
 
@@ -291,62 +267,56 @@ static void place_site_to_bson (
 
 static bson_t *place_to_bson (const Place *place) {
 
-    bson_t *doc = NULL;
+	bson_t *doc = bson_new ();
 
-    if (place) {
-        doc = bson_new ();
-        if (doc) {
-            (void) bson_append_oid (doc, "_id", -1, &place->oid);
+	if (doc) {
+		(void) bson_append_oid (doc, "_id", -1, &place->oid);
 
-			(void) bson_append_oid (doc, "user", -1, &place->user_oid);
+		(void) bson_append_oid (doc, "user", -1, &place->user_oid);
 
-			(void) bson_append_utf8 (doc, "name", -1, place->name, -1);
-			(void) bson_append_utf8 (doc, "description", -1, place->description, -1);
+		(void) bson_append_utf8 (doc, "name", -1, place->name, -1);
+		(void) bson_append_utf8 (doc, "description", -1, place->description, -1);
 
-			(void) bson_append_int32 (doc, "type", -1, place->type);
+		(void) bson_append_int32 (doc, "type", -1, place->type);
 
-			switch (place->type) {
-				case PLACE_TYPE_NONE: break;
+		switch (place->type) {
+			case PLACE_TYPE_NONE: break;
 
-				case PLACE_TYPE_LOCATION: {
-					place_location_to_bson (&place->location, doc);
-				} break;
+			case PLACE_TYPE_LOCATION: {
+				place_location_to_bson (&place->location, doc);
+			} break;
 
-				case PLACE_TYPE_SITE: {
-					place_site_to_bson (&place->site, doc);
-				} break;
-				
-				default: break;
-			}
+			case PLACE_TYPE_SITE: {
+				place_site_to_bson (&place->site, doc);
+			} break;
 
-			(void) bson_append_utf8 (doc, "color", -1, place->color, -1);
+			default: break;
+		}
 
-			(void) bson_append_date_time (doc, "date", -1, place->date * 1000);
-        }
-    }
+		(void) bson_append_utf8 (doc, "color", -1, place->color, -1);
 
-    return doc;
+		(void) bson_append_date_time (doc, "date", -1, place->date * 1000);
+	}
+
+	return doc;
 
 }
 
 static bson_t *place_update_bson (const Place *place) {
 
-	bson_t *doc = NULL;
+	bson_t *doc = bson_new ();
 
-    if (place) {
-        doc = bson_new ();
-        if (doc) {
-			bson_t set_doc = BSON_INITIALIZER;
-			(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
+	if (doc) {
+		bson_t set_doc = BSON_INITIALIZER;
+		(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
 
-			(void) bson_append_utf8 (&set_doc, "name", -1, place->name, -1);
-			(void) bson_append_utf8 (&set_doc, "description", -1, place->description, -1);
-			
-			(void) bson_append_document_end (doc, &set_doc);
-        }
-    }
+		(void) bson_append_utf8 (&set_doc, "name", -1, place->name, -1);
+		(void) bson_append_utf8 (&set_doc, "description", -1, place->description, -1);
 
-    return doc;
+		(void) bson_append_document_end (doc, &set_doc);
+	}
+
+	return doc;
 
 }
 
@@ -355,21 +325,10 @@ mongoc_cursor_t *places_get_all_by_user (
 	const bson_oid_t *user_oid, const bson_t *opts
 ) {
 
-	mongoc_cursor_t *retval = NULL;
-
-	if (user_oid && opts) {
-		bson_t *query = bson_new ();
-		if (query) {
-			(void) bson_append_oid (query, "user", -1, user_oid);
-
-			retval = mongo_find_all_cursor_with_opts (
-				places_model,
-				query, opts
-			);
-		}
-	}
-
-	return retval;
+	return mongo_find_all_cursor_with_opts (
+		places_model,
+		place_query_by_user (user_oid), opts
+	);
 
 }
 
@@ -378,23 +337,12 @@ unsigned int places_get_all_by_user_to_json (
 	char **json, size_t *json_len
 ) {
 
-	unsigned int retval = 1;
-
-	if (user_oid) {
-		bson_t *query = bson_new ();
-		if (query) {
-			(void) bson_append_oid (query, "user", -1, user_oid);
-
-			retval = mongo_find_all_to_json (
-				places_model,
-				query, opts,
-				"places",
-				json, json_len
-			);
-		}
-	}
-
-	return retval;
+	return mongo_find_all_to_json (
+		places_model,
+		place_query_by_user (user_oid), opts,
+		"places",
+		json, json_len
+	);
 
 }
 
@@ -420,20 +368,10 @@ unsigned int place_delete_one_by_oid_and_user (
 	const bson_oid_t *oid, const bson_oid_t *user_oid
 ) {
 
-	unsigned int retval = 1;
-
-	if (oid && user_oid) {
-		bson_t *place_query = place_query_by_oid_and_user (
+	return mongo_delete_one (
+		places_model, place_query_by_oid_and_user (
 			oid, user_oid
-		);
-
-		if (place_query) {
-			retval = mongo_delete_one (
-				places_model, place_query
-			);
-		}
-	}
-
-	return retval;
+		)
+	);
 
 }

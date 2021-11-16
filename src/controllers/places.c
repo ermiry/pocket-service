@@ -14,6 +14,7 @@
 #include <cmongo/crud.h>
 #include <cmongo/select.h>
 
+#include "cache.h"
 #include "errors.h"
 
 #include "models/place.h"
@@ -44,7 +45,7 @@ static unsigned int pocket_places_init_pool (void) {
 	if (places_pool) {
 		pool_set_create (places_pool, place_new);
 		pool_set_produce_if_empty (places_pool, true);
-		if (!pool_init (places_pool, place_new, DEFAULT_PLACES_POOL_INIT)) {
+		if (!pool_init (places_pool, place_new, PLACES_POOL_INIT)) {
 			retval = 0;
 		}
 
@@ -229,7 +230,13 @@ static Place *pocket_place_create_actual (
 		bson_oid_init_from_string (&place->user_oid, user_id);
 
 		if (name) (void) strncpy (place->name, name, PLACE_NAME_SIZE - 1);
-		if (description) (void) strncpy (place->description, description, PLACE_DESCRIPTION_SIZE - 1);
+		if (description) {
+			(void) strncpy (
+				place->description,
+				description,
+				PLACE_DESCRIPTION_SIZE - 1
+			);
+		}
 		
 		place->type = place_type_from_value_string (type);
 
@@ -388,8 +395,10 @@ PocketError pocket_place_create (
 			#endif
 
 			if (!place_insert_one (place)) {
-				// update users values
-				(void) user_add_place (user);
+				// update stats in cache
+				pocket_cache_user_increment_places (
+					user->id
+				);
 			}
 
 			else {
@@ -533,7 +542,9 @@ PocketError pocket_place_delete (
 
 void pocket_place_return (void *place_ptr) {
 
-	(void) memset (place_ptr, 0, sizeof (Place));
-	(void) pool_push (places_pool, place_ptr);
+	if (place_ptr) {
+		(void) memset (place_ptr, 0, sizeof (Place));
+		(void) pool_push (places_pool, place_ptr);
+	}
 
 }

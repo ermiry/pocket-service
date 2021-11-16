@@ -23,19 +23,17 @@
 #include "routes/places.h"
 #include "routes/service.h"
 #include "routes/transactions.h"
-#include "routes/users.h"
 
-static Cerver *pocket_api = NULL;
-HttpCerver *http_cerver = NULL;
+static Cerver *pocket_service = NULL;
 
 void end (int dummy) {
 	
-	if (pocket_api) {
-		cerver_stats_print (pocket_api, false, false);
+	if (pocket_service) {
+		cerver_stats_print (pocket_service, false, false);
 		cerver_log_msg ("\nHTTP Cerver stats:\n");
-		http_cerver_all_stats_print ((HttpCerver *) pocket_api->cerver_data);
+		http_cerver_all_stats_print ((HttpCerver *) pocket_service->cerver_data);
 		cerver_log_line_break ();
-		cerver_teardown (pocket_api);
+		cerver_teardown (pocket_service);
 	}
 
 	(void) pocket_end ();
@@ -153,83 +151,69 @@ static void pocket_set_pocket_routes (HttpCerver *http_cerver) {
 
 }
 
-static void pocket_set_users_routes (HttpCerver *http_cerver) {
-
-	/* register top level route */
-	// GET /api/users
-	HttpRoute *users_route = http_route_create (REQUEST_METHOD_GET, "api/users", users_handler);
-	http_cerver_route_register (http_cerver, users_route);
-
-	/* register users children routes */
-	// POST api/users/login
-	HttpRoute *users_login_route = http_route_create (REQUEST_METHOD_POST, "login", users_login_handler);
-	http_route_child_add (users_route, users_login_route);
-
-	// POST api/users/register
-	HttpRoute *users_register_route = http_route_create (REQUEST_METHOD_POST, "register", users_register_handler);
-	http_route_child_add (users_route, users_register_route);
-
-}
-
 static void start (void) {
 
-	pocket_api = cerver_create (
+	pocket_service = cerver_create (
 		CERVER_TYPE_WEB,
-		"pocket-api",
+		"pocket-service",
 		PORT,
 		PROTOCOL_TCP,
 		false,
 		CERVER_CONNECTION_QUEUE
 	);
 
-	if (pocket_api) {
+	if (pocket_service) {
 		/*** cerver configuration ***/
-		cerver_set_receive_buffer_size (pocket_api, CERVER_RECEIVE_BUFFER_SIZE);
-		cerver_set_thpool_n_threads (pocket_api, CERVER_TH_THREADS);
-		cerver_set_handler_type (pocket_api, CERVER_HANDLER_TYPE_THREADS);
+		cerver_set_alias (pocket_service, "pocket");
 
-		cerver_set_reusable_address_flags (pocket_api, true);
+		cerver_set_receive_buffer_size (pocket_service, CERVER_RECEIVE_BUFFER_SIZE);
+		cerver_set_thpool_n_threads (pocket_service, CERVER_TH_THREADS);
+		cerver_set_handler_type (pocket_service, CERVER_HANDLER_TYPE_THREADS);
+
+		cerver_set_reusable_address_flags (pocket_service, true);
 
 		/*** web cerver configuration ***/
-		http_cerver = (HttpCerver *) pocket_api->cerver_data;
+		HttpCerver *http_cerver = (HttpCerver *) pocket_service->cerver_data;
 
 		http_cerver_auth_set_jwt_algorithm (http_cerver, JWT_ALG_RS256);
-		if (ENABLE_USERS_ROUTES) {
-			http_cerver_auth_set_jwt_priv_key_filename (http_cerver, PRIV_KEY->str);
-		}
-		
-		http_cerver_auth_set_jwt_pub_key_filename (http_cerver, PUB_KEY->str);
+		http_cerver_auth_set_jwt_pub_key_filename (http_cerver, PUB_KEY);
 
 		pocket_set_pocket_routes (http_cerver);
-
-		if (ENABLE_USERS_ROUTES) {
-			pocket_set_users_routes (http_cerver);
-		}
 
 		// add a catch all route
 		http_cerver_set_catch_all_route (http_cerver, pocket_catch_all_handler);
 
-		if (cerver_start (pocket_api)) {
+		// admin configuration
+		http_cerver_enable_admin_routes (http_cerver, true);
+		http_cerver_enable_admin_routes_authentication (
+			http_cerver, HTTP_ROUTE_AUTH_TYPE_BEARER
+		);
+
+		http_cerver_admin_routes_auth_set_decode_data (
+			http_cerver, pocket_user_parse_from_json, pocket_user_delete
+		);
+
+		if (cerver_start (pocket_service)) {
 			cerver_log_error (
 				"Failed to start %s!",
-				pocket_api->info->name->str
+				pocket_service->info->name
 			);
 
-			cerver_delete (pocket_api);
+			cerver_delete (pocket_service);
 		}
 	}
 
 	else {
 		cerver_log_error ("Failed to create cerver!");
 
-		cerver_delete (pocket_api);
+		cerver_delete (pocket_service);
 	}
 
 }
 
 int main (int argc, char const **argv) {
 
-	srand (time (NULL));
+	srand ((unsigned int) time (NULL));
 
 	// register to the quit signal
 	(void) signal (SIGINT, end);

@@ -1,15 +1,8 @@
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-#include <cerver/types/types.h>
 
 #include <cerver/http/http.h>
 #include <cerver/http/request.h>
 #include <cerver/http/response.h>
-
-#include <cerver/utils/utils.h>
-#include <cerver/utils/log.h>
 
 #include "pocket.h"
 
@@ -65,6 +58,6 @@ void pocket_catch_all_handler (
 	const HttpRequest *request
 ) {
 
-	http_response_send (catch_all, http_receive);
+	http_response_send (not_found_error, http_receive);
 
 }

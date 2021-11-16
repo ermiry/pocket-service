@@ -14,11 +14,13 @@
 #include <cmongo/crud.h>
 #include <cmongo/select.h>
 
+#include "cache.h"
 #include "errors.h"
 
 #include "models/transaction.h"
 #include "models/user.h"
 
+#include "controllers/categories.h"
 #include "controllers/transactions.h"
 
 Pool *trans_pool = NULL;
@@ -43,7 +45,7 @@ static unsigned int pocket_trans_init_pool (void) {
 	if (trans_pool) {
 		pool_set_create (trans_pool, transaction_new);
 		pool_set_produce_if_empty (trans_pool, true);
-		if (!pool_init (trans_pool, transaction_new, DEFAULT_TRANS_POOL_INIT)) {
+		if (!pool_init (trans_pool, transaction_new, TRANS_POOL_INIT)) {
 			retval = 0;
 		}
 
@@ -223,6 +225,7 @@ static Transaction *pocket_trans_create_actual (
 
 		if (category_id) {
 			bson_oid_init_from_string (&trans->category_oid, category_id);
+			bson_oid_to_string (&trans->category_oid, trans->category_id);
 		}
 
 		if (date) {
@@ -230,13 +233,14 @@ static Transaction *pocket_trans_create_actual (
 			float s = 0;
 			(void) sscanf (date, "%d-%d-%dT%d:%d:%f", &y, &M, &d, &h, &m, &s);
 
-			struct tm date;
-			date.tm_year = y - 1900;	// Year since 1900
-			date.tm_mon = M - 1;		// 0-11
-			date.tm_mday = d;			// 1-31
-			date.tm_hour = h;			// 0-23
-			date.tm_min = m;			// 0-59
-			date.tm_sec = (int) s;		// 0-61 (0-60 in C++11)
+			struct tm date = {
+				.tm_year = y - 1900,	// Year since 1900
+				.tm_mon = M - 1,		// 0-11
+				.tm_mday = d,			// 1-31
+				.tm_hour = h,			// 0-23
+				.tm_min = m,			// 0-59
+				.tm_sec = (int) s		// 0-61 (0-60 in C++11)
+			};
 
 			trans->date = mktime (&date);
 		}
@@ -375,13 +379,30 @@ PocketError pocket_trans_create (
 			transaction_print (trans);
 			#endif
 
-			if (!transaction_insert_one (trans)) {
-				// update users values
-				(void) user_add_transactions (user);
+			if (pocket_category_belongs_to_user (
+				&trans->category_oid, &user->oid
+			)) {
+				if (!transaction_insert_one (trans)) {
+					// update stats in cache
+					pocket_cache_user_increment_transactions (
+						user->id
+					);
+				}
+
+				else {
+					cerver_log_error ("Failed to save transaction!");
+
+					error = POCKET_ERROR_SERVER_ERROR;
+				}
 			}
 
 			else {
-				error = POCKET_ERROR_SERVER_ERROR;
+				cerver_log_error (
+					"Category %s does not exist with user %s",
+					trans->category_id, user->id
+				);
+
+				error = POCKET_ERROR_NOT_FOUND;
 			}
 
 			pocket_trans_return (trans);
@@ -421,10 +442,19 @@ static PocketError pocket_trans_update_parse_json (
 			&category_id, &place_id, &date
 		);
 
-		if (title) (void) strncpy (trans->title, title, TRANSACTION_TITLE_SIZE - 1);
+		if (title) {
+			(void) strncpy (trans->title, title, TRANSACTION_TITLE_SIZE - 1);
+		}
+
 		trans->amount = amount;
-		if (category_id) (void) bson_oid_init_from_string (&trans->category_oid, category_id);
-		if (place_id) (void) bson_oid_init_from_string (&trans->place_oid, place_id);
+
+		if (category_id) {
+			(void) bson_oid_init_from_string (&trans->category_oid, category_id);
+		}
+
+		if (place_id) {
+			(void) bson_oid_init_from_string (&trans->place_oid, place_id);
+		}
 
 		json_decref (json_body);
 	}
@@ -518,7 +548,9 @@ PocketError pocket_trans_delete (
 
 void pocket_trans_return (void *trans_ptr) {
 
-	(void) memset (trans_ptr, 0, sizeof (Transaction));
-	(void) pool_push (trans_pool, trans_ptr);
+	if (trans_ptr) {
+		(void) memset (trans_ptr, 0, sizeof (Transaction));
+		(void) pool_push (trans_pool, trans_ptr);
+	}
 
 }

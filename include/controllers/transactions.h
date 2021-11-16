@@ -10,7 +10,7 @@
 #include "models/transaction.h"
 #include "models/user.h"
 
-#define DEFAULT_TRANS_POOL_INIT			32
+#define TRANS_POOL_INIT			32
 
 struct _HttpResponse;
 

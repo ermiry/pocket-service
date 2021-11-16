@@ -4,7 +4,7 @@
 
 #include "runtime.h"
 
-const char *runtime_to_string (RuntimeType type) {
+const char *runtime_to_string (const RuntimeType type) {
 
 	switch (type) {
 		#define XX(num, name, string) case RUNTIME_TYPE_##name: return #string;
@@ -20,6 +20,7 @@ const RuntimeType runtime_from_string (const char *string) {
 
 	if (string) {
 		if (!strcasecmp ("development", string)) return RUNTIME_TYPE_DEVELOPMENT;
+		if (!strcasecmp ("local", string)) return RUNTIME_TYPE_LOCAL;
 		if (!strcasecmp ("test", string)) return RUNTIME_TYPE_TEST;
 		if (!strcasecmp ("production", string)) return RUNTIME_TYPE_PRODUCTION;
 	}

@@ -26,7 +26,9 @@ void pocket_error_send_response (
 ) {
 
 	switch (error) {
-		case POCKET_ERROR_NONE: break;
+		case POCKET_ERROR_NONE:
+			(void) http_response_send (oki_doki, http_receive);
+			break;
 
 		case POCKET_ERROR_BAD_REQUEST:
 			(void) http_response_send (bad_request_error, http_receive);

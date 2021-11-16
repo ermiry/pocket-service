@@ -4,10 +4,13 @@
 #include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
-#define ACTIONS_COLL_NAME  			"actions"
+#include <cerver/collections/dlist.h>
 
+#define ACTIONS_COLL_NAME  				"actions"
+
+#define ACTION_ID_SIZE					32
 #define ACTION_NAME_SIZE				128
-#define ACTION_DESCRIPTION_SIZE		256
+#define ACTION_DESCRIPTION_SIZE			256
 
 extern unsigned int actions_model_init (void);
 
@@ -16,6 +19,7 @@ extern void actions_model_end (void);
 struct _RoleAction {
 
 	bson_oid_t oid;
+	char id[ACTION_ID_SIZE];
 
 	char name[ACTION_NAME_SIZE];
 	char description[ACTION_DESCRIPTION_SIZE];
@@ -32,28 +36,19 @@ extern RoleAction *action_create (
 	const char *name, const char *description
 );
 
-extern void action_print (RoleAction *action);
-
-// creates a action bson with all action parameters
-extern bson_t *action_bson_create (
-	RoleAction *action
+extern int action_comparator_by_name (
+	const void *a, const void *b
 );
 
-extern void action_doc_parse (
-	void *action_ptr, const bson_t *action_doc
-);
+extern void action_print (const RoleAction *action);
 
-// gets an action form the db by its name
-extern RoleAction *action_get_by_name (
+extern DoubleList *actions_get_all (void);
+
+extern unsigned int action_get_by_name (
+	RoleAction *action,
 	const char *name
 );
 
-extern bson_t *action_bson_create_name_query (
-	const char *name
-);
-
-extern bson_t *action_bson_create_update (
-	const char *name, const char *description
-);
+extern unsigned int action_save (const RoleAction *action);
 
 #endif

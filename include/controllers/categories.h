@@ -10,7 +10,7 @@
 #include "models/category.h"
 #include "models/user.h"
 
-#define DEFAULT_CATEGORIES_POOL_INIT			32
+#define CATEGORIES_POOL_INIT			32
 
 struct _HttpResponse;
 
@@ -35,11 +35,15 @@ extern unsigned int pocket_categories_get_all_by_user (
 	char **json, size_t *json_len
 );
 
+extern bool pocket_category_belongs_to_user (
+	const bson_oid_t *category_oid, const bson_oid_t *user_oid
+);
+
 extern Category *pocket_category_get_by_id_and_user (
 	const String *category_id, const bson_oid_t *user_oid
 );
 
-extern u8 pocket_category_get_by_id_and_user_to_json (
+extern unsigned int pocket_category_get_by_id_and_user_to_json (
 	const char *category_id, const bson_oid_t *user_oid,
 	const bson_t *query_opts,
 	char **json, size_t *json_len

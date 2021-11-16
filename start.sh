@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./bin/tiny-pocket-api
+./bin/pocket-service

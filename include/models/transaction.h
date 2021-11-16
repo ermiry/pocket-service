@@ -3,15 +3,18 @@
 
 #include <time.h>
 
-#include <mongoc/mongoc.h>
 #include <bson/bson.h>
+#include <mongoc/mongoc.h>
 
 #include <cerver/types/types.h>
 
-#define TRANSACTIONS_COLL_NAME         	"transactions"
+#define TRANSACTIONS_COLL_NAME         	"pocket.transactions"
 
 #define	TRANSACTION_ID_SIZE				32
+#define	TRANSACTION_CATEGORY_SIZE		32
 #define TRANSACTION_TITLE_SIZE			1024
+
+#define TRANSACTION_BUFFER_SIZE			128
 
 extern unsigned int transactions_model_init (void);
 
@@ -30,7 +33,7 @@ typedef enum TransType {
 
 } TransType;
 
-extern const char *trans_type_to_string (TransType type);
+extern const char *trans_type_to_string (const TransType type);
 
 typedef struct Transaction {
 
@@ -43,6 +46,7 @@ typedef struct Transaction {
 
 	// reference to the owener's defined category
 	bson_oid_t category_oid;
+	char category_id[TRANSACTION_CATEGORY_SIZE];
 
 	// reference to the place where this transaction was made
 	bson_oid_t place_oid;
@@ -75,25 +79,19 @@ extern void *transaction_new (void);
 
 extern void transaction_delete (void *transaction_ptr);
 
-extern void transaction_print (Transaction *transaction);
+extern void transaction_print (const Transaction *transaction);
 
-extern bson_t *transaction_query_oid (const bson_oid_t *oid);
-
-extern bson_t *transaction_query_by_oid_and_user (
-	const bson_oid_t *oid, const bson_oid_t *user_oid
-);
-
-extern u8 transaction_get_by_oid (
+extern unsigned int transaction_get_by_oid (
 	Transaction *trans, const bson_oid_t *oid, const bson_t *query_opts
 );
 
-extern u8 transaction_get_by_oid_and_user (
+extern unsigned int transaction_get_by_oid_and_user (
 	Transaction *trans,
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts
 );
 
-extern u8 transaction_get_by_oid_and_user_to_json (
+extern unsigned int transaction_get_by_oid_and_user_to_json (
 	const bson_oid_t *oid, const bson_oid_t *user_oid,
 	const bson_t *query_opts,
 	char **json, size_t *json_len

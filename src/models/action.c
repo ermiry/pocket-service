@@ -4,6 +4,8 @@
 #include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
+#include <cerver/collections/dlist.h>
+
 #include <cmongo/collections.h>
 #include <cmongo/crud.h>
 #include <cmongo/model.h>
@@ -12,7 +14,7 @@
 
 static CMongoModel *actions_model = NULL;
 
-void action_doc_parse (
+static void action_doc_parse (
 	void *action_ptr, const bson_t *action_doc
 );
 
@@ -60,24 +62,26 @@ RoleAction *action_create (
 
 	RoleAction *action = action_new ();
 	if (action) {
-		if (name) {
-			(void) strncpy (
-				action->name, name, ACTION_NAME_SIZE - 1
-			);
-		}
+		bson_oid_init (&action->oid, NULL);
+		bson_oid_to_string (&action->oid, action->id);
 
-		if (description) {
-			(void) strncpy (
-				action->description, description, ACTION_DESCRIPTION_SIZE - 1
-			);
-		}
+		(void) strncpy (action->name, name, ACTION_NAME_SIZE - 1);
+		(void) strncpy (action->description, description, ACTION_DESCRIPTION_SIZE - 1);
 	}
 
 	return action;
 
 }
 
-void action_print (RoleAction *action) {
+int action_comparator_by_name (
+	const void *a, const void *b
+) {
+
+	return strcmp (((RoleAction *) a)->name, ((RoleAction *) b)->name);
+
+}
+
+void action_print (const RoleAction *action) {
 
 	if (action) {
 		(void) printf ("Name: %s\n", action->name);
@@ -86,32 +90,7 @@ void action_print (RoleAction *action) {
 
 }
 
-// creates a action bson with all action parameters
-bson_t *action_bson_create (RoleAction *action) {
-
-	bson_t *doc = NULL;
-
-	if (action) {
-		doc = bson_new ();
-		if (doc) {
-			bson_oid_init (&action->oid, NULL);
-			(void) bson_append_oid (doc, "_id", -1, &action->oid);
-
-			(void) bson_append_utf8 (
-				doc, "name", -1, action->name, -1
-			);
-
-			(void) bson_append_utf8 (
-				doc, "description", -1, action->description, -1
-			);
-		}
-	}
-
-	return doc;
-
-}
-
-void action_doc_parse (
+static void action_doc_parse (
 	void *action_ptr, const bson_t *action_doc
 ) {
 
@@ -125,21 +104,18 @@ void action_doc_parse (
 
 			if (!strcmp (key, "_id")) {
 				bson_oid_copy (&value->value.v_oid, &action->oid);
+				bson_oid_to_string (&action->oid, action->id);
 			}
 
 			else if (!strcmp (key, "name") && value->value.v_utf8.str) {
 				(void) strncpy (
-					action->name,
-					value->value.v_utf8.str,
-					ACTION_NAME_SIZE - 1
+					action->name, value->value.v_utf8.str, ACTION_NAME_SIZE - 1
 				);
 			}
 
 			else if (!strcmp (key, "description") && value->value.v_utf8.str) {
 				(void) strncpy (
-					action->description,
-					value->value.v_utf8.str,
-					ACTION_DESCRIPTION_SIZE - 1
+					action->description, value->value.v_utf8.str, ACTION_DESCRIPTION_SIZE - 1
 				);
 			}
 		}
@@ -147,66 +123,94 @@ void action_doc_parse (
 
 }
 
-// gets an action form the db by its name
-RoleAction *action_get_by_name (const char *name) {
+static bson_t *action_query_by_name (
+	const char *name
+) {
 
-	RoleAction *action = NULL;
-
-	if (name) {
-		action = action_new ();
-
-		bson_t *action_query = bson_new ();
-		if (action_query) {
-			(void) bson_append_utf8 (action_query, "name", -1, name, -1);
-			if (mongo_find_one (
-				actions_model,
-				action_query, NULL,
-				action
-			)) {
-				action_delete (action);
-				action = NULL;
-			}
-		}
-	}
-
-	return action;
-
-}
-
-bson_t *action_bson_create_name_query (const char *name) {
-
-	bson_t *action_query = NULL;
-
-	if (name) {
-		action_query = bson_new ();
-		if (action_query) {
-			(void) bson_append_utf8 (action_query, "name", -1, name, -1);
-		}
+	bson_t *action_query = bson_new ();
+	if (action_query) {
+		(void) bson_append_utf8 (action_query, "name", -1, name, -1);
 	}
 
 	return action_query;
 
 }
 
-bson_t *action_bson_create_update (
-	const char *name, const char *description
+DoubleList *actions_get_all (void) {
+
+	DoubleList *actions = NULL;
+
+	uint64_t n_docs = 0;
+	mongoc_cursor_t *actions_cursor = mongo_find_all_cursor (
+		actions_model, bson_new (), NULL, &n_docs
+	);
+
+	if (actions_cursor) {
+		actions = dlist_init (action_delete, action_comparator_by_name);
+
+		RoleAction *action = NULL;
+
+		const bson_t *action_doc = NULL;
+		while (mongoc_cursor_next (actions_cursor, &action_doc)) {
+			action = action_new ();
+			if (action) {
+				action_doc_parse (action, action_doc);
+
+				(void) dlist_insert_after (
+					actions,
+					dlist_end (actions),
+					action
+				);
+			}
+		}
+
+		mongoc_cursor_destroy (actions_cursor);
+	}
+
+	return actions;
+
+}
+
+unsigned int action_get_by_name (
+	RoleAction *action,
+	const char *name
 ) {
 
-	bson_t *doc = NULL;
+	unsigned int retval = 1;
 
-	if (name && description) {
-		doc = bson_new ();
-		if (doc) {
-			bson_t set_doc = BSON_INITIALIZER;
-			(void) bson_append_document_begin (doc, "$set", -1, &set_doc);
-
-			(void) bson_append_utf8 (&set_doc, "name", -1, name, -1);
-			(void) bson_append_utf8 (&set_doc, "description", -1, description, -1);
-
-			(void) bson_append_document_end (doc, &set_doc);
+	if (action && name) {
+		bson_t *action_query = action_query_by_name (name);
+		if (action_query) {
+			retval = mongo_find_one_with_opts (
+				actions_model,
+				action_query, NULL,
+				action
+			);
 		}
 	}
 
+	return retval;
+
+}
+
+static bson_t *action_bson_create (const RoleAction *action) {
+
+	bson_t *doc = bson_new ();
+	if (doc) {
+		(void) bson_append_oid (doc, "_id", -1, &action->oid);
+
+		(void) bson_append_utf8 (doc, "name", -1, action->name, -1);
+		(void) bson_append_utf8 (doc, "description", -1, action->description, -1);
+	}
+
 	return doc;
+
+}
+
+unsigned int action_save (const RoleAction *action) {
+
+	return mongo_insert_one (
+		actions_model, action_bson_create (action)
+	);
 
 }
