@@ -4,37 +4,19 @@
 ```
 sudo docker run \
   -it \
-  --name pocket-api --rm \
-  -p 5002 --net ermiry \
-  -v /home/ermiry/Documents/ermiry/website/tiny-pocket-api:/home/pocket \
-  -v /home/ermiry/Documents/ermiry/website/ermiry-website/jwt:/home/pocket/keys \
+  --name pocket --rm \
+  -p 5004:5004 --net ermiry \
+  -v /home/ermiry/Documents/ermiry/ermiry-web/pocket-service:/home/pocket \
+  -v /home/ermiry/Documents/ermiry/ermiry-web/keys:/home/keys \
   -e RUNTIME=development \
-  -e PORT=5002 \
+  -e PORT=5004 \
   -e CERVER_RECEIVE_BUFFER_SIZE=4096 -e CERVER_TH_THREADS=4 \
   -e CERVER_CONNECTION_QUEUE=4 \
   -e MONGO_APP_NAME=pocket -e MONGO_DB=ermiry \
-  -e MONGO_URI=mongodb://pocket:password@192.168.100.39:27017/ermiry \
-  -e PRIV_KEY=/home/pocket/keys/key.key -e PUB_KEY=/home/pocket/keys/key.pub \
-  -e ENABLE_USERS_ROUTES=TRUE \
-  ermiry/tiny-pocket-api:development /bin/bash
-```
-
-```
-sudo docker run \
-  -it \
-  --name pocket-api --rm \
-  -p 5002 --net ermiry \
-  -v /home/ermiry/Documents/ermiry/website/tiny-pocket-api:/home/pocket \
-  -v /home/ermiry/Documents/ermiry/website/ermiry-website/jwt:/home/pocket/keys \
-  -e RUNTIME=development \
-  -e PORT=5002 \
-  -e CERVER_RECEIVE_BUFFER_SIZE=4096 -e CERVER_TH_THREADS=16 \
-  -e CERVER_CONNECTION_QUEUE=16 \
-  -e MONGO_APP_NAME=pocket -e MONGO_DB=ermiry \
-  -e MONGO_URI=mongodb://pocket:password@192.168.100.39:27017/ermiry \
-  -e PRIV_KEY=/home/pocket/keys/key.key -e PUB_KEY=/home/pocket/keys/key.pub \
-  -e ENABLE_USERS_ROUTES=FALSE \
-  ermiry/tiny-pocket-api:development /bin/bash
+  -e MONGO_URI=mongodb://pocket:password@mongo:27017/ermiry \
+  -e PUB_KEY=/home/keys/key.pub \
+  -e CONNECT_TO_REDIS=true -e REDIS_HOSTNAME=redis \
+  ermiry/pocket-service:development /bin/bash
 ```
 
 ## Routes
@@ -47,38 +29,40 @@ sudo docker run \
 **Returns:**
   - 200 on success
 
-#### GET api/pocket/version
+#### GET /api/pocket/version
 **Access:** Public \
-**Description:** Returns pocket-api service current version \
+**Description:** Returns pocket service current version \
 **Returns:**
   - 200 and version's json on success
 
-#### GET api/pocket/auth
+#### GET /api/pocket/auth
 **Access:** Private \
-**Description:** Used to test if jwt keys work correctly \
+**Description:** Used to test if JWT keys work correctly \
 **Returns:**
   - 200 on success
   - 401 on failed auth
 
 ### Transactions
 
-#### GET api/pocket/transactions
+#### GET /api/pocket/transactions
 **Access:** Private \
 **Description:** Get all the authenticated user's transactions \
 **Returns:**
-  - 200 and transactions json on success
-  - 401 on failed auth
-
-#### POST api/pocket/transactions
-**Access:** Private \
-**Description:** A user has requested to create a new transaction \
-**Returns:**
-  - 200 on success creating transaction
-  - 400 on failed to create new transaction
+  - 200 on success
+  - 400 on bad request
   - 401 on failed auth
   - 500 on server error
 
-#### GET api/pocket/transactions/:id/info
+#### POST /api/pocket/transactions
+**Access:** Private \
+**Description:** A user has requested to create a new transaction \
+**Returns:**
+  - 200 on success
+  - 400 on bad request
+  - 401 on failed auth
+  - 500 on server error
+
+#### GET /api/pocket/transactions/:id/info
 **Access:** Private \
 **Description:** Returns information about an existing transaction that belongs to a user \
 **Returns:**
@@ -86,7 +70,7 @@ sudo docker run \
   - 401 on failed auth
   - 404 on transaction not found
 
-#### PUT api/pocket/transactions/:id/update
+#### PUT /api/pocket/transactions/:id/update
 **Access:** Private \
 **Description:** A user wants to update an existing transaction \
 **Returns:**
@@ -95,7 +79,7 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### DELETE api/pocket/transactions/:id/remove
+#### DELETE /api/pocket/transactions/:id/remove
 **Access:** Private \
 **Description:** Deletes an existing user's transaction \
 **Returns:**
@@ -106,14 +90,14 @@ sudo docker run \
 
 ### Categories
 
-#### GET api/pocket/categories
+#### GET /api/pocket/categories
 **Access:** Private \
 **Description:** Get all the authenticated user's categories \
 **Returns:**
   - 200 and categories json on success
   - 401 on failed auth
 
-#### POST api/pocket/categories
+#### POST /api/pocket/categories
 **Access:** Private \
 **Description:** A user has requested to create a new category \
 **Returns:**
@@ -122,7 +106,7 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### GET api/pocket/categories/:id/info
+#### GET /api/pocket/categories/:id/info
 **Access:** Private \
 **Description:** Returns information about an existing category that belongs to a user \
 **Returns:**
@@ -130,7 +114,7 @@ sudo docker run \
   - 401 on failed auth
   - 404 on category not found
 
-#### PUT api/pocket/categories/:id/update
+#### PUT /api/pocket/categories/:id/update
 **Access:** Private \
 **Description:** A user wants to update an existing category \
 **Returns:**
@@ -139,7 +123,7 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### DELETE api/pocket/categories/:id/remove
+#### DELETE /api/pocket/categories/:id/remove
 **Access:** Private \
 **Description:** Deletes an existing user's category \
 **Returns:**
@@ -150,14 +134,14 @@ sudo docker run \
 
 ### Places
 
-#### GET api/pocket/places
+#### GET /api/pocket/places
 **Access:** Private \
 **Description:** Get all the authenticated user's places \
 **Returns:**
   - 200 and places json on success
   - 401 on failed auth
 
-#### POST api/pocket/places
+#### POST /api/pocket/places
 **Access:** Private \
 **Description:** A user has requested to create a new place \
 **Returns:**
@@ -166,7 +150,7 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### GET api/pocket/places/:id/info
+#### GET /api/pocket/places/:id/info
 **Access:** Private \
 **Description:** Returns information about an existing place that belongs to a user \
 **Returns:**
@@ -174,7 +158,7 @@ sudo docker run \
   - 401 on failed auth
   - 404 on place not found
 
-#### PUT api/pocket/places/:id/update
+#### PUT /api/pocket/places/:id/update
 **Access:** Private \
 **Description:** A user wants to update an existing place \
 **Returns:**
@@ -183,36 +167,11 @@ sudo docker run \
   - 401 on failed auth
   - 500 on server error
 
-#### DELETE api/pocket/places/:id/remove
+#### DELETE /api/pocket/places/:id/remove
 **Access:** Private \
 **Description:** Deletes an existing user's place \
 **Returns:**
   - 200 on success deleting user's place
   - 400 on bad request
   - 401 on failed auth
-  - 500 on server error
-
-### Users
-
-#### GET /api/users
-**Access:** Public \
-**Description:** Users top level route \
-**Returns:**
-  - 200 on success
-
-#### POST api/users/login
-**Access:** Public \
-**Description:** Uses the user's supplied creedentials to perform a login and generate a jwt token \
-**Returns:**
-  - 200 and token on success authenticating user
-  - 400 on bad request due to missing values
-  - 404 on user not found
-  - 500 on server error
-
-#### POST api/users/register
-**Access:** Public \
-**Description:** Used by users to create a new account \
-**Returns:**
-  - 200 and token on success creating a new user
-  - 400 on bad request due to missing values
   - 500 on server error
