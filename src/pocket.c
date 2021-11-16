@@ -15,6 +15,7 @@
 
 #include <credis/redis.h>
 
+#include "cache.h"
 #include "pocket.h"
 #include "runtime.h"
 #include "version.h"
@@ -381,7 +382,10 @@ static unsigned int pocket_redis_init (void) {
 			credis_set_hostname (hostname);
 
 			if (!credis_init ()) {
-				result = credis_ping_db ();
+				if (!credis_ping_db ()) {
+					pocket_cache_init ();
+					result = 0;
+				}
 			}
 
 			free (hostname);

@@ -7,6 +7,7 @@
 #include <credis/redis.h>
 
 #include "pocket.h"
+#include "runtime.h"
 #include "version.h"
 
 void pocket_cache_init (void) {
@@ -14,11 +15,11 @@ void pocket_cache_init (void) {
 	// web:service_name:state
 	(void) credis_command (
 		"HMSET web:pocket:state "
-		"runtime %d port %u start_time %ld "
+		"runtime %s port %u "
 		"cerver_receive_buffer_size %u cerver_th_threads %u "
 		"cerver_connection_queue %u "
 		"started %ld",
-		RUNTIME, PORT, time (NULL),
+		runtime_to_string (RUNTIME), PORT,
 		CERVER_RECEIVE_BUFFER_SIZE, CERVER_TH_THREADS,
 		CERVER_CONNECTION_QUEUE,
 		time (NULL)
