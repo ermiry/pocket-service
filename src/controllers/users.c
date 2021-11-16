@@ -4,20 +4,13 @@
 
 #include <cerver/types/string.h>
 
-#include <cerver/collections/dlist.h>
 #include <cerver/collections/pool.h>
 
 #include <cerver/handler.h>
 
-#include <cerver/http/http.h>
-#include <cerver/http/response.h>
 #include <cerver/http/json/json.h>
 
 #include <cerver/utils/log.h>
-#include <cerver/utils/utils.h>
-
-#include <cmongo/crud.h>
-#include <cmongo/select.h>
 
 #include "pocket.h"
 
@@ -27,24 +20,6 @@
 #include "models/user.h"
 
 static Pool *users_pool = NULL;
-
-const bson_t *user_login_query_opts = NULL;
-static CMongoSelect *user_login_select = NULL;
-
-const bson_t *user_transactions_query_opts = NULL;
-static CMongoSelect *user_transactions_select = NULL;
-
-const bson_t *user_categories_query_opts = NULL;
-static CMongoSelect *user_categories_select = NULL;
-
-const bson_t *user_places_query_opts = NULL;
-static CMongoSelect *user_places_select = NULL;
-
-HttpResponse *users_works = NULL;
-HttpResponse *missing_user_values = NULL;
-HttpResponse *wrong_password = NULL;
-HttpResponse *user_not_found = NULL;
-HttpResponse *repeated_email = NULL;
 
 static unsigned int pocket_users_init_pool (void) {
 
@@ -71,111 +46,17 @@ static unsigned int pocket_users_init_pool (void) {
 
 }
 
-static unsigned int pocket_users_init_query_opts (void) {
-
-	unsigned int retval = 1;
-
-	user_login_select = cmongo_select_new ();
-	(void) cmongo_select_insert_field (user_login_select, "name");
-	(void) cmongo_select_insert_field (user_login_select, "username");
-	(void) cmongo_select_insert_field (user_login_select, "email");
-	(void) cmongo_select_insert_field (user_login_select, "password");
-	(void) cmongo_select_insert_field (user_login_select, "role");
-
-	user_login_query_opts = mongo_find_generate_opts (user_login_select);
-
-	user_transactions_select = cmongo_select_new ();
-	(void) cmongo_select_insert_field (user_transactions_select, "transCount");
-
-	user_transactions_query_opts = mongo_find_generate_opts (user_transactions_select);
-
-	user_categories_select = cmongo_select_new ();
-	(void) cmongo_select_insert_field (user_categories_select, "categoriesCount");
-
-	user_categories_query_opts = mongo_find_generate_opts (user_categories_select);
-
-	user_places_select = cmongo_select_new ();
-	(void) cmongo_select_insert_field (user_places_select, "placesCount");
-
-	user_places_query_opts = mongo_find_generate_opts (user_places_select);
-
-	if (
-		user_login_query_opts
-		&& user_transactions_query_opts
-		&& user_categories_query_opts
-		&& user_places_query_opts
-	) retval = 0;
-
-	return retval;
-
-}
-
-static unsigned int pocket_users_init_responses (void) {
-
-	unsigned int retval = 1;
-
-	users_works = http_response_json_key_value (
-		HTTP_STATUS_OK, "msg", "Users works!"
-	);
-
-	missing_user_values = http_response_json_key_value (
-		HTTP_STATUS_BAD_REQUEST, "error", "Missing user values!"
-	);
-
-	wrong_password = http_response_json_key_value (
-		HTTP_STATUS_BAD_REQUEST, "error", "Password is incorrect!"
-	);
-
-	user_not_found = http_response_json_key_value (
-		HTTP_STATUS_NOT_FOUND, "error", "User not found!"
-	);
-
-	repeated_email = http_response_json_key_value (
-		HTTP_STATUS_BAD_REQUEST, "error", "Email was already registered!"
-	);
-
-	if (
-		users_works
-		&& missing_user_values && wrong_password && user_not_found
-	) retval = 0;
-
-	return retval;
-
-}
-
 unsigned int pocket_users_init (void) {
 
 	unsigned int errors = 0;
 
 	errors |= pocket_users_init_pool ();
 
-	errors |= pocket_users_init_query_opts ();
-
-	errors |= pocket_users_init_responses ();
-
 	return errors;
 
 }
 
 void pocket_users_end (void) {
-
-	cmongo_select_delete (user_login_select);
-	bson_destroy ((bson_t *) user_login_query_opts);
-
-	cmongo_select_delete (user_transactions_select);
-	bson_destroy ((bson_t *) user_transactions_query_opts);
-
-	cmongo_select_delete (user_categories_select);
-	bson_destroy ((bson_t *) user_categories_query_opts);
-
-	cmongo_select_delete (user_places_select);
-	bson_destroy ((bson_t *) user_places_query_opts);
-
-	http_response_delete (users_works);
-	http_response_delete (missing_user_values);
-	http_response_delete (wrong_password);
-	http_response_delete (user_not_found);
-	http_response_delete (repeated_email);
 
 	pool_delete (users_pool);
 	users_pool = NULL;
@@ -194,7 +75,7 @@ User *pocket_user_get_by_email (const char *email) {
 	if (email) {
 		user = (User *) pool_pop (users_pool);
 		if (user) {
-			if (user_get_by_email (user, email, user_login_query_opts)) {
+			if (user_get_by_email (user, email, NULL)) {
 				(void) pool_push (users_pool, user);
 				user = NULL;
 			}
@@ -205,9 +86,7 @@ User *pocket_user_get_by_email (const char *email) {
 
 }
 
-unsigned int pocket_user_check_by_email (
-	const char *email
-) {
+bool pocket_user_check_by_email (const char *email) {
 
 	return user_check_by_email (email);
 
@@ -251,9 +130,9 @@ void *pocket_user_parse_from_json (void *user_json_ptr) {
 
 			bson_oid_init_from_string (&user->oid, user->id);
 
-			if (RUNTIME == RUNTIME_TYPE_DEVELOPMENT) {
-				user_print (user);
-			}
+			// if (RUNTIME == RUNTIME_TYPE_DEVELOPMENT) {
+			// 	user_print (user);
+			// }
 		}
 
 		else {

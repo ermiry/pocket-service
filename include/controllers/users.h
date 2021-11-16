@@ -1,27 +1,9 @@
 #ifndef _POCKET_USERS_H_
 #define _POCKET_USERS_H_
 
-#include <bson/bson.h>
-
-#include <cerver/collections/dlist.h>
-
 #include "models/user.h"
 
 #define DEFAULT_USERS_POOL_INIT			16
-
-struct _HttpReceive;
-struct _HttpResponse;
-
-extern const bson_t *user_login_query_opts;
-extern const bson_t *user_transactions_query_opts;
-extern const bson_t *user_categories_query_opts;
-extern const bson_t *user_places_query_opts;
-
-extern struct _HttpResponse *users_works;
-extern struct _HttpResponse *missing_user_values;
-extern struct _HttpResponse *wrong_password;
-extern struct _HttpResponse *user_not_found;
-extern struct _HttpResponse *repeated_email;
 
 extern unsigned int pocket_users_init (void);
 
@@ -31,9 +13,7 @@ extern User *pocket_user_get (void);
 
 extern User *pocket_user_get_by_email (const char *email);
 
-extern unsigned int pocket_user_check_by_email (
-	const char *email
-);
+extern bool pocket_user_check_by_email (const char *email);
 
 // {
 //   "email": "erick.salas@ermiry.com",
